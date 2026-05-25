@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}Database Tables — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.page-head { margin-bottom: 24px; }
+.page-head h1 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; margin-bottom: 4px; }
+.page-head p  { font-size: 13.5px; color: var(--text-soft); }
+
+.upload-zone {
+  border: 2px dashed var(--primary-border); border-radius: var(--radius);
+  padding: 40px 24px; text-align: center; cursor: pointer;
+  background: var(--primary-bg); transition: all .2s;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--primary); background: #EDE9FE;
+}
+.upload-zone.has-file { border-color: var(--success); background: #F0FDF4; }
+.upload-icon { font-size: 36px; color: var(--primary); margin-bottom: 10px; opacity: .6; }
+.upload-zone.has-file .upload-icon { color: var(--success); opacity: 1; }
+.upload-hint { font-size: 13.5px; color: var(--text-soft); }
+.upload-hint strong { color: var(--primary); }
+
+.schemas-table { width: 100%; border-collapse: collapse; }
+.schemas-table th {
+  text-align: left; padding: 10px 16px;
+  font-size: 11px; font-weight: 600; color: var(--text-soft);
+  text-transform: uppercase; letter-spacing: .07em;
+  border-bottom: 2px solid var(--border); background: #FAFAFA;
+}
+.schemas-table td {
+  padding: 13px 16px; border-bottom: 1px solid var(--border);
+  font-size: 13px; vertical-align: middle;
+}
+.schemas-table tr:hover td { background: var(--page-bg); }
+.schemas-table tr:last-child td { border-bottom: none; }
+
+.schema-name-cell { display: flex; align-items: center; gap: 12px; }
+.schema-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: linear-gradient(135deg, #EDE9FE, #DBEAFE);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+.processing-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.45); z-index: 9999;
+  align-items: center; justify-content: center;
+}
+.processing-box {
+  background: #fff; border-radius: 16px; padding: 36px 48px; text-align: center;
+}
+.processing-box h4 { font-size: 16px; font-weight: 700; margin-top: 12px; }
+.processing-box p  { font-size: 13px; color: var(--text-soft); margin-top: 4px; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--primary-border); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head fade-in">
+  <h1>Database Tables</h1>
+  <p>Upload and manage your database schema images.</p>
+</div>
+
+<!-- Upload Card -->
+<div class="card mb-4 fade-in fade-in-1" style="margin-bottom:20px;">
+  <div class="card-header">
+    <div class="card-title"><i class="bi bi-cloud-upload" style="color:var(--primary);margin-right:7px;"></i>Upload New Schema</div>
+    <span class="badge badge-purple">PNG · JPG · BMP · WEBP · up to 16MB</span>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('upload_schema') }}" enctype="multipart/form-data" id="uploadForm">
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end;">
+        <div>
+          <label class="label">Schema Name (optional)</label>
+          <input type="text" name="schema_name" class="input" placeholder="e.g. E-Commerce Database">
+        </div>
+        <div>
+          <label class="label">Schema Image</label>
+          <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon"><i class="bi bi-image-fill"></i></div>
+            <div class="upload-hint" id="uploadHint">
+              <strong>Click to upload</strong> or drag &amp; drop<br>
+              <span style="font-size:12px;">PNG, JPG, WEBP, BMP</span>
+            </div>
+          </div>
+          <input type="file" id="fileInput" name="schema_image" accept="image/*" style="display:none;" required>
+        </div>
+        <div>
+          <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn" style="width:100%;justify-content:center;">
+            <i class="bi bi-cpu"></i> Process Schema
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Schemas Table -->
+<div class="card fade-in fade-in-2">
+  <div class="card-header">
+    <div class="card-title">
+      <i class="bi bi-table" style="color:var(--primary);margin-right:7px;"></i>
+      Your Schemas
+      <span class="badge badge-purple" style="margin-left:8px;">{{ schemas|length }}</span>
+    </div>
+    <a href="{{ url_for('query_page') }}" class="btn btn-primary btn-sm"><i class="bi bi-stars"></i> Generate SQL</a>
+  </div>
+  {% if schemas %}
+  <div style="overflow-x:auto;">
+    <table class="schemas-table">
+      <thead>
+        <tr>
+          <th>Schema</th>
+          <th style="text-align:center;">Tables</th>
+          <th style="text-align:center;">Queries</th>
+          <th>Uploaded</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in schemas %}
+        <tr>
+          <td>
+            <div class="schema-name-cell">
+              <div class="schema-icon"><i class="bi bi-database" style="color:var(--primary);font-size:14px;"></i></div>
+              <div>
+                <div style="font-weight:600;font-size:13.5px;">{{ s.schema_name or s.original_name }}</div>
+                <div style="font-size:11.5px;color:var(--text-xs);font-family:var(--mono);">{{ s.original_name }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center;">
+            {% if s.parsed_schema %}
+              {% set p = s.parsed_schema | fromjson %}
+              <span class="badge badge-blue">{{ p.tables | length }}</span>
+            {% else %}
+              <span class="badge" style="background:#F3F4F6;color:#9CA3AF;">—</span>
+            {% endif %}
+          </td>
+          <td style="text-align:center;">
+            <span class="badge badge-purple">{{ s.queries|length }}</span>
+          </td>
+          <td style="font-family:var(--mono);font-size:12px;color:var(--text-soft);">
+            {{ s.uploaded_at.strftime('%b %d, %Y') }}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <a href="{{ url_for('schema_detail', schema_id=s.id) }}" class="btn btn-outline btn-sm">
+                <i class="bi bi-eye"></i> View
+              </a>
+              <a href="{{ url_for('query_page') }}?schema_id={{ s.id }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-terminal"></i> Query
+              </a>
+              <form method="POST" action="{{ url_for('delete_schema', schema_id=s.id) }}"
+                    onsubmit="return confirm('Delete this schema and all its queries?');" style="margin:0;">
+                <button type="submit" class="btn btn-danger btn-sm btn-icon">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body">
+    <div class="empty">
+      <i class="bi bi-layers"></i>
+      <h4>No schemas uploaded yet</h4>
+      <p>Upload a database schema image above to extract tables and generate SQL queries.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Processing Overlay -->
+<div class="processing-overlay" id="processingOverlay">
+  <div class="processing-box">
+    <div class="spinner"></div>
+    <h4>Processing Schema…</h4>
+    <p>Running OCR and AI analysis. This may take a moment.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dz = document.getElementById('dropZone');
+const fi = document.getElementById('fileInput');
+const hint = document.getElementById('uploadHint');
+fi.addEventListener('change', () => {
+  if (fi.files[0]) {
+    hint.innerHTML = `<strong>${fi.files[0].name}</strong>`;
+    dz.classList.add('has-file');
+  }
+});
+['dragover','dragenter'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('dragover'); }));
+['dragleave','drop'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('dragover'); }));
+dz.addEventListener('drop', ev => {
+  const f = ev.dataTransfer.files[0];
+  if (f) {
+    const dt = new DataTransfer(); dt.items.add(f);
+    fi.files = dt.files;
+    hint.innerHTML = `<strong>${f.name}</strong>`;
+    dz.classList.add('has-file');
+  }
+});
+document.getElementById('uploadForm').addEventListener('submit', () => {
+  document.getElementById('processingOverlay').style.display = 'flex';
+});
+</script>
+{% endblock %}

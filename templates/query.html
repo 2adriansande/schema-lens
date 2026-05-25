@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% block title %}AI Query Generator — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.page-head { margin-bottom: 24px; }
+.page-head h1 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; margin-bottom: 4px; }
+.page-head p  { font-size: 13.5px; color: var(--text-soft); }
+
+.qg-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+
+/* Left: query input card */
+.query-card { background:#fff; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.qc-header {
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg, #F5F3FF, #EFF6FF);
+  border-bottom: 1px solid var(--primary-border);
+}
+.qc-header-icon { color: var(--primary); font-size: 15px; }
+.qc-header-title { font-size: 13.5px; font-weight: 700; color: var(--primary); }
+.qc-header-sub   { font-size: 12px; color: #8B5CF6; margin-top: 1px; }
+
+.qc-body { padding: 20px; }
+.describe-area {
+  width: 100%; border: none; outline: none; resize: none;
+  font-family: var(--font); font-size: 13.5px; color: var(--text);
+  line-height: 1.7; min-height: 120px; background: transparent;
+}
+.describe-area::placeholder { color: #C4B5FD; }
+.qc-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #F3F0FF;
+  display: flex; align-items: center; justify-content: space-between;
+  background: #FAFAFE;
+}
+.schema-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text-soft);
+}
+.schema-pill select {
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 8px; font-family: var(--font); font-size: 12px;
+  color: var(--text); background: #fff; outline: none;
+}
+.schema-pill select:focus { border-color: var(--primary); }
+.gen-btn {
+  display: flex; align-items: center; gap: 7px;
+  background: linear-gradient(135deg, #7C3AED, #6D28D9);
+  color: #fff; border: none; border-radius: var(--radius-sm);
+  padding: 9px 20px; font-family: var(--font); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+}
+.gen-btn:hover { background: linear-gradient(135deg, #6D28D9, #5B21B6); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,.3); }
+.gen-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Output area */
+.output-area { margin-top: 20px; }
+.output-placeholder {
+  text-align: center; padding: 48px 24px;
+  color: var(--text-xs);
+}
+.output-placeholder i { font-size: 36px; opacity: .25; display: block; margin-bottom: 10px; }
+.output-placeholder p { font-size: 13px; }
+
+/* Right sidebar */
+.qs-card { background:#fff; border:1px solid var(--border); border-radius:var(--radius); margin-bottom:16px; }
+.qs-header {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 700;
+}
+.qs-header i { color: var(--warning); }
+.qs-clear { margin-left: auto; font-size: 11.5px; color: var(--text-soft); cursor: pointer; font-weight: 500; border: none; background: none; }
+.qs-clear:hover { color: var(--primary); }
+.suggestion-item {
+  padding: 11px 16px; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text); cursor: pointer;
+  transition: background .12s; line-height: 1.5;
+}
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover { background: var(--primary-bg); color: var(--primary); }
+
+/* Pro Tips */
+.pro-tips {
+  background: linear-gradient(135deg, #7C3AED, #4F46E5);
+  border-radius: var(--radius); padding: 16px;
+  color: #fff; margin-bottom: 16px;
+}
+.pt-header { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:700; margin-bottom:10px; }
+.pt-header i { color: #FCD34D; }
+.pt-list { list-style: none; }
+.pt-list li {
+  font-size: 12.5px; color: rgba(255,255,255,.85);
+  padding: 4px 0; display: flex; align-items: flex-start; gap: 6px;
+}
+.pt-list li::before { content: '•'; color: #A78BFA; margin-top: 1px; flex-shrink: 0; }
+
+/* DB Schema list */
+.schema-list-item {
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; color: var(--text); cursor: pointer;
+  transition: background .12s;
+}
+.schema-list-item:last-child { border-bottom: none; }
+.schema-list-item:hover { background: var(--primary-bg); }
+.schema-list-item i { color: var(--primary); font-size: 13px; }
+.schema-list-item.selected { background: var(--primary-bg); font-weight: 600; color: var(--primary); }
+
+/* Result card */
+.result-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px; flex-wrap: wrap;
+}
+.result-natural {
+  font-size: 13.5px; color: var(--text); font-style: italic;
+  margin-bottom: 12px; padding: 10px 14px;
+  background: var(--primary-bg); border-radius: 8px;
+  border-left: 3px solid var(--primary);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head fade-in">
+  <h1>AI Query Generator</h1>
+  <p>Transform natural language into optimized SQL queries.</p>
+</div>
+
+<div class="qg-grid">
+  <!-- LEFT COLUMN -->
+  <div>
+    <!-- Query Input Card -->
+    <div class="query-card fade-in fade-in-1">
+      <div class="qc-header">
+        <i class="bi bi-stars qc-header-icon"></i>
+        <div>
+          <div class="qc-header-title">Describe Your Query</div>
+          <div class="qc-header-sub">Type what you need in plain English</div>
+        </div>
+      </div>
+      <div class="qc-body">
+        <textarea id="queryInput" class="describe-area"
+          placeholder="Example: Show me all active users who signed up in the last 30 days…"></textarea>
+      </div>
+      <div class="qc-footer">
+        <div class="schema-pill">
+          <i class="bi bi-table" style="color:var(--primary);"></i>
+          <select id="schemaSelect">
+            <option value="">No schema selected</option>
+            {% for s in schemas %}
+            <option value="{{ s.id }}" {% if selected_schema and selected_schema.id == s.id %}selected{% endif %}>
+              {{ s.schema_name or s.original_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="gen-btn" id="generateBtn" onclick="generateSQL()">
+          <i class="bi bi-stars"></i> Generate SQL
+        </button>
+      </div>
+    </div>
+
+    <!-- Output Area -->
+    <div class="output-area" id="outputArea">
+      <div class="output-placeholder" id="outputPlaceholder">
+        <i class="bi bi-terminal"></i>
+        <p>Your generated SQL will appear here.<br>Describe your query above and click <strong>Generate SQL</strong>.</p>
+        <p style="margin-top:8px;font-size:12px;">Tip: Press <kbd style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:11px;">Ctrl+Enter</kbd> to generate</p>
+      </div>
+      <div id="outputLoading" style="display:none;text-align:center;padding:48px;">
+        <div style="width:36px;height:36px;border:3px solid var(--primary-border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;"></div>
+        <p style="font-size:13px;color:var(--text-soft);">Generating SQL…</p>
+      </div>
+      <div id="outputResult" style="display:none;">
+        <div class="query-card" style="overflow:visible;">
+          <div class="qc-header" style="background:linear-gradient(135deg,#F0FDF4,#ECFDF5);">
+            <i class="bi bi-check-circle-fill" style="color:#10B981;"></i>
+            <div>
+              <div class="qc-header-title" style="color:#065F46;">SQL Generated Successfully</div>
+              <div class="qc-header-sub" style="color:#059669;" id="modelLabel"></div>
+            </div>
+            <button onclick="clearResult()" class="btn btn-ghost btn-sm" style="margin-left:auto;">
+              <i class="bi bi-x"></i> Clear
+            </button>
+          </div>
+          <div class="qc-body">
+            <div class="result-natural" id="naturalEcho"></div>
+            <div class="sql-code">
+              <button class="sql-copy" onclick="copySql(this)">Copy</button>
+              <pre><code class="language-sql" id="sqlOutput"></code></pre>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+              <button onclick="copyToClipboard()" class="btn btn-outline btn-sm"><i class="bi bi-clipboard"></i> Copy SQL</button>
+              <button onclick="document.getElementById('queryInput').focus()" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-repeat"></i> New Query</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="outputError" style="display:none;">
+        <div class="flash flash-error" id="errorMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div>
+    <!-- Quick Suggestions -->
+    <div class="qs-card fade-in fade-in-2">
+      <div class="qs-header">
+        <i class="bi bi-lightning-charge-fill"></i>
+        Quick Suggestions
+        <button class="qs-clear" onclick="clearSuggestions()">Clear All</button>
+      </div>
+      <div id="suggestionsList">
+        {% set suggestions = [
+          'Show all active users who signed up in the last 30 days',
+          'Get total revenue by product category for this month',
+          'Find customers who made more than 5 purchases',
+          'List all pending orders awaiting shipment',
+          'Show average order value by country'
+        ] %}
+        {% for s in suggestions %}
+        <div class="suggestion-item" onclick="useSuggestion(this.textContent.trim())">{{ s }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Pro Tips -->
+    <div class="pro-tips fade-in fade-in-3">
+      <div class="pt-header"><i class="bi bi-lightbulb-fill"></i> Pro Tips</div>
+      <ul class="pt-list">
+        <li>Be specific about time ranges</li>
+        <li>Mention column names if known</li>
+        <li>Specify sorting preferences</li>
+        <li>Include filtering conditions</li>
+      </ul>
+    </div>
+
+    <!-- Database Schema -->
+    <div class="qs-card fade-in fade-in-4">
+      <div class="qs-header">
+        <i class="bi bi-database" style="color:var(--primary);"></i>
+        Database Schema
+      </div>
+      <div id="schemaTableList">
+        {% if schemas %}
+          {% for s in schemas %}
+            {% if s.parsed_schema %}
+              {% set p = s.parsed_schema | fromjson %}
+              {% for t in p.tables[:4] %}
+              <div class="schema-list-item" onclick="selectSchemaTable('{{ s.id }}', '{{ t.name }}')">
+                <i class="bi bi-table"></i>
+                {{ t.name }}
+              </div>
+              {% endfor %}
+            {% endif %}
+          {% endfor %}
+          {% if not schemas|selectattr('parsed_schema')|list %}
+          <div class="schema-list-item"><i class="bi bi-info-circle" style="color:var(--text-xs);"></i> <span style="color:var(--text-soft);font-size:12px;">Upload a schema to see tables</span></div>
+          {% endif %}
+        {% else %}
+          <div class="schema-list-item"><i class="bi bi-upload" style="color:var(--text-xs);"></i> <a href="{{ url_for('schemas') }}" style="font-size:12px;color:var(--primary);text-decoration:none;">Upload a schema first</a></div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if not current_user.gemini_key %}
+    <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--radius);padding:14px 16px;" class="fade-in">
+      <div style="font-size:12.5px;font-weight:700;color:#78350F;margin-bottom:4px;"><i class="bi bi-key-fill"></i> Add Gemini API Key</div>
+      <div style="font-size:12px;color:#92400E;line-height:1.5;">Get AI-powered SQL generation. <a href="{{ url_for('settings') }}" style="color:#7C3AED;font-weight:600;">Add key in Settings →</a></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const parsedMap = {};
+{% for s in schemas %}
+try { parsedMap[{{ s.id }}] = {{ s.parsed_schema | safe if s.parsed_schema else '{}' }}; } catch(e){}
+{% endfor %}
+
+function useSuggestion(text) {
+  document.getElementById('queryInput').value = text;
+  document.getElementById('queryInput').focus();
+}
+function selectSchemaTable(schemaId, tableName) {
+  document.getElementById('schemaSelect').value = schemaId;
+  const q = document.getElementById('queryInput');
+  if (!q.value) q.value = `Show all records from ${tableName}`;
+  q.focus();
+}
+function clearSuggestions() {
+  document.getElementById('suggestionsList').innerHTML =
+    '<div style="padding:16px;text-align:center;font-size:12.5px;color:var(--text-xs);">Suggestions cleared</div>';
+}
+
+async function generateSQL() {
+  const query = document.getElementById('queryInput').value.trim();
+  const schemaId = document.getElementById('schemaSelect').value || null;
+  if (!query) {
+    const ta = document.getElementById('queryInput');
+    ta.style.outline = '2px solid var(--danger)';
+    setTimeout(() => ta.style.outline = '', 1500);
+    return;
+  }
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span> Generating…';
+  showState('loading');
+  try {
+    const resp = await fetch('/api/generate-sql', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({query, schema_id: schemaId})
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Unknown error');
+    document.getElementById('sqlOutput').textContent = data.sql;
+    document.getElementById('naturalEcho').textContent = `"${query}"`;
+    document.getElementById('modelLabel').textContent = `Generated by ${data.model}`;
+    hljs.highlightElement(document.getElementById('sqlOutput'));
+    showState('result');
+  } catch(err) {
+    document.getElementById('errorMsg').innerHTML = `<i class="bi bi-x-circle-fill"></i> ${err.message}`;
+    showState('error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-stars"></i> Generate SQL';
+  }
+}
+
+function showState(s) {
+  ['outputPlaceholder','outputLoading','outputResult','outputError'].forEach(id =>
+    document.getElementById(id).style.display = 'none');
+  const m = {placeholder:'outputPlaceholder',loading:'outputLoading',result:'outputResult',error:'outputError'};
+  document.getElementById(m[s]).style.display = 'block';
+}
+function clearResult() { showState('placeholder'); }
+function copyToClipboard() {
+  const code = document.getElementById('sqlOutput');
+  navigator.clipboard.writeText(code.innerText);
+}
+document.getElementById('queryInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generateSQL();
+});
+</script>
+{% endblock %}

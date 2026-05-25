@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}{{ schema.schema_name or schema.original_name }} — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.detail-header { margin-bottom: 24px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.detail-header h1 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; margin-bottom: 4px; }
+.detail-header p  { font-size: 13px; color: var(--text-soft); font-family: var(--mono); }
+
+.detail-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+
+.table-chip {
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 10px;
+}
+.table-chip-head {
+  background: #0F172A; color: #fff;
+  padding: 9px 14px; font-size: 12.5px; font-weight: 700;
+  display: flex; align-items: center; gap: 7px; font-family: var(--mono);
+}
+.table-chip-head i { font-size: 11px; opacity: .6; }
+.col-row {
+  padding: 7px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; font-size: 12px;
+}
+.col-row:last-child { border-bottom: none; }
+.col-name { font-family: var(--mono); font-weight: 500; flex: 1; }
+.col-type { font-family: var(--mono); font-size: 11px; color: var(--text-xs); }
+.col-pk   { font-size: 10px; color: var(--warning); }
+
+.rel-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 12.5px; font-family: var(--mono);
+}
+.rel-row:last-child { border-bottom: none; }
+.rel-from { font-weight: 600; }
+.rel-arrow { color: var(--primary); font-size: 14px; }
+
+.qh-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.qh-item:last-child { border-bottom: none; }
+.qh-q { font-size: 13.5px; font-weight: 500; margin-bottom: 6px; }
+.qh-sql-mini {
+  font-family: var(--mono); font-size: 11px; background: #0F172A;
+  color: #7EE787; border-radius: 6px; padding: 7px 10px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  margin-bottom: 5px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-header fade-in">
+  <div>
+    <h1>{{ schema.schema_name or schema.original_name }}</h1>
+    <p>Uploaded {{ schema.uploaded_at.strftime('%B %d, %Y at %H:%M') }} · {{ schema.original_name }}</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0;">
+    <a href="{{ url_for('query_page') }}?schema_id={{ schema.id }}" class="btn btn-primary">
+      <i class="bi bi-stars"></i> Query This Schema
+    </a>
+    <form method="POST" action="{{ url_for('delete_schema', schema_id=schema.id) }}"
+          onsubmit="return confirm('Delete schema and all queries?');" style="margin:0;">
+      <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i></button>
+    </form>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <!-- LEFT: image + OCR -->
+  <div>
+    <div class="card fade-in fade-in-1" style="margin-bottom:16px;">
+      <div class="card-header"><div class="card-title"><i class="bi bi-image" style="color:var(--primary);margin-right:7px;"></i>Schema Image</div></div>
+      <div style="padding:12px;">
+        <img src="{{ url_for('uploaded_file', filename=schema.filename) }}"
+             alt="Schema" style="width:100%;border-radius:8px;max-height:360px;object-fit:contain;">
+      </div>
+    </div>
+
+    <div class="card fade-in fade-in-2">
+      <div class="card-header">
+        <div class="card-title"><i class="bi bi-file-text" style="color:var(--primary);margin-right:7px;"></i>OCR Text</div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleOcr()">Toggle</button>
+      </div>
+      <div id="ocrBlock" style="display:none;padding:16px;">
+        <pre style="font-family:var(--mono);font-size:11.5px;color:var(--text-soft);white-space:pre-wrap;background:var(--page-bg);border-radius:8px;padding:12px;max-height:240px;overflow-y:auto;margin:0;">{{ schema.ocr_text or '(no text extracted)' }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: parsed schema + queries -->
+  <div>
+    <div class="card fade-in fade-in-2" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div class="card-title"><i class="bi bi-diagram-3" style="color:var(--primary);margin-right:7px;"></i>Parsed Schema</div>
+        <div style="display:flex;gap:6px;">
+          <span class="badge badge-blue">{{ parsed.tables|length if parsed.tables else 0 }} tables</span>
+          <span class="badge badge-purple">{{ parsed.relationships|length if parsed.relationships else 0 }} relationships</span>
+        </div>
+      </div>
+      <div class="card-body">
+        {% if parsed.tables %}
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px;">
+            {% for table in parsed.tables %}
+            <div class="table-chip">
+              <div class="table-chip-head">
+                <i class="bi bi-table"></i> {{ table.name }}
+              </div>
+              {% for col in table.columns %}
+              <div class="col-row">
+                {% if col.primary_key %}
+                <i class="bi bi-key-fill col-pk"></i>
+                {% else %}
+                <i class="bi bi-circle" style="font-size:7px;color:var(--border);"></i>
+                {% endif %}
+                <span class="col-name">{{ col.name }}</span>
+                <span class="col-type">{{ col.type }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% endfor %}
+          </div>
+
+          {% if parsed.relationships %}
+          <div>
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text-xs);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Relationships</div>
+            {% for rel in parsed.relationships %}
+            <div class="rel-row">
+              <span class="rel-from">{{ rel.from_table }}.{{ rel.from_col }}</span>
+              <i class="bi bi-arrow-right rel-arrow"></i>
+              <span class="rel-from">{{ rel.to_table }}.{{ rel.to_col }}</span>
+              <span class="badge badge-cyan" style="margin-left:auto;">{{ rel.type }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% else %}
+          <div class="empty" style="padding:24px 0;">
+            <i class="bi bi-exclamation-triangle"></i>
+            <h4>No tables parsed</h4>
+            <p>{% if not current_user.gemini_key %}<a href="{{ url_for('settings') }}" style="color:var(--primary);font-weight:600;">Add a Gemini key</a> for better results.{% else %}The OCR text may not contain recognizable tables.{% endif %}</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card fade-in fade-in-3">
+      <div class="card-header">
+        <div class="card-title"><i class="bi bi-clock-history" style="color:var(--primary);margin-right:7px;"></i>Queries on This Schema</div>
+        <span class="badge badge-purple">{{ queries|length }}</span>
+      </div>
+      <div class="card-body">
+        {% if queries %}
+          {% for q in queries %}
+          <div class="qh-item">
+            <div class="qh-q">{{ q.natural_query[:100] }}{% if q.natural_query|length > 100 %}…{% endif %}</div>
+            <div class="qh-sql-mini">{{ q.generated_sql[:120] }}{% if q.generated_sql|length > 120 %}…{% endif %}</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span class="badge {{ 'badge-purple' if q.model_used != 'heuristic' else 'badge-amber' }}">{{ q.model_used }}</span>
+              <span style="font-size:11px;color:var(--text-xs);font-family:var(--mono);">{{ q.created_at.strftime('%b %d · %H:%M') }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty" style="padding:24px 0;">
+            <i class="bi bi-terminal"></i>
+            <h4>No queries yet</h4>
+            <a href="{{ url_for('query_page') }}?schema_id={{ schema.id }}" class="btn btn-primary mt-3" style="display:inline-flex;">Generate First Query</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleOcr() {
+  const el = document.getElementById('ocrBlock');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

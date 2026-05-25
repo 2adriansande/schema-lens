@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SchemaLens — Convert Natural Language into SQL Queries Instantly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #7C3AED; --primary-dark: #6D28D9;
+      --accent: #06B6D4; --success: #10B981; --danger: #EF4444;
+      --text: #111827; --text-soft: #6B7280; --border: #E5E7EB;
+      --font: 'Plus Jakarta Sans', sans-serif; --mono: 'JetBrains Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font); color: var(--text); background: #fff; font-size: 14px; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 5%;
+      display: flex; align-items: center; height: 64px; gap: 32px;
+    }
+    .nav-logo { display:flex; align-items:center; gap:8px; text-decoration:none; }
+    .nav-logo-icon { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#7C3AED,#06B6D4); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:#fff; }
+    .nav-logo-text { font-size:16px; font-weight:800; color:var(--text); letter-spacing:-.3px; }
+    .nav-links { display:flex; gap:24px; margin-left:24px; }
+    .nav-links a { font-size:13.5px; color:var(--text-soft); text-decoration:none; font-weight:500; transition:color .15s; }
+    .nav-links a:hover { color:var(--text); }
+    .nav-auth { margin-left:auto; display:flex; gap:10px; align-items:center; }
+    .btn-nav-ghost { padding:7px 18px; border-radius:8px; font-family:var(--font); font-size:13.5px; font-weight:600; color:var(--text); background:none; border:none; cursor:pointer; text-decoration:none; transition:color .15s; }
+    .btn-nav-ghost:hover { color:var(--primary); }
+    .btn-nav { padding:8px 20px; border-radius:8px; font-family:var(--font); font-size:13.5px; font-weight:700; color:#fff; background:var(--primary); border:none; cursor:pointer; text-decoration:none; transition:all .15s; }
+    .btn-nav:hover { background:var(--primary-dark); }
+
+    /* HERO */
+    .hero {
+      padding: 80px 5% 72px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: center; max-width: 1200px; margin: 0 auto;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #EDE9FE; color: var(--primary);
+      padding: 5px 12px; border-radius: 100px;
+      font-size: 12px; font-weight: 600; margin-bottom: 20px;
+    }
+    .hero-badge i { font-size: 11px; }
+    .hero h1 {
+      font-size: 46px; font-weight: 800; letter-spacing: -1.5px;
+      line-height: 1.12; margin-bottom: 20px;
+    }
+    .hero h1 span { color: var(--primary); }
+    .hero p {
+      font-size: 16px; color: var(--text-soft);
+      line-height: 1.75; margin-bottom: 32px; max-width: 440px;
+    }
+    .hero-btns { display:flex; gap:12px; flex-wrap:wrap; }
+    .btn-hero-primary {
+      padding: 13px 28px; border-radius: 10px;
+      background: var(--primary); color: #fff;
+      font-family: var(--font); font-size: 14px; font-weight: 700;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 7px;
+      transition: all .2s;
+    }
+    .btn-hero-primary:hover { background:var(--primary-dark); transform:translateY(-1px); box-shadow:0 6px 20px rgba(124,58,237,.3); }
+    .btn-hero-ghost {
+      padding: 13px 24px; border-radius: 10px;
+      background: transparent; color: var(--text-soft);
+      font-family: var(--font); font-size: 14px; font-weight: 600;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 7px;
+      border: 1.5px solid var(--border); transition: all .15s;
+    }
+    .btn-hero-ghost:hover { border-color:var(--primary); color:var(--primary); }
+    .hero-indicators { display:flex; gap:20px; margin-top:28px; }
+    .hero-ind { display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-soft); }
+    .hero-ind i { color:var(--success); font-size:14px; }
+
+    /* Hero demo card */
+    .hero-demo {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,.1);
+    }
+    .demo-top {
+      background: linear-gradient(135deg,#F5F3FF,#EFF6FF);
+      border-bottom: 1px solid #DDD6FE;
+      padding: 14px 20px;
+    }
+    .demo-top p { font-size:11.5px; color:#8B5CF6; margin-bottom:4px; font-weight:600; }
+    .demo-query {
+      font-size: 13.5px; color: var(--text);
+      font-style: italic; line-height: 1.5;
+    }
+    .demo-sql {
+      background: #0F172A; padding: 16px 20px;
+      font-family: var(--mono); font-size: 12px; color: #7EE787;
+      line-height: 1.7;
+    }
+    .demo-footer {
+      padding: 12px 20px; display:flex; align-items:center; gap:8px;
+      border-top: 1px solid var(--border);
+    }
+    .demo-dot { width:8px; height:8px; border-radius:50%; }
+
+    /* FEATURES */
+    .features { padding: 80px 5%; background: #F8F9FB; }
+    .features-inner { max-width: 1100px; margin: 0 auto; }
+    .section-header { text-align:center; margin-bottom:48px; }
+    .section-header h2 { font-size:34px; font-weight:800; letter-spacing:-1px; margin-bottom:10px; }
+    .section-header p  { font-size:15px; color:var(--text-soft); }
+    .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .feat-card {
+      background:#fff; border:1px solid var(--border);
+      border-radius:14px; padding:24px;
+      transition: box-shadow .2s, transform .2s;
+    }
+    .feat-card:hover { box-shadow:0 8px 32px rgba(0,0,0,.08); transform:translateY(-2px); }
+    .feat-icon {
+      width:44px; height:44px; border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:20px; margin-bottom:14px;
+    }
+    .feat-card h3 { font-size:15px; font-weight:700; margin-bottom:6px; }
+    .feat-card p  { font-size:13px; color:var(--text-soft); line-height:1.6; }
+
+    /* HOW IT WORKS */
+    .how { padding:80px 5%; }
+    .how-inner { max-width:900px; margin:0 auto; }
+    .how-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:40px; margin-top:48px; }
+    .how-step { text-align:center; }
+    .step-num {
+      width:52px; height:52px; border-radius:50%;
+      background:linear-gradient(135deg,#7C3AED,#4F46E5);
+      color:#fff; font-size:20px; font-weight:800;
+      display:flex; align-items:center; justify-content:center; margin:0 auto 16px;
+    }
+    .step-icon-box {
+      width:64px; height:64px; border-radius:14px;
+      background:linear-gradient(135deg,#EDE9FE,#DBEAFE);
+      display:flex; align-items:center; justify-content:center;
+      font-size:26px; margin:0 auto 12px;
+    }
+    .how-step h3 { font-size:15px; font-weight:700; margin-bottom:6px; }
+    .how-step p  { font-size:13px; color:var(--text-soft); line-height:1.6; }
+    .how-connector { display:none; }
+
+    /* TESTIMONIALS */
+    .testimonials { padding:80px 5%; background:#F8F9FB; }
+    .test-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; max-width:1100px; margin:40px auto 0; }
+    .test-card {
+      background:#fff; border:1px solid var(--border);
+      border-radius:14px; padding:24px;
+    }
+    .test-avatar {
+      width:40px; height:40px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:15px; font-weight:700; color:#fff; margin-bottom:14px;
+    }
+    .test-name  { font-size:14px; font-weight:700; margin-bottom:2px; }
+    .test-title { font-size:12px; color:var(--text-soft); margin-bottom:12px; }
+    .test-text  { font-size:13px; color:var(--text-soft); line-height:1.65; font-style:italic; }
+    .test-quote { font-size:28px; color:#EDE9FE; line-height:1; margin-bottom:6px; }
+
+    /* CTA */
+    .cta {
+      margin:60px 5%; border-radius:20px;
+      background: linear-gradient(135deg,#7C3AED 0%,#4F46E5 50%,#06B6D4 100%);
+      padding: 64px 48px; text-align:center; color:#fff;
+    }
+    .cta h2 { font-size:34px; font-weight:800; letter-spacing:-1px; margin-bottom:12px; }
+    .cta p  { font-size:15px; color:rgba(255,255,255,.75); margin-bottom:28px; }
+    .btn-cta {
+      padding:13px 32px; border-radius:10px;
+      background:#fff; color:var(--primary);
+      font-family:var(--font); font-size:14px; font-weight:800;
+      text-decoration:none; display:inline-flex; align-items:center; gap:7px;
+      transition:all .15s;
+    }
+    .btn-cta:hover { box-shadow:0 6px 24px rgba(0,0,0,.2); transform:translateY(-1px); }
+
+    /* FOOTER */
+    footer {
+      background:#0F172A; color:rgba(255,255,255,.6);
+      padding:56px 5% 32px;
+    }
+    .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:40px; max-width:1100px; margin:0 auto 40px; }
+    .footer-brand .logo-text { font-size:18px; font-weight:800; color:#fff; margin-bottom:10px; }
+    .footer-brand p  { font-size:13px; line-height:1.7; max-width:260px; }
+    footer h4 { font-size:13px; font-weight:700; color:#fff; margin-bottom:14px; }
+    footer ul { list-style:none; }
+    footer ul li { margin-bottom:8px; }
+    footer ul a { font-size:13px; color:rgba(255,255,255,.5); text-decoration:none; transition:color .15s; }
+    footer ul a:hover { color:#fff; }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding-top: 24px; max-width:1100px; margin:0 auto;
+      display:flex; align-items:center; justify-content:space-between;
+      font-size:12.5px;
+    }
+    .footer-socials { display:flex; gap:10px; }
+    .social-btn {
+      width:32px; height:32px; border-radius:7px;
+      background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center;
+      color:rgba(255,255,255,.5); text-decoration:none; font-size:14px; transition:all .15s;
+    }
+    .social-btn:hover { background:rgba(255,255,255,.15); color:#fff; }
+
+    @media(max-width:768px) {
+      .hero { grid-template-columns:1fr; }
+      .hero h1 { font-size:32px; }
+      .features-grid, .how-steps, .test-grid { grid-template-columns:1fr; }
+      .footer-grid { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('landing') }}" class="nav-logo">
+    <div class="nav-logo-icon">Q</div>
+    <span class="nav-logo-text">SchemaLens</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#testimonials">Testimonials</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <div class="nav-auth">
+    <a href="{{ url_for('login') }}" class="btn-nav-ghost">Login</a>
+    <a href="{{ url_for('signup') }}" class="btn-nav">Sign Up</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section style="background:#fff;">
+  <div class="hero">
+    <div>
+      <div class="hero-badge"><i class="bi bi-stars"></i> Powered by Gemini AI</div>
+      <h1>Convert Natural Language into<br><span>SQL Queries</span> Instantly</h1>
+      <p>Stop wrestling with complex SQL syntax. Describe what you need in plain English. AI generates optimized queries for you.</p>
+      <div class="hero-btns">
+        <a href="{{ url_for('signup') }}" class="btn-hero-primary"><i class="bi bi-stars"></i> Get Started Free</a>
+        <a href="#how-it-works" class="btn-hero-ghost"><i class="bi bi-play-circle"></i> Watch Demo</a>
+      </div>
+      <div class="hero-indicators">
+        <div class="hero-ind"><i class="bi bi-check-circle-fill"></i> No credit card required</div>
+        <div class="hero-ind"><i class="bi bi-check-circle-fill"></i> Free tier available</div>
+      </div>
+    </div>
+    <div>
+      <div class="hero-demo">
+        <div class="demo-top">
+          <p>✦ Describe Your Query</p>
+          <div class="demo-query">"Show me all active users who signed up in the last 30 days"</div>
+        </div>
+        <div class="demo-sql">
+SELECT u.id, u.name, u.email, u.created_at<br>
+FROM users u<br>
+WHERE u.status = 'active'<br>
+&nbsp;&nbsp;AND u.created_at >= NOW() - INTERVAL 30 DAY<br>
+ORDER BY u.created_at DESC;
+        </div>
+        <div class="demo-footer">
+          <div class="demo-dot" style="background:#10B981;"></div>
+          <span style="font-size:12.5px;font-weight:600;color:#065F46;">SQL Generated Successfully</span>
+          <span style="margin-left:auto;font-size:11.5px;color:var(--text-soft);font-family:var(--mono);">gemini-1.5-flash · 1.2s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="features-inner">
+    <div class="section-header">
+      <h2>Powerful Features for Modern Teams</h2>
+      <p>Everything you need to work with databases efficiently</p>
+    </div>
+    <div class="features-grid">
+      {% set feats = [
+        ('bi-stars','linear-gradient(135deg,#EDE9FE,#DDD6FE)','#7C3AED','AI Query Generation','Transform natural language into optimized SQL queries instantly using Gemini AI.'),
+        ('bi-database','linear-gradient(135deg,#CFFAFE,#BAE6FD)','#0891B2','Database Automation','Access to 98 tables with intelligent schema-aware query generation.'),
+        ('bi-check-circle','linear-gradient(135deg,#D1FAE5,#A7F3D0)','#059669','Query Validation','Auto-validate SQL syntax and optimize for performance automatically.'),
+        ('bi-terminal','linear-gradient(135deg,#FEF3C7,#FDE68A)','#D97706','Schema Recognition','OCR-powered extraction of tables and relationships from ER diagrams.'),
+        ('bi-grid-3x3','linear-gradient(135deg,#FCE7F3,#FBCFE8)','#DB2777','CRUD Operations','Full visual CRUD interface for managing your database schemas.'),
+        ('bi-cpu','linear-gradient(135deg,#E0E7FF,#C7D2FE)','#4338CA','Smart Suggestions','Intelligent query auto-complete and context-aware suggestions.')
+      ] %}
+      {% for icon, bg, color, title, desc in feats %}
+      <div class="feat-card">
+        <div class="feat-icon" style="background:{{ bg }};color:{{ color }};"><i class="bi {{ icon }}"></i></div>
+        <h3>{{ title }}</h3>
+        <p>{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how-it-works">
+  <div class="how-inner">
+    <div class="section-header">
+      <h2>How It Works</h2>
+      <p>Three simple steps to transform your database workflow</p>
+    </div>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="step-icon-box" style="background:linear-gradient(135deg,#EDE9FE,#DDD6FE);">
+          <i class="bi bi-chat-text" style="color:#7C3AED;font-size:28px;"></i>
+        </div>
+        <h3>Describe Your Query</h3>
+        <p>Type what you need in plain English — no SQL knowledge required.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-icon-box" style="background:linear-gradient(135deg,#CFFAFE,#BAE6FD);">
+          <i class="bi bi-cpu" style="color:#0891B2;font-size:28px;"></i>
+        </div>
+        <h3>AI Generates SQL</h3>
+        <p>AI creates customized, schema-aware SQL queries optimized for your database.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-icon-box" style="background:linear-gradient(135deg,#D1FAE5,#A7F3D0);">
+          <i class="bi bi-eye" style="color:#059669;font-size:28px;"></i>
+        </div>
+        <h3>Execute &amp; View</h3>
+        <p>Copy the generated SQL and run it in your database client instantly.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials" id="testimonials">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="section-header">
+      <h2>Loved by Teams Worldwide</h2>
+      <p>See what developers and data professionals are saying</p>
+    </div>
+    <div class="test-grid">
+      {% set tests = [
+        ('SC','linear-gradient(135deg,#7C3AED,#4F46E5)','Sarah Chen','Senior Data Analyst','This tool has revolutionized how I work with databases. I can query complex schemas in seconds now.'),
+        ('MR','linear-gradient(135deg,#06B6D4,#0891B2)','Michael Rodriguez','Full Stack Developer','The AI-powered query generation is incredibly accurate. It understands context better than I expected.'),
+        ('EW','linear-gradient(135deg,#10B981,#059669)','Emily Watson','Database Engineer','Even without deep SQL knowledge I can now pull data insights myself. The schema recognition is magic.')
+      ] %}
+      {% for init, bg, name, title, text in tests %}
+      <div class="test-card">
+        <div class="test-avatar" style="background:{{ bg }};">{{ init }}</div>
+        <div class="test-name">{{ name }}</div>
+        <div class="test-title">{{ title }}</div>
+        <div class="test-quote">"</div>
+        <div class="test-text">{{ text }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta" id="pricing">
+  <h2>Ready to Transform Your Database Workflow?</h2>
+  <p>Join thousands of developers and data professionals using SchemaLens</p>
+  <a href="{{ url_for('signup') }}" class="btn-cta">
+    <i class="bi bi-stars"></i> Start Free Trial →
+  </a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="logo-text">SchemaLens</div>
+      <p>Transform natural language into SQL queries with the power of AI. Built for developers, data analysts, and database engineers.</p>
+    </div>
+    <div>
+      <h4>Product</h4>
+      <ul>
+        <li><a href="#">Features</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#">Documentation</a></li>
+        <li><a href="#">API</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Connect</h4>
+      <div class="footer-socials" style="margin-bottom:12px;">
+        <a href="#" class="social-btn"><i class="bi bi-twitter-x"></i></a>
+        <a href="#" class="social-btn"><i class="bi bi-github"></i></a>
+        <a href="#" class="social-btn"><i class="bi bi-linkedin"></i></a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 SchemaLens. All rights reserved.</span>
+    <div style="display:flex;gap:20px;">
+      <a href="#" style="font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;">Privacy Policy</a>
+      <a href="#" style="font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;">Terms of Service</a>
+      <a href="#" style="font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;">Cookie Policy</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

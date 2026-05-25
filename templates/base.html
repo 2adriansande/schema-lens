@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}SchemaLens{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <style>
+    :root {
+      --primary: #7C3AED;
+      --primary-light: #8B5CF6;
+      --primary-dark: #6D28D9;
+      --primary-bg: #F5F3FF;
+      --primary-border: #DDD6FE;
+      --accent: #06B6D4;
+      --success: #10B981;
+      --danger: #EF4444;
+      --warning: #F59E0B;
+      --sidebar-bg: #FFFFFF;
+      --sidebar-width: 220px;
+      --topbar-h: 60px;
+      --page-bg: #F8F9FB;
+      --card-bg: #FFFFFF;
+      --border: #E5E7EB;
+      --text: #111827;
+      --text-soft: #6B7280;
+      --text-xs: #9CA3AF;
+      --font: 'Plus Jakarta Sans', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font); background: var(--page-bg); color: var(--text); font-size: 13.5px; line-height: 1.6; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0;
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 200;
+    }
+    .sidebar-logo {
+      padding: 18px 20px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, #7C3AED, #06B6D4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff; font-family: var(--font);
+    }
+    .logo-text { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.3px; }
+    .logo-text span { color: var(--primary); }
+
+    .sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+    .nav-section-label {
+      font-size: 10px; font-weight: 600; color: var(--text-xs);
+      text-transform: uppercase; letter-spacing: .08em;
+      padding: 10px 10px 4px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 10px; border-radius: var(--radius-sm);
+      color: var(--text-soft); text-decoration: none;
+      font-size: 13.5px; font-weight: 500;
+      transition: all .15s; margin-bottom: 2px;
+    }
+    .nav-item i { font-size: 15px; flex-shrink: 0; }
+    .nav-item:hover { background: var(--primary-bg); color: var(--primary); }
+    .nav-item.active { background: var(--primary); color: #fff !important; }
+    .nav-item.active i { color: #fff; }
+
+    .sidebar-footer {
+      padding: 12px 10px;
+      border-top: 1px solid var(--border);
+    }
+    .user-row {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .user-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, #7C3AED, #06B6D4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .user-name { font-size: 12.5px; font-weight: 600; }
+    .user-email { font-size: 10.5px; color: var(--text-xs); }
+    .logout-link {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: var(--radius-sm);
+      color: var(--danger); text-decoration: none;
+      font-size: 12.5px; font-weight: 500;
+      transition: background .15s; margin-top: 4px;
+    }
+    .logout-link:hover { background: #FEF2F2; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: fixed; top: 0; left: var(--sidebar-width); right: 0;
+      height: var(--topbar-h); background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 28px; gap: 16px; z-index: 100;
+    }
+    .search-box {
+      flex: 1; max-width: 380px;
+      display: flex; align-items: center; gap: 8px;
+      background: var(--page-bg); border: 1px solid var(--border);
+      border-radius: 9px; padding: 7px 14px;
+    }
+    .search-box i { color: var(--text-xs); font-size: 13px; }
+    .search-box input {
+      border: none; background: none; outline: none;
+      font-family: var(--font); font-size: 13px; color: var(--text); flex: 1;
+    }
+    .search-box input::placeholder { color: var(--text-xs); }
+    .topbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+    .icon-btn {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: var(--page-bg); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-soft); transition: all .15s;
+      text-decoration: none;
+    }
+    .icon-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .topbar-user {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 10px 5px 5px;
+      border: 1px solid var(--border); border-radius: 9px;
+      cursor: pointer; transition: border-color .15s;
+    }
+    .topbar-user:hover { border-color: var(--primary); }
+    .topbar-user .name { font-size: 12.5px; font-weight: 600; }
+    .topbar-user .email { font-size: 10.5px; color: var(--text-xs); }
+
+    /* ── MAIN ── */
+    .main { margin-left: var(--sidebar-width); padding-top: var(--topbar-h); min-height: 100vh; }
+    .page { padding: 28px 32px; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow-sm);
+    }
+    .card-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-title { font-size: 14px; font-weight: 700; }
+    .card-body { padding: 20px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: var(--radius-sm);
+      font-family: var(--font); font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none; transition: all .15s; text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); color: #fff; }
+    .btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-ghost { background: none; color: var(--text-soft); }
+    .btn-ghost:hover { background: var(--page-bg); color: var(--text); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-lg { padding: 11px 28px; font-size: 14px; }
+    .btn-icon { padding: 7px; }
+
+    /* ── INPUTS ── */
+    .input, .select, .textarea {
+      width: 100%; padding: 9px 14px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-family: var(--font); font-size: 13.5px; color: var(--text);
+      background: #fff; outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .input:focus, .select:focus, .textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.1);
+    }
+    .textarea { resize: vertical; min-height: 100px; }
+    .label { font-size: 12px; font-weight: 600; color: var(--text-soft); margin-bottom: 5px; display: block; }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 100px;
+      font-size: 11px; font-weight: 600; font-family: var(--mono);
+    }
+    .badge-purple { background: #EDE9FE; color: #5B21B6; }
+    .badge-green  { background: #D1FAE5; color: #065F46; }
+    .badge-red    { background: #FEE2E2; color: #991B1B; }
+    .badge-blue   { background: #DBEAFE; color: #1E40AF; }
+    .badge-amber  { background: #FEF3C7; color: #78350F; }
+    .badge-cyan   { background: #CFFAFE; color: #164E63; }
+
+    /* ── FLASH ── */
+    .flash {
+      padding: 10px 16px; border-radius: var(--radius-sm);
+      font-size: 13px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .flash-success { background: #D1FAE5; color: #065F46; }
+    .flash-error   { background: #FEE2E2; color: #991B1B; }
+    .flash-info    { background: #DBEAFE; color: #1E40AF; }
+    .flash-warning { background: #FEF3C7; color: #92400E; }
+
+    /* ── SQL CODE ── */
+    .sql-code {
+      background: #0F172A; border-radius: var(--radius-sm);
+      padding: 12px 16px; font-family: var(--mono);
+      font-size: 12px; color: #94A3B8; position: relative; overflow: hidden;
+    }
+    .sql-code pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
+    .sql-copy {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(255,255,255,.1); border: none; border-radius: 5px;
+      padding: 3px 8px; color: rgba(255,255,255,.5);
+      font-size: 10px; cursor: pointer; font-family: var(--font);
+      transition: all .15s;
+    }
+    .sql-copy:hover { background: rgba(255,255,255,.2); color: #fff; }
+
+    /* ── EMPTY STATE ── */
+    .empty { text-align: center; padding: 56px 24px; color: var(--text-soft); }
+    .empty i { font-size: 40px; opacity: .2; display: block; margin-bottom: 12px; }
+    .empty h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .empty p { font-size: 13px; }
+
+    /* ── ANIMATIONS ── */
+    .fade-in { animation: fadeIn .3s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .fade-in-1 { animation-delay: .05s; }
+    .fade-in-2 { animation-delay: .10s; }
+    .fade-in-3 { animation-delay: .15s; }
+    .fade-in-4 { animation-delay: .20s; }
+
+    /* ── UTILITY ── */
+    .text-soft { color: var(--text-soft); }
+    .text-xs   { color: var(--text-xs); font-size: 11.5px; }
+    .text-primary { color: var(--primary); }
+    .fw-700 { font-weight: 700; }
+    .gap-2 { gap: 8px; }
+    .mt-1 { margin-top: 4px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    .mt-4 { margin-top: 16px; }
+    .mb-0 { margin-bottom: 0; }
+    .d-flex { display: flex; }
+    .d-grid { display: grid; }
+    .align-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .flex-1 { flex: 1; min-width: 0; }
+    .w-full { width: 100%; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">Q</div>
+    <span class="logo-text">Schema<span>Lens</span></span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+    <a href="{{ url_for('query_page') }}" class="nav-item {% if request.endpoint=='query_page' %}active{% endif %}">
+      <i class="bi bi-stars"></i> Query Generator
+    </a>
+    <a href="{{ url_for('schemas') }}" class="nav-item {% if request.endpoint in ['schemas','schema_detail'] %}active{% endif %}">
+      <i class="bi bi-table"></i> Database Tables
+    </a>
+    <a href="{{ url_for('history') }}" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
+      <i class="bi bi-clock-history"></i> Query History
+    </a>
+    <a href="{{ url_for('settings') }}" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
+      <i class="bi bi-gear"></i> Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="user-avatar">{{ current_user.name[0].upper() }}</div>
+      <div>
+        <div class="user-name">{{ current_user.name }}</div>
+        <div class="user-email">{{ current_user.email[:26] }}{% if current_user.email|length > 26 %}…{% endif %}</div>
+      </div>
+    </div>
+    <a href="{{ url_for('logout') }}" class="logout-link">
+      <i class="bi bi-box-arrow-left"></i> Logout
+    </a>
+  </div>
+</aside>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="search-box">
+    <i class="bi bi-search"></i>
+    <input type="text" placeholder="Search queries, tables, or ask a question…">
+  </div>
+  <div class="topbar-right">
+    <a href="{{ url_for('schemas') }}" class="icon-btn" title="Upload Schema"><i class="bi bi-upload"></i></a>
+    <div class="topbar-user">
+      <div class="user-avatar" style="width:28px;height:28px;font-size:11px;">{{ current_user.name[0].upper() }}</div>
+      <div>
+        <div class="name">{{ current_user.name }}</div>
+        <div class="email">{{ current_user.email[:22] }}{% if current_user.email|length>22 %}…{% endif %}</div>
+      </div>
+      <i class="bi bi-chevron-down" style="font-size:10px;color:var(--text-xs);margin-left:2px;"></i>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for cat, msg in messages %}
+        <div class="flash flash-{{ 'success' if cat=='success' else 'error' if cat=='error' else 'warning' if cat=='warning' else 'info' }}">
+          <i class="bi bi-{% if cat=='success' %}check-circle-fill{% elif cat=='error' %}x-circle-fill{% elif cat=='warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %}"></i>
+          {{ msg }}
+        </div>
+      {% endfor %}{% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+{% else %}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('code.language-sql').forEach(el => hljs.highlightElement(el));
+});
+function copySql(btn) {
+  const code = btn.closest('.sql-code').querySelector('pre, code');
+  navigator.clipboard.writeText(code.innerText);
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy', 2000);
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Sign In — SchemaLens{% endblock %}
+{% block auth_content %}
+<style>
+  .auth-wrap {
+    min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr;
+  }
+  .auth-left {
+    background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 50%, #06B6D4 100%);
+    padding: 60px 56px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; position: relative; overflow: hidden;
+  }
+  .auth-left::before {
+    content: ''; position: absolute; top: -100px; right: -100px;
+    width: 400px; height: 400px; border-radius: 50%;
+    background: rgba(255,255,255,.07); pointer-events: none;
+  }
+  .auth-left::after {
+    content: ''; position: absolute; bottom: -60px; left: -60px;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: rgba(255,255,255,.05); pointer-events: none;
+  }
+  .al-logo { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+  .al-logo-icon { width: 36px; height: 36px; border-radius: 9px; background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; }
+  .al-logo-text { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+  .al-hero { position: relative; z-index: 1; }
+  .al-hero h1 { font-size: 40px; font-weight: 800; line-height: 1.15; letter-spacing: -1px; margin-bottom: 16px; }
+  .al-hero h1 span { color: rgba(255,255,255,.6); }
+  .al-hero p { font-size: 15px; color: rgba(255,255,255,.7); line-height: 1.7; max-width: 360px; }
+  .al-features { position: relative; z-index: 1; }
+  .al-feat { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13.5px; color: rgba(255,255,255,.75); }
+  .al-feat-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.5); flex-shrink: 0; }
+
+  .auth-right {
+    background: #F8F9FB; display: flex; align-items: center; justify-content: center; padding: 60px 48px;
+  }
+  .auth-box { width: 100%; max-width: 380px; }
+  .auth-box h2 { font-size: 26px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 6px; }
+  .auth-box .sub { font-size: 14px; color: #6B7280; margin-bottom: 28px; }
+  .form-group { margin-bottom: 16px; }
+  .form-submit { margin-top: 22px; }
+
+  @media (max-width: 768px) {
+    .auth-wrap { grid-template-columns: 1fr; }
+    .auth-left { display: none; }
+  }
+</style>
+
+<div class="auth-wrap">
+  <div class="auth-left">
+    <div class="al-logo">
+      <div class="al-logo-icon">Q</div>
+      <span class="al-logo-text">SchemaLens</span>
+    </div>
+    <div class="al-hero">
+      <h1>Convert Natural Language<br>into <span>SQL Queries</span><br>Instantly</h1>
+      <p>Stop wrestling with complex SQL syntax. Describe what you need in plain English. AI generates optimized queries for you.</p>
+    </div>
+    <div class="al-features">
+      <div class="al-feat"><div class="al-feat-dot"></div> AI Query Generation — Access to 98 tables</div>
+      <div class="al-feat"><div class="al-feat-dot"></div> Schema Image Recognition via OCR</div>
+      <div class="al-feat"><div class="al-feat-dot"></div> Full Query History & Analytics</div>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-box fade-in">
+      <h2>Welcome back</h2>
+      <p class="sub">Sign in to your account to continue</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+          <div class="flash flash-{{ 'success' if cat=='success' else 'error' }}">
+            <i class="bi bi-{% if cat=='success' %}check-circle-fill{% else %}x-circle-fill{% endif %}"></i>{{ msg }}
+          </div>
+        {% endfor %}{% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+          <label class="label">Email address</label>
+          <input type="email" name="email" class="input" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="label">Password</label>
+          <input type="password" name="password" class="input" placeholder="••••••••" required>
+        </div>
+        <div class="form-submit">
+          <button type="submit" class="btn btn-primary w-full btn-lg" style="justify-content:center;">
+            Sign In →
+          </button>
+        </div>
+      </form>
+
+      <p style="text-align:center;margin-top:20px;font-size:13px;color:#6B7280;">
+        Don't have an account?
+        <a href="{{ url_for('signup') }}" style="color:#7C3AED;font-weight:600;text-decoration:none;">Get Started Free</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

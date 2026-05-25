@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.dash-header { margin-bottom: 24px; }
+.dash-header h1 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; margin-bottom: 4px; }
+.dash-header p  { font-size: 13.5px; color: var(--text-soft); }
+
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card {
+  background:#fff; border:1px solid var(--border);
+  border-radius:var(--radius); padding:18px 20px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.stat-card-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.stat-card-icon.purple { background: #EDE9FE; color: #7C3AED; }
+.stat-card-icon.cyan   { background: #CFFAFE; color: #0891B2; }
+.stat-card-icon.green  { background: #D1FAE5; color: #059669; }
+.stat-card-icon.amber  { background: #FEF3C7; color: #D97706; }
+.stat-label { font-size: 11.5px; color: var(--text-soft); margin-bottom: 3px; }
+.stat-value { font-size: 24px; font-weight: 800; letter-spacing: -.5px; }
+
+.dash-grid { display: grid; grid-template-columns: 1fr 360px; gap: 20px; }
+
+.section-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+
+/* Schema list */
+.schema-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.schema-row:last-child { border-bottom: none; }
+.schema-thumb {
+  width: 38px; height: 38px; border-radius: 9px;
+  background: linear-gradient(135deg, #EDE9FE, #DBEAFE);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.schema-row-name { font-size: 13.5px; font-weight: 600; }
+.schema-row-meta { font-size: 11.5px; color: var(--text-soft); margin-top: 1px; font-family: var(--mono); }
+
+/* Query row */
+.query-row {
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.query-row:last-child { border-bottom: none; }
+.query-row-text { font-size: 13px; color: var(--text); margin-bottom: 5px; line-height: 1.4; }
+.query-row-sql {
+  font-family: var(--mono); font-size: 11px; color: var(--text-soft);
+  background: var(--page-bg); border-radius: 5px;
+  padding: 5px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* API key banner */
+.api-banner {
+  background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%);
+  border-radius: var(--radius); padding: 20px 24px;
+  color: #fff; display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+}
+.api-banner-icon { font-size: 28px; opacity: .8; flex-shrink: 0; }
+.api-banner h4 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+.api-banner p  { font-size: 12.5px; opacity: .8; }
+.api-banner-btn {
+  margin-left: auto; flex-shrink: 0;
+  background: rgba(255,255,255,.2); color: #fff;
+  border: 1.5px solid rgba(255,255,255,.35);
+  border-radius: var(--radius-sm); padding: 8px 18px;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  text-decoration: none; cursor: pointer; transition: background .15s; white-space: nowrap;
+}
+.api-banner-btn:hover { background: rgba(255,255,255,.3); color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dash-header fade-in">
+  <h1>Welcome back, {{ current_user.name.split()[0] }} 👋</h1>
+  <p>Here's what's happening with your SQL workspace.</p>
+</div>
+
+{% if not current_user.gemini_key %}
+<div class="api-banner fade-in">
+  <i class="bi bi-key-fill api-banner-icon"></i>
+  <div>
+    <h4>Add Your Gemini API Key</h4>
+    <p>Unlock AI-powered schema parsing and intelligent SQL generation. Get a free key at aistudio.google.com.</p>
+  </div>
+  <a href="{{ url_for('settings') }}" class="api-banner-btn">Add API Key →</a>
+</div>
+{% endif %}
+
+<div class="stats-grid fade-in fade-in-1">
+  <div class="stat-card">
+    <div>
+      <div class="stat-label">Total Queries</div>
+      <div class="stat-value" style="color:var(--primary);">{{ total_queries }}</div>
+    </div>
+    <div class="stat-card-icon purple"><i class="bi bi-terminal"></i></div>
+  </div>
+  <div class="stat-card">
+    <div>
+      <div class="stat-label">Schemas Uploaded</div>
+      <div class="stat-value" style="color:#0891B2;">{{ schemas|length }}</div>
+    </div>
+    <div class="stat-card-icon cyan"><i class="bi bi-layers"></i></div>
+  </div>
+  <div class="stat-card">
+    <div>
+      <div class="stat-label">AI Status</div>
+      <div class="stat-value" style="color:var(--success);font-size:18px;padding-top:4px;">
+        {% if current_user.gemini_key %}Active{% else %}No Key{% endif %}
+      </div>
+    </div>
+    <div class="stat-card-icon green"><i class="bi bi-cpu"></i></div>
+  </div>
+  <div class="stat-card">
+    <div>
+      <div class="stat-label">Recent Activity</div>
+      <div class="stat-value" style="color:var(--warning);">{{ recent_queries|length }}</div>
+    </div>
+    <div class="stat-card-icon amber"><i class="bi bi-clock-history"></i></div>
+  </div>
+</div>
+
+<div class="dash-grid">
+  <!-- Schemas -->
+  <div class="card fade-in fade-in-2">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-layers" style="color:var(--primary);margin-right:7px;"></i>Your Schemas</div>
+      <a href="{{ url_for('schemas') }}" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    <div class="card-body">
+      {% if schemas %}
+        {% for s in schemas[:5] %}
+        <a href="{{ url_for('schema_detail', schema_id=s.id) }}" style="text-decoration:none;color:inherit;display:block;">
+          <div class="schema-row">
+            <div class="schema-thumb"><i class="bi bi-database" style="color:var(--primary);"></i></div>
+            <div class="flex-1">
+              <div class="schema-row-name">{{ s.schema_name or s.original_name }}</div>
+              <div class="schema-row-meta">{{ s.uploaded_at.strftime('%b %d, %Y') }} · {{ s.queries|length }} queries</div>
+            </div>
+            <i class="bi bi-chevron-right" style="color:var(--border);font-size:11px;"></i>
+          </div>
+        </a>
+        {% endfor %}
+        {% if schemas|length > 5 %}
+        <div style="text-align:center;padding:10px 0 0;"><a href="{{ url_for('schemas') }}" style="font-size:12.5px;color:var(--primary);font-weight:600;text-decoration:none;">+{{ schemas|length - 5 }} more →</a></div>
+        {% endif %}
+      {% else %}
+        <div class="empty" style="padding:32px 0;">
+          <i class="bi bi-layers"></i>
+          <h4>No schemas yet</h4>
+          <p>Upload a database schema image to get started.</p>
+          <a href="{{ url_for('schemas') }}" class="btn btn-primary mt-3" style="display:inline-flex;">Upload Schema</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Queries -->
+  <div class="card fade-in fade-in-3">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-clock-history" style="color:var(--primary);margin-right:7px;"></i>Recent Queries</div>
+      <a href="{{ url_for('history') }}" class="btn btn-outline btn-sm">Full History</a>
+    </div>
+    <div class="card-body">
+      {% if recent_queries %}
+        {% for q in recent_queries %}
+        <div class="query-row">
+          <div class="query-row-text">{{ q.natural_query[:80] }}{% if q.natural_query|length > 80 %}…{% endif %}</div>
+          <div class="query-row-sql">{{ q.generated_sql[:80] }}…</div>
+          <div style="margin-top:5px;display:flex;gap:6px;align-items:center;">
+            <span class="badge {{ 'badge-purple' if q.model_used != 'heuristic' else 'badge-amber' }}">{{ q.model_used }}</span>
+            <span style="font-size:11px;color:var(--text-xs);font-family:var(--mono);">{{ q.created_at.strftime('%b %d · %H:%M') }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty" style="padding:32px 0;">
+          <i class="bi bi-terminal"></i>
+          <h4>No queries yet</h4>
+          <a href="{{ url_for('query_page') }}" class="btn btn-primary mt-3" style="display:inline-flex;">Generate SQL</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
