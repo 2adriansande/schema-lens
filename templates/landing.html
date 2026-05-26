@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SchemaLens — Natural Language to SQL Instantly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #19183B; --primary-mid: #708993; --primary-light: #A1C2BD;
+      --primary-xlight: #E7F2EF; --bg: #E7F2EF;
+      --text: #19183B; --text-soft: #708993; --border: rgba(112,137,147,0.2);
+      --font: 'DM Sans', sans-serif; --mono: 'JetBrains Mono', monospace;
+      --radius: 16px; --radius-sm: 10px;
+      --shadow: 0 4px 24px rgba(25,24,59,0.08);
+      --shadow-lg: 0 8px 40px rgba(25,24,59,0.14);
+    }
+    html { scroll-behavior: smooth; font-size: 14px; }
+    body { font-family: var(--font); color: var(--text); background: var(--bg); }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse 70% 50% at 85% 5%, rgba(161,194,189,0.4) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 5% 85%, rgba(112,137,147,0.2) 0%, transparent 60%),
+        #E7F2EF;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(231,242,239,0.8); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 6%;
+      display: flex; align-items: center; height: 68px; gap: 32px;
+    }
+    .nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+    .nav-logo-icon {
+      width:36px; height:36px; border-radius:9px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+      display:flex; align-items:center; justify-content:center;
+    }
+    .nav-logo-icon svg { width:20px; height:20px; }
+    .nav-logo-text { font-size:17px; font-weight:700; color:var(--text); letter-spacing:-.4px; }
+    .nav-links { display:flex; gap:28px; margin-left:24px; }
+    .nav-links a { font-size:14px; color:var(--text-soft); text-decoration:none; font-weight:500; transition:color .15s; }
+    .nav-links a:hover { color:var(--text); }
+    .nav-auth { margin-left:auto; display:flex; gap:10px; align-items:center; }
+    .btn-nav-ghost {
+      padding:8px 20px; border-radius:var(--radius-sm); font-family:var(--font);
+      font-size:14px; font-weight:600; color:var(--text-soft); background:none; border:none;
+      cursor:pointer; text-decoration:none; transition:color .15s;
+    }
+    .btn-nav-ghost:hover { color:var(--text); }
+    .btn-nav {
+      padding:9px 22px; border-radius:var(--radius-sm); font-family:var(--font);
+      font-size:14px; font-weight:700; color:var(--primary-xlight);
+      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+      border:none; cursor:pointer; text-decoration:none; transition:all .2s;
+      box-shadow: 0 4px 12px rgba(25,24,59,0.2);
+    }
+    .btn-nav:hover { box-shadow: 0 6px 20px rgba(25,24,59,0.3); transform: translateY(-1px); }
+
+    /* HERO */
+    .hero {
+      padding: 90px 6% 80px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 64px; align-items: center; max-width: 1200px; margin: 0 auto;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(161,194,189,0.25); color: var(--primary-mid);
+      border: 1px solid var(--border);
+      padding: 5px 14px; border-radius: 100px;
+      font-size: 12.5px; font-weight: 600; margin-bottom: 22px;
+      backdrop-filter: blur(8px);
+    }
+    .hero h1 {
+      font-size: 50px; font-weight: 700; letter-spacing: -1.8px;
+      line-height: 1.1; margin-bottom: 22px;
+    }
+    .hero h1 span { color: var(--primary-mid); }
+    .hero p {
+      font-size: 16.5px; color: var(--text-soft);
+      line-height: 1.75; margin-bottom: 34px; max-width: 440px;
+    }
+    .hero-btns { display:flex; gap:12px; flex-wrap:wrap; }
+    .btn-hero-primary {
+      padding: 14px 30px; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+      color: var(--primary-xlight);
+      font-family: var(--font); font-size: 14.5px; font-weight: 700;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      transition: all .2s; box-shadow: 0 6px 20px rgba(25,24,59,0.22);
+    }
+    .btn-hero-primary:hover { transform:translateY(-2px); box-shadow:0 10px 28px rgba(25,24,59,0.3); }
+    .btn-hero-ghost {
+      padding: 14px 26px; border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.6); backdrop-filter: blur(12px);
+      color: var(--text-soft);
+      font-family: var(--font); font-size: 14.5px; font-weight: 600;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid var(--border); transition: all .2s;
+    }
+    .btn-hero-ghost:hover { background: rgba(255,255,255,0.9); color: var(--text); border-color: var(--primary-light); }
+    .hero-indicators { display:flex; gap:22px; margin-top:30px; }
+    .hero-ind { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-soft); }
+    .hero-ind i { color: #059669; font-size:15px; }
+
+    /* Hero demo card */
+    .hero-demo {
+      background: rgba(255,255,255,0.7); backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+    .demo-top {
+      background: linear-gradient(135deg, rgba(231,242,239,0.8), rgba(161,194,189,0.2));
+      border-bottom: 1px solid var(--border);
+      padding: 16px 22px;
+    }
+    .demo-top p { font-size:12px; color:var(--primary-mid); margin-bottom:5px; font-weight:600; text-transform: uppercase; letter-spacing: .06em; }
+    .demo-query { font-size: 14px; color: var(--text); font-style: italic; line-height: 1.5; }
+    .demo-sql {
+      background: var(--primary); padding: 18px 22px;
+      font-family: var(--mono); font-size: 12.5px; color: var(--primary-light);
+      line-height: 1.8;
+    }
+    .demo-footer {
+      padding: 13px 22px; display:flex; align-items:center; gap:9px;
+      border-top: 1px solid var(--border); background: rgba(255,255,255,0.4);
+    }
+    .demo-dot { width:8px; height:8px; border-radius:50%; }
+
+    /* FEATURES */
+    .features { padding: 90px 6%; }
+    .features-inner { max-width: 1100px; margin: 0 auto; }
+    .section-header { text-align:center; margin-bottom:52px; }
+    .section-header h2 { font-size:38px; font-weight:700; letter-spacing:-1px; margin-bottom:12px; }
+    .section-header p  { font-size:15.5px; color:var(--text-soft); }
+    .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .feat-card {
+      background: rgba(255,255,255,0.65); backdrop-filter: blur(12px);
+      border:1px solid var(--border);
+      border-radius:var(--radius); padding:26px;
+      transition: box-shadow .2s, transform .2s;
+      box-shadow: var(--shadow);
+    }
+    .feat-card:hover { box-shadow:var(--shadow-lg); transform:translateY(-3px); }
+    .feat-icon {
+      width:48px; height:48px; border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:21px; margin-bottom:16px;
+    }
+    .feat-card h3 { font-size:15.5px; font-weight:700; margin-bottom:7px; }
+    .feat-card p  { font-size:13.5px; color:var(--text-soft); line-height:1.65; }
+
+    /* HOW IT WORKS */
+    .how { padding:90px 6%; }
+    .how-inner { max-width:900px; margin:0 auto; }
+    .how-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:44px; margin-top:52px; }
+    .how-step { text-align:center; }
+    .step-icon-box {
+      width:68px; height:68px; border-radius:18px;
+      background: rgba(255,255,255,0.7); backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      font-size:28px; margin:0 auto 16px;
+      box-shadow: var(--shadow);
+      transition: transform .2s;
+    }
+    .how-step:hover .step-icon-box { transform: translateY(-4px); }
+    .how-step h3 { font-size:15.5px; font-weight:700; margin-bottom:7px; }
+    .how-step p  { font-size:13.5px; color:var(--text-soft); line-height:1.65; }
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+      color: var(--primary-xlight); font-size: 12px; font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    /* TESTIMONIALS */
+    .testimonials { padding:90px 6%; }
+    .test-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; max-width:1100px; margin:52px auto 0; }
+    .test-card {
+      background: rgba(255,255,255,0.65); backdrop-filter: blur(12px);
+      border:1px solid var(--border);
+      border-radius:var(--radius); padding:26px;
+      box-shadow: var(--shadow);
+    }
+    .test-avatar {
+      width:44px; height:44px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:15px; font-weight:700; color:#fff; margin-bottom:14px;
+    }
+    .test-name  { font-size:15px; font-weight:700; margin-bottom:2px; }
+    .test-title { font-size:12.5px; color:var(--text-soft); margin-bottom:14px; }
+    .test-text  { font-size:13.5px; color:var(--text-soft); line-height:1.7; font-style:italic; }
+
+    /* CTA */
+    .cta {
+      margin:50px 6%; border-radius:var(--radius);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);
+      padding: 72px 52px; text-align:center; color: var(--primary-xlight);
+      box-shadow: var(--shadow-lg);
+      position: relative; overflow: hidden;
+    }
+    .cta::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 280px; height: 280px; border-radius: 50%;
+      background: rgba(161,194,189,0.12);
+    }
+    .cta h2 { font-size:38px; font-weight:700; letter-spacing:-1px; margin-bottom:13px; position: relative; }
+    .cta p  { font-size:16px; color:rgba(231,242,239,.75); margin-bottom:30px; position: relative; }
+    .btn-cta {
+      padding:14px 34px; border-radius:var(--radius-sm);
+      background:rgba(255,255,255,0.15); color:var(--primary-xlight);
+      border: 1.5px solid rgba(255,255,255,0.3);
+      font-family:var(--font); font-size:14.5px; font-weight:700;
+      text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+      transition:all .2s; position: relative;
+    }
+    .btn-cta:hover { background: rgba(255,255,255,0.25); box-shadow:0 8px 28px rgba(25,24,59,0.2); }
+
+    /* FOOTER */
+    footer {
+      background: var(--primary); color:rgba(231,242,239,.6);
+      padding:60px 6% 36px;
+    }
+    .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:44px; max-width:1100px; margin:0 auto 44px; }
+    .footer-brand .logo-text { font-size:19px; font-weight:700; color:var(--primary-xlight); margin-bottom:11px; }
+    .footer-brand p  { font-size:13.5px; line-height:1.75; max-width:270px; }
+    footer h4 { font-size:13px; font-weight:700; color:var(--primary-xlight); margin-bottom:16px; text-transform: uppercase; letter-spacing: .06em; }
+    footer ul { list-style:none; }
+    footer ul li { margin-bottom:9px; }
+    footer ul a { font-size:13.5px; color:rgba(231,242,239,.5); text-decoration:none; transition:color .15s; }
+    footer ul a:hover { color:var(--primary-xlight); }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding-top: 26px; max-width:1100px; margin:0 auto;
+      display:flex; align-items:center; justify-content:space-between;
+      font-size:13px;
+    }
+    .footer-socials { display:flex; gap:10px; }
+    .social-btn {
+      width:34px; height:34px; border-radius:8px;
+      background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center;
+      color:rgba(255,255,255,.45); text-decoration:none; font-size:15px; transition:all .15s;
+    }
+    .social-btn:hover { background:rgba(255,255,255,.16); color:var(--primary-xlight); }
+
+    @media(max-width:768px) {
+      .hero { grid-template-columns:1fr; }
+      .hero h1 { font-size:34px; }
+      .features-grid, .how-steps, .test-grid { grid-template-columns:1fr; }
+      .footer-grid { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="{{ url_for('landing') }}" class="nav-logo">
+    <div class="nav-logo-icon">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="50" cy="28" rx="26" ry="9" fill="#A1C2BD" opacity="0.7"/>
+        <rect x="24" y="28" width="52" height="38" fill="#A1C2BD" opacity="0.7"/>
+        <ellipse cx="50" cy="66" rx="26" ry="9" fill="#A1C2BD" opacity="0.7"/>
+        <circle cx="50" cy="50" r="22" fill="none" stroke="#E7F2EF" stroke-width="1.5" opacity="0.8"/>
+        <line x1="28" y1="50" x2="42" y2="50" stroke="#E7F2EF" stroke-width="2"/>
+        <line x1="58" y1="50" x2="72" y2="50" stroke="#E7F2EF" stroke-width="2"/>
+        <circle cx="50" cy="50" r="5" fill="#E7F2EF"/>
+      </svg>
+    </div>
+    <span class="nav-logo-text">SchemaLens</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#testimonials">Testimonials</a>
+  </div>
+  <div class="nav-auth">
+    <a href="{{ url_for('login') }}" class="btn-nav-ghost">Login</a>
+    <a href="{{ url_for('signup') }}" class="btn-nav">Sign Up Free</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section style="background:transparent;">
+  <div class="hero">
+    <div>
+      <div class="hero-badge"><i class="bi bi-stars"></i> Powered by Gemini AI</div>
+      <h1>Convert Natural Language into <span>SQL Queries</span> Instantly</h1>
+      <p>Stop wrestling with complex SQL syntax. Describe what you need in plain English and let AI generate optimized queries for you.</p>
+      <div class="hero-btns">
+        <a href="{{ url_for('signup') }}" class="btn-hero-primary"><i class="bi bi-stars"></i> Get Started Free</a>
+        <a href="#how-it-works" class="btn-hero-ghost"><i class="bi bi-play-circle"></i> Watch Demo</a>
+      </div>
+      <div class="hero-indicators">
+        <div class="hero-ind"><i class="bi bi-check-circle-fill"></i> No credit card required</div>
+        <div class="hero-ind"><i class="bi bi-check-circle-fill"></i> Free tier available</div>
+      </div>
+    </div>
+    <div>
+      <div class="hero-demo">
+        <div class="demo-top">
+          <p>✦ Describe Your Query</p>
+          <div class="demo-query">"Show me all active users who signed up in the last 30 days"</div>
+        </div>
+        <div class="demo-sql">
+SELECT u.id, u.name, u.email, u.created_at<br>
+FROM users u<br>
+WHERE u.status = 'active'<br>
+&nbsp;&nbsp;AND u.created_at >= NOW() - INTERVAL 30 DAY<br>
+ORDER BY u.created_at DESC;
+        </div>
+        <div class="demo-footer">
+          <div class="demo-dot" style="background:#10b981;"></div>
+          <span style="font-size:13px;font-weight:600;color:#065f46;">SQL Generated Successfully</span>
+          <span style="margin-left:auto;font-size:12px;color:var(--text-soft);font-family:var(--mono);">gemini-1.5-flash · 1.2s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="features-inner">
+    <div class="section-header">
+      <h2>Powerful Features for Modern Teams</h2>
+      <p>Everything you need to work with databases efficiently</p>
+    </div>
+    <div class="features-grid">
+      {% set feats = [
+        ('bi-stars','background:linear-gradient(135deg,var(--primary-xlight),rgba(161,194,189,0.3));color:var(--primary-mid);','AI Query Generation','Transform natural language into optimized SQL queries instantly using Gemini AI.'),
+        ('bi-layers','background:rgba(112,137,147,0.12);color:var(--primary);','Schema Management','Upload and manage database schemas with intelligent OCR-powered extraction.'),
+        ('bi-check-circle','background:rgba(16,185,129,0.1);color:#059669;','Query Validation','Auto-validate SQL syntax and optimize for performance automatically.'),
+        ('bi-cpu','background:rgba(161,194,189,0.2);color:var(--primary);','Schema Recognition','OCR-powered extraction of tables and relationships from ER diagrams.'),
+        ('bi-clock-history','background:rgba(112,137,147,0.1);color:var(--primary-mid);','Query History','Full history of all generated queries with search, filter, and re-run.'),
+        ('bi-shield-check','background:rgba(25,24,59,0.07);color:var(--primary);','Secure & Private','Your data and API keys are stored securely in your own account only.')
+      ] %}
+      {% for icon, style, title, desc in feats %}
+      <div class="feat-card">
+        <div class="feat-icon" style="{{ style }}"><i class="bi {{ icon }}"></i></div>
+        <h3>{{ title }}</h3>
+        <p>{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how-it-works">
+  <div class="how-inner">
+    <div class="section-header">
+      <h2>How It Works</h2>
+      <p>Three simple steps to transform your database workflow</p>
+    </div>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="step-num">1</div>
+        <div class="step-icon-box">
+          <i class="bi bi-chat-text" style="color:var(--primary-mid);"></i>
+        </div>
+        <h3>Describe Your Query</h3>
+        <p>Type what you need in plain English — no SQL knowledge required.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-num">2</div>
+        <div class="step-icon-box">
+          <i class="bi bi-cpu" style="color:var(--primary);"></i>
+        </div>
+        <h3>AI Generates SQL</h3>
+        <p>AI creates schema-aware SQL queries optimized for your specific database.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-num">3</div>
+        <div class="step-icon-box">
+          <i class="bi bi-clipboard-check" style="color:var(--primary-mid);"></i>
+        </div>
+        <h3>Execute &amp; View</h3>
+        <p>Copy the generated SQL and run it in your database client instantly.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials" id="testimonials">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="section-header">
+      <h2>Loved by Teams Worldwide</h2>
+      <p>See what developers and data professionals are saying</p>
+    </div>
+    <div class="test-grid">
+      {% set tests = [
+        ('SC','linear-gradient(135deg,var(--primary),var(--primary-mid))','Sarah Chen','Senior Data Analyst','This tool has revolutionized how I work with databases. I can query complex schemas in seconds now.'),
+        ('MR','linear-gradient(135deg,var(--primary-mid),var(--primary-light))','Michael Rodriguez','Full Stack Developer','The AI-powered query generation is incredibly accurate. It understands context better than I expected.'),
+        ('EW','linear-gradient(135deg,var(--primary-light),#7ba59d)','Emily Watson','Database Engineer','Even without deep SQL knowledge I can now pull data insights myself. The schema recognition is magic.')
+      ] %}
+      {% for init, bg, name, title, text in tests %}
+      <div class="test-card">
+        <div class="test-avatar" style="background:{{ bg }};">{{ init }}</div>
+        <div class="test-name">{{ name }}</div>
+        <div class="test-title">{{ title }}</div>
+        <div class="test-text">"{{ text }}"</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta">
+  <h2>Ready to Transform Your Database Workflow?</h2>
+  <p>Join thousands of developers and data professionals using SchemaLens</p>
+  <a href="{{ url_for('signup') }}" class="btn-cta"><i class="bi bi-stars"></i> Start Free Trial →</a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="logo-text">SchemaLens</div>
+      <p>Transform natural language into SQL queries with the power of AI. Built for developers, data analysts, and database engineers.</p>
+    </div>
+    <div>
+      <h4>Product</h4>
+      <ul>
+        <li><a href="#">Features</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#">Documentation</a></li>
+        <li><a href="#">API</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Connect</h4>
+      <div class="footer-socials">
+        <a href="#" class="social-btn"><i class="bi bi-twitter-x"></i></a>
+        <a href="#" class="social-btn"><i class="bi bi-github"></i></a>
+        <a href="#" class="social-btn"><i class="bi bi-linkedin"></i></a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 SchemaLens. All rights reserved.</span>
+    <div style="display:flex;gap:22px;">
+      <a href="#" style="font-size:13px;color:rgba(231,242,239,.4);text-decoration:none;">Privacy Policy</a>
+      <a href="#" style="font-size:13px;color:rgba(231,242,239,.4);text-decoration:none;">Terms of Service</a>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

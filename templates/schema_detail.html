@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}{{ schema.schema_name or schema.original_name }} — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.detail-header { margin-bottom: 26px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.detail-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 5px; }
+.detail-header p  { font-size: 13px; color: var(--text-soft); font-family: var(--mono); }
+.detail-grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+.table-chip { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 11px; }
+.table-chip-head {
+  background: var(--primary); color: var(--primary-xlight);
+  padding: 10px 15px; font-size: 12.5px; font-weight: 700;
+  display: flex; align-items: center; gap: 7px; font-family: var(--mono);
+}
+.table-chip-head i { font-size: 11px; opacity: .6; }
+.col-row {
+  padding: 8px 15px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; font-size: 12px;
+  background: rgba(255,255,255,0.5);
+}
+.col-row:last-child { border-bottom: none; }
+.col-name { font-family: var(--mono); font-weight: 500; flex: 1; }
+.col-type { font-family: var(--mono); font-size: 11px; color: var(--text-xs); }
+.col-pk   { font-size: 10px; color: var(--warning); }
+.rel-row { display: flex; align-items: center; gap: 9px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; font-family: var(--mono); }
+.rel-row:last-child { border-bottom: none; }
+.rel-from { font-weight: 600; }
+.rel-arrow { color: var(--primary-mid); font-size: 14px; }
+.qh-item { padding: 13px 0; border-bottom: 1px solid var(--border); }
+.qh-item:last-child { border-bottom: none; }
+.qh-q { font-size: 13.5px; font-weight: 500; margin-bottom: 7px; }
+.qh-sql-mini { font-family: var(--mono); font-size: 11px; background: var(--primary); color: var(--primary-light); border-radius: 7px; padding: 8px 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 6px; }
+.confirmed-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 100px; background: rgba(16,185,129,0.1); color: #059669; font-size: 12px; font-weight: 600; border: 1px solid rgba(16,185,129,0.2); margin-top: 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-header fade-in">
+  <div>
+    <h1>{{ schema.schema_name or schema.original_name }}</h1>
+    <p>Uploaded {{ schema.uploaded_at.strftime('%B %d, %Y at %H:%M') }} · {{ schema.original_name }}</p>
+    {% if schema.confirmed_schema %}
+    <div class="confirmed-badge"><i class="bi bi-patch-check-fill"></i> Schema Confirmed</div>
+    {% else %}
+    <div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;background:rgba(245,158,11,0.1);color:#d97706;font-size:12px;font-weight:600;border:1px solid rgba(245,158,11,0.2);margin-top:6px;">
+      <i class="bi bi-exclamation-triangle-fill"></i> Not Yet Confirmed
+    </div>
+    {% endif %}
+  </div>
+  <div style="display:flex;gap:9px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
+    <a href="{{ url_for('er_diagram', schema_id=schema.id) }}" class="btn btn-outline">
+      <i class="bi bi-diagram-3"></i> ER Diagram
+    </a>
+    <a href="{{ url_for('schema_confirm', schema_id=schema.id) }}" class="btn btn-outline">
+      <i class="bi bi-pencil-square"></i> Edit Schema
+    </a>
+    <a href="{{ url_for('query_page') }}?schema_id={{ schema.id }}" class="btn btn-primary">
+      <i class="bi bi-stars"></i> Query This Schema
+    </a>
+    <form method="POST" action="{{ url_for('delete_schema', schema_id=schema.id) }}"
+          onsubmit="return confirm('Delete schema and all queries?');" style="margin:0;">
+      <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i></button>
+    </form>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <!-- LEFT: image + OCR -->
+  <div>
+    <div class="card fade-in fade-in-1" style="margin-bottom:16px;">
+      <div class="card-header"><div class="card-title"><i class="bi bi-image" style="color:var(--primary-mid);margin-right:8px;"></i>Schema Image</div></div>
+      <div style="padding:14px;">
+        <img src="{{ url_for('uploaded_file', filename=schema.filename) }}"
+             alt="Schema" style="width:100%;border-radius:var(--radius-sm);max-height:360px;object-fit:contain;">
+      </div>
+    </div>
+
+    <div class="card fade-in fade-in-2">
+      <div class="card-header">
+        <div class="card-title"><i class="bi bi-file-text" style="color:var(--primary-mid);margin-right:8px;"></i>OCR Text</div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleOcr()"><i class="bi bi-eye"></i> Toggle</button>
+      </div>
+      <div id="ocrBlock" style="display:none;padding:18px;">
+        <pre style="font-family:var(--mono);font-size:11.5px;color:var(--text-soft);white-space:pre-wrap;background:rgba(231,242,239,0.4);border-radius:var(--radius-sm);padding:14px;max-height:240px;overflow-y:auto;margin:0;border:1px solid var(--border);">{{ schema.ocr_text or '(no OCR text extracted)' }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: parsed schema + queries -->
+  <div>
+    <div class="card fade-in fade-in-2" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="bi bi-diagram-3" style="color:var(--primary-mid);margin-right:8px;"></i>
+          {% if schema.confirmed_schema %}Confirmed Schema{% else %}Parsed Schema{% endif %}
+        </div>
+        <div style="display:flex;gap:7px;">
+          <span class="badge badge-mid">{{ parsed.tables|length if parsed.tables else 0 }} tables</span>
+          <span class="badge badge-dark">{{ parsed.relationships|length if parsed.relationships else 0 }} relationships</span>
+        </div>
+      </div>
+      <div class="card-body">
+        {% if parsed.tables %}
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:11px;margin-bottom:18px;">
+            {% for table in parsed.tables %}
+            <div class="table-chip">
+              <div class="table-chip-head">
+                <i class="bi bi-table"></i> {{ table.name }}
+              </div>
+              {% for col in table.columns %}
+              <div class="col-row">
+                {% if col.primary_key %}
+                <i class="bi bi-key-fill col-pk"></i>
+                {% else %}
+                <i class="bi bi-circle" style="font-size:6px;color:var(--border);"></i>
+                {% endif %}
+                <span class="col-name">{{ col.name }}</span>
+                <span class="col-type">{{ col.type }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% endfor %}
+          </div>
+          {% if parsed.relationships %}
+          <div>
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text-xs);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;">Relationships</div>
+            {% for rel in parsed.relationships %}
+            <div class="rel-row">
+              <span class="rel-from">{{ rel.from_table }}.{{ rel.from_col }}</span>
+              <i class="bi bi-arrow-right rel-arrow"></i>
+              <span class="rel-from">{{ rel.to_table }}.{{ rel.to_col }}</span>
+              <span class="badge badge-light" style="margin-left:auto;">{{ rel.type }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% else %}
+          <div class="empty" style="padding:28px 0;">
+            <i class="bi bi-exclamation-triangle"></i>
+            <h4>No tables parsed</h4>
+            <p>
+              {% if not current_user.gemini_key %}
+              <a href="{{ url_for('settings') }}" style="color:var(--primary-mid);font-weight:600;">Add a Gemini key</a> for better results.
+              {% else %}
+              The OCR text may not contain recognizable tables.
+              {% endif %}
+            </p>
+            <a href="{{ url_for('schema_confirm', schema_id=schema.id) }}" class="btn btn-outline mt-3" style="display:inline-flex;">
+              <i class="bi bi-pencil-square"></i> Add Tables Manually
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Queries on this schema -->
+    <div class="card fade-in fade-in-3">
+      <div class="card-header">
+        <div class="card-title"><i class="bi bi-clock-history" style="color:var(--primary-mid);margin-right:8px;"></i>Queries on This Schema</div>
+        <span class="badge badge-dark">{{ queries|length }}</span>
+      </div>
+      <div class="card-body">
+        {% if queries %}
+          {% for q in queries %}
+          <div class="qh-item">
+            <div class="qh-q">{{ q.natural_query[:100] }}{% if q.natural_query|length > 100 %}…{% endif %}</div>
+            <div class="qh-sql-mini">{{ q.generated_sql[:120] }}{% if q.generated_sql|length > 120 %}…{% endif %}</div>
+            <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;">
+              <span class="badge {{ 'badge-dark' if q.model_used != 'heuristic' else 'badge-amber' }}">{{ q.model_used }}</span>
+              {% if q.accuracy_score is not none %}
+              <span class="badge {{ 'badge-green' if q.accuracy_score >= 85 else 'badge-amber' if q.accuracy_score >= 60 else 'badge-red' }}">
+                {{ q.accuracy_score|int }}% accuracy
+              </span>
+              {% endif %}
+              {% if q.sql_explanation %}
+              <span class="badge badge-light" title="{{ q.sql_explanation }}"><i class="bi bi-translate"></i> Explained</span>
+              {% endif %}
+              <span style="font-size:11px;color:var(--text-xs);font-family:var(--mono);">{{ q.created_at.strftime('%b %d · %H:%M') }}</span>
+            </div>
+            {% if q.sql_explanation %}
+            <div style="margin-top:7px;font-size:12.5px;color:var(--text-soft);font-style:italic;padding:7px 12px;background:rgba(231,242,239,0.4);border-radius:6px;border-left:3px solid var(--primary-light);">
+              {{ q.sql_explanation[:160] }}{% if q.sql_explanation|length > 160 %}…{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty" style="padding:28px 0;">
+            <i class="bi bi-terminal"></i>
+            <h4>No queries yet</h4>
+            <a href="{{ url_for('query_page') }}?schema_id={{ schema.id }}" class="btn btn-primary mt-3" style="display:inline-flex;">Generate First Query</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleOcr() {
+  const el = document.getElementById('ocrBlock');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

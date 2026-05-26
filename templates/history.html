@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% block title %}Query History — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.history-header { margin-bottom: 26px; }
+.history-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 5px; }
+.history-header p { font-size: 14px; color: var(--text-soft); }
+
+.history-toolbar {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.search-wrap {
+  flex: 1; min-width: 200px;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 16px;
+  transition: all .2s;
+}
+.search-wrap:focus-within {
+  background: rgba(255,255,255,0.9);
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(161,194,189,0.2);
+}
+.search-wrap i { color: var(--text-xs); font-size: 14px; }
+.search-wrap input { border:none; outline:none; font-family:var(--font); font-size:13.5px; color:var(--text); flex:1; background:none; }
+.search-wrap input::placeholder { color: var(--text-xs); }
+
+.filter-tabs { display: flex; gap: 5px; }
+.filter-tab {
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  color: var(--text-soft); transition: all .2s;
+  display: flex; align-items: center; gap: 5px;
+}
+.filter-tab:hover { background: rgba(255,255,255,0.9); color: var(--text); border-color: var(--primary-light); }
+.filter-tab.active { background: linear-gradient(135deg, var(--primary), var(--primary-mid)); color: var(--primary-xlight); border-color: transparent; box-shadow: 0 4px 12px rgba(25,24,59,0.2); }
+.filter-tab.success.active { background: linear-gradient(135deg, #059669, #0e7c5a); }
+.filter-tab.error.active   { background: linear-gradient(135deg, #dc2626, #991b1b); }
+
+/* Query cards */
+.qh-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 14px;
+  overflow: hidden; transition: box-shadow .2s, transform .2s;
+  box-shadow: var(--shadow);
+}
+.qh-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+
+.qh-top { padding: 16px 20px; display: flex; align-items: flex-start; gap: 12px; }
+.qh-status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0; margin-top: 6px;
+}
+.qh-status-dot.success { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+.qh-status-dot.error   { background: var(--danger); box-shadow: 0 0 0 3px rgba(212,24,61,0.15); }
+
+.qh-question {
+  font-size: 14.5px; font-weight: 600; color: var(--text);
+  margin-bottom: 5px; line-height: 1.4;
+}
+.qh-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.qh-meta-item {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11.5px; color: var(--text-xs); font-family: var(--mono);
+}
+.qh-meta-item i { font-size: 10px; }
+
+.qh-sql {
+  margin: 0 20px 16px;
+  background: var(--primary); border-radius: var(--radius-sm);
+  padding: 11px 15px; font-family: var(--mono);
+  font-size: 11.5px; color: var(--primary-light);
+  overflow: hidden; max-height: 48px;
+  white-space: nowrap; text-overflow: ellipsis;
+  cursor: pointer; transition: max-height .25s;
+}
+.qh-sql.expanded { max-height: 300px; white-space: pre-wrap; overflow-y: auto; }
+
+.qh-actions {
+  padding: 11px 20px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.3);
+}
+
+/* Stats footer */
+.stats-footer {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; margin-top: 26px;
+}
+.stat-box {
+  border-radius: var(--radius); padding: 20px 22px; color: #fff;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: var(--shadow);
+}
+.stat-box.dark   { background: linear-gradient(135deg, var(--primary), var(--primary-mid)); }
+.stat-box.green  { background: linear-gradient(135deg, #059669, #10b981); }
+.stat-box.speed  { background: linear-gradient(135deg, var(--primary-mid), var(--primary-light)); }
+.stat-box-label  { font-size: 12px; opacity: .8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.stat-box-value  { font-size: 30px; font-weight: 700; letter-spacing: -1px; }
+.stat-box-icon   { font-size: 30px; opacity: .2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="history-header fade-in">
+  <h1>Query History</h1>
+  <p>View and manage your past SQL queries.</p>
+</div>
+
+<div class="history-toolbar fade-in fade-in-1">
+  <div class="search-wrap">
+    <i class="bi bi-search"></i>
+    <input type="text" id="searchInput" placeholder="Search queries…" oninput="filterQueries()">
+  </div>
+  <div class="filter-tabs">
+    <button class="filter-tab active" id="tab-all" onclick="setFilter('all')">All</button>
+    <button class="filter-tab success" id="tab-success" onclick="setFilter('success')">
+      <i class="bi bi-check-circle-fill"></i> Success
+    </button>
+    <button class="filter-tab error" id="tab-error" onclick="setFilter('error')">
+      <i class="bi bi-x-circle-fill"></i> Errors
+    </button>
+  </div>
+</div>
+
+<!-- Query List -->
+<div id="queryList">
+{% if queries.items %}
+  {% for q in queries.items %}
+  <div class="qh-card fade-in" id="qcard-{{ q.id }}"
+       data-query="{{ q.natural_query | lower }}"
+       data-status="success">
+    <div class="qh-top">
+      <div class="qh-status-dot success"></div>
+      <div class="flex-1">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+          <div>
+            {% if q.schema %}
+            <span class="badge badge-mid" style="margin-bottom:7px;display:inline-flex;">{{ q.schema.schema_name or q.schema.original_name }}</span>
+            {% else %}
+            <span class="badge badge-light" style="margin-bottom:7px;display:inline-flex;">no schema</span>
+            {% endif %}
+            <div class="qh-question">{{ q.natural_query }}</div>
+            <div class="qh-meta">
+              <span class="qh-meta-item"><i class="bi bi-clock"></i> {{ q.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+              <span class="qh-meta-item"><i class="bi bi-dot"></i> {{ q.model_used or 'heuristic' }}</span>
+            </div>
+          </div>
+          <button onclick="deleteQuery({{ q.id }})" class="btn btn-ghost btn-sm btn-icon" style="flex-shrink:0;color:var(--text-xs);" title="Delete">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="qh-sql" onclick="this.classList.toggle('expanded')" title="Click to expand">{{ q.generated_sql }}</div>
+    <div class="qh-actions">
+      <button onclick="copySQL('{{ q.id }}')" class="btn btn-outline btn-sm"><i class="bi bi-clipboard"></i> Copy SQL</button>
+      <a href="{{ url_for('query_page') }}{% if q.schema %}?schema_id={{ q.schema.id }}{% endif %}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-repeat"></i> Re-run</a>
+      <span id="sql-{{ q.id }}" style="display:none;">{{ q.generated_sql }}</span>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="empty">
+    <i class="bi bi-clock-history"></i>
+    <h4>No queries yet</h4>
+    <p>Your generated SQL queries will appear here.</p>
+    <a href="{{ url_for('query_page') }}" class="btn btn-primary mt-3" style="display:inline-flex;">Generate First Query</a>
+  </div>
+{% endif %}
+</div>
+
+<!-- Pagination -->
+{% if queries.pages > 1 %}
+<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:22px;" class="fade-in">
+  {% if queries.has_prev %}
+  <a href="{{ url_for('history', page=queries.prev_num) }}" class="btn btn-outline btn-sm"><i class="bi bi-chevron-left"></i></a>
+  {% endif %}
+  {% for p in queries.iter_pages(left_edge=1,right_edge=1,left_current=2,right_current=2) %}
+    {% if p %}
+    <a href="{{ url_for('history', page=p) }}"
+       class="btn btn-sm {{ 'btn-primary' if p==queries.page else 'btn-outline' }}"
+       style="min-width:36px;justify-content:center;">{{ p }}</a>
+    {% else %}
+    <span style="color:var(--text-xs);padding:0 4px;">…</span>
+    {% endif %}
+  {% endfor %}
+  {% if queries.has_next %}
+  <a href="{{ url_for('history', page=queries.next_num) }}" class="btn btn-outline btn-sm"><i class="bi bi-chevron-right"></i></a>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Stats Footer -->
+{% if queries.items %}
+<div class="stats-footer fade-in" style="animation-delay:.28s;">
+  <div class="stat-box dark">
+    <div>
+      <div class="stat-box-label">Total Queries</div>
+      <div class="stat-box-value">{{ queries.total }}</div>
+    </div>
+    <i class="bi bi-terminal stat-box-icon"></i>
+  </div>
+  <div class="stat-box green">
+    <div>
+      <div class="stat-box-label">Successful</div>
+      <div class="stat-box-value">{{ queries.total }}</div>
+    </div>
+    <i class="bi bi-check-circle stat-box-icon"></i>
+  </div>
+  <div class="stat-box speed">
+    <div>
+      <div class="stat-box-label">Avg Response</div>
+      <div class="stat-box-value">~2s</div>
+    </div>
+    <i class="bi bi-lightning stat-box-icon"></i>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentFilter = 'all';
+function setFilter(f) {
+  currentFilter = f;
+  ['all','success','error'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === f);
+  });
+  filterQueries();
+}
+function filterQueries() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('.qh-card').forEach(card => {
+    const matchText   = card.dataset.query.includes(q);
+    const matchFilter = currentFilter === 'all' || card.dataset.status === currentFilter;
+    card.style.display = (matchText && matchFilter) ? '' : 'none';
+  });
+}
+async function deleteQuery(id) {
+  if (!confirm('Delete this query?')) return;
+  const r = await fetch(`/history/${id}/delete`, {method:'POST'});
+  if (r.ok) {
+    const el = document.getElementById(`qcard-${id}`);
+    el.style.transition = 'opacity .25s, transform .25s';
+    el.style.opacity = '0'; el.style.transform = 'translateX(12px)';
+    setTimeout(() => el.remove(), 250);
+  }
+}
+function copySQL(id) {
+  const card = document.getElementById(`qcard-${id}`);
+  const sql = card.querySelector('.qh-sql').textContent.trim();
+  navigator.clipboard.writeText(sql);
+}
+</script>
+{% endblock %}
