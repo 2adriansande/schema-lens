@@ -115,30 +115,437 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# OCR — returns structured bounding-box data, NOT flattened text
+# ════════════════════════════════════════════════════════════════════════════
+
 def run_ocr(image_path: str) -> str:
+    """
+    Run EasyOCR and return a structured spatial representation preserving
+    bounding-box positions.  Each line of output is:
+        x1,y1,x2,y2|text|confidence
+    This lets downstream code reconstruct the visual layout.
+    Falls back to plain text if EasyOCR is unavailable.
+    """
     try:
         import easyocr
         reader = easyocr.Reader(["en"], gpu=False, verbose=False)
-        results = reader.readtext(image_path, detail=0, paragraph=True)
-        return "\n".join(results)
+        results = reader.readtext(image_path, detail=1, paragraph=False)
+        out = []
+        for bbox, text, conf in results:
+            if conf < 0.1 or not text.strip():
+                continue
+            # bbox is [[x1,y1],[x2,y1],[x2,y2],[x1,y2]]
+            x1 = int(min(p[0] for p in bbox))
+            y1 = int(min(p[1] for p in bbox))
+            x2 = int(max(p[0] for p in bbox))
+            y2 = int(max(p[1] for p in bbox))
+            out.append(f"{x1},{y1},{x2},{y2}|{text.strip()}|{conf:.3f}")
+        return "\n".join(out)
     except Exception as exc:
         return f"[OCR error: {exc}]"
 
 
-def get_gemini_model(api_key: str):
-    import google.generativeai as genai
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-1.5-flash")
+def _ocr_is_spatial(ocr_text: str) -> bool:
+    """Return True if ocr_text is in our structured x1,y1,x2,y2|text|conf format."""
+    if not ocr_text or ocr_text.startswith("[OCR error"):
+        return False
+    first = ocr_text.strip().splitlines()[0]
+    parts = first.split("|")
+    if len(parts) < 2:
+        return False
+    coords = parts[0].split(",")
+    return len(coords) == 4 and all(c.strip().lstrip("-").isdigit() for c in coords)
 
 
-def parse_schema_with_gemini(ocr_text: str, api_key: str) -> dict:
-    model = get_gemini_model(api_key)
-    prompt = f"""You are a database schema expert.
-Given the following raw OCR text extracted from a database schema diagram,
-identify all tables, their columns (with data types when visible), primary keys,
-and foreign key relationships.
+def _parse_spatial_ocr(ocr_text: str) -> list[dict]:
+    """
+    Parse our structured OCR format into a list of token dicts:
+      { x1, y1, x2, y2, cx, cy, w, h, text, conf }
+    Sorted top-to-bottom, then left-to-right.
+    """
+    tokens = []
+    for line in ocr_text.strip().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split("|")
+        if len(parts) < 2:
+            continue
+        coords = parts[0].split(",")
+        if len(coords) != 4:
+            continue
+        try:
+            x1, y1, x2, y2 = int(coords[0]), int(coords[1]), int(coords[2]), int(coords[3])
+        except ValueError:
+            continue
+        text = parts[1].strip()
+        conf = float(parts[2]) if len(parts) > 2 else 1.0
+        if not text:
+            continue
+        tokens.append({
+            "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+            "cx": (x1 + x2) // 2, "cy": (y1 + y2) // 2,
+            "w": x2 - x1, "h": y2 - y1,
+            "text": text, "conf": conf,
+        })
+    tokens.sort(key=lambda t: (t["y1"], t["x1"]))
+    return tokens
 
-Return ONLY a valid JSON object with this exact structure:
+
+def _cluster_tokens_into_boxes(tokens: list[dict], gap_threshold: float = 0.8) -> list[list[dict]]:
+    """
+    Group OCR tokens into visual "boxes" (table containers) using spatial proximity.
+
+    Strategy:
+    1. Sort tokens by Y position.
+    2. Estimate a typical "row height" from the median token height.
+    3. A new cluster starts whenever the Y gap between consecutive tokens
+       exceeds gap_threshold × median_row_height.
+    4. Within a cluster, tokens are sub-grouped into rows by Y proximity,
+       then rows are sorted left-to-right.
+
+    Each cluster represents one table box from the diagram.
+    """
+    if not tokens:
+        return []
+
+    # Estimate row height
+    heights = sorted(t["h"] for t in tokens)
+    median_h = heights[len(heights) // 2] if heights else 20
+    gap = max(gap_threshold * median_h, 8)
+
+    # Split into vertical clusters
+    clusters: list[list[dict]] = []
+    current: list[dict] = [tokens[0]]
+    for tok in tokens[1:]:
+        prev = current[-1]
+        y_gap = tok["y1"] - prev["y2"]
+        if y_gap > gap:
+            clusters.append(current)
+            current = [tok]
+        else:
+            current.append(tok)
+    if current:
+        clusters.append(current)
+
+    # Within each cluster, group into rows
+    result = []
+    for cluster in clusters:
+        if not cluster:
+            continue
+        # Sort by y1 then x1
+        cluster.sort(key=lambda t: (t["y1"], t["x1"]))
+        # Sub-group by row (tokens within median_h/2 of each other vertically)
+        rows: list[list[dict]] = []
+        cur_row: list[dict] = [cluster[0]]
+        for tok in cluster[1:]:
+            if abs(tok["cy"] - cur_row[-1]["cy"]) < median_h * 0.8:
+                cur_row.append(tok)
+            else:
+                rows.append(sorted(cur_row, key=lambda t: t["x1"]))
+                cur_row = [tok]
+        rows.append(sorted(cur_row, key=lambda t: t["x1"]))
+        # Flatten rows back to token list (already in reading order)
+        result.append([t for row in rows for t in row])
+
+    return result
+
+
+def _box_to_table(box_tokens: list[dict]) -> dict | None:
+    """
+    Convert a cluster of spatially-grouped OCR tokens into a table definition.
+
+    Layout rules:
+    - Row 0 (topmost) = table header / table name
+    - Each subsequent row = one column definition
+    - Within a column row, the LEFT token is the column name,
+      the RIGHT token(s) are the data type + modifiers (PK, FK, NOT NULL…)
+    - Data type tokens that appear alone in a row are attached to the
+      previous column (OCR sometimes splits them across lines).
+    """
+    if not box_tokens:
+        return None
+
+    # Re-group into rows (tokens at same Y ± threshold)
+    rows: list[list[dict]] = []
+    cur_row: list[dict] = [box_tokens[0]]
+    heights = [t["h"] for t in box_tokens]
+    median_h = sorted(heights)[len(heights) // 2] if heights else 16
+    for tok in box_tokens[1:]:
+        if abs(tok["cy"] - cur_row[-1]["cy"]) < median_h * 0.75:
+            cur_row.append(tok)
+        else:
+            rows.append(sorted(cur_row, key=lambda t: t["x1"]))
+            cur_row = [tok]
+    rows.append(sorted(cur_row, key=lambda t: t["x1"]))
+
+    if not rows:
+        return None
+
+    # ── Row 0: table name ──────────────────────────────────────────────────
+    header_tokens = rows[0]
+    table_name_raw = " ".join(t["text"] for t in header_tokens).strip()
+    # Strip surrounding punctuation / brackets
+    table_name = re.sub(r'^[\[\({<]+|[\]\)}>]+$', '', table_name_raw).strip()
+    # Reject if header looks like a data type
+    if table_name.upper() in _SQL_TYPES_SET:
+        return None
+    # Must look like a valid identifier (allow spaces for "User Account" style)
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_ ]*$', table_name):
+        return None
+
+    # ── Rows 1+: column definitions ────────────────────────────────────────
+    columns: list[dict] = []
+    pending_col: dict | None = None   # waiting for a type token on the next row
+
+    for row in rows[1:]:
+        row_texts = [t["text"].strip() for t in row]
+        row_texts_up = [s.upper() for s in row_texts]
+
+        # ── Pure type row (single token that IS a SQL type) ─────────────
+        # Attach to pending column from the previous row
+        if len(row_texts) == 1 and row_texts_up[0] in _SQL_TYPES_SET:
+            if pending_col is not None:
+                pending_col["type"] = row_texts_up[0]
+                columns.append(pending_col)
+                pending_col = None
+            # else: stray type token — ignore
+            continue
+
+        # Flush any pending column without a type
+        if pending_col is not None:
+            pending_col["type"] = "TEXT"
+            columns.append(pending_col)
+            pending_col = None
+
+        # ── Normal column row ────────────────────────────────────────────
+        # First non-type token = column name; remaining = type / modifiers
+        col_name = None
+        col_type = "TEXT"
+        is_pk = False
+        is_nullable = True
+        is_fk = False
+
+        # Find column name (leftmost token that isn't a pure type keyword)
+        for i, token_up in enumerate(row_texts_up):
+            raw = row_texts[i]
+            if token_up not in _SQL_TYPES_SET and re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw):
+                col_name = raw
+                # Everything to the right is type / modifier
+                for j in range(i + 1, len(row_texts)):
+                    part_up = row_texts_up[j]
+                    if part_up in _SQL_TYPES_SET and part_up not in {"PK", "FK", "NOT", "NULL",
+                                                                       "PRIMARY", "FOREIGN",
+                                                                       "KEY", "UNIQUE",
+                                                                       "REFERENCES"}:
+                        col_type = part_up
+                    if part_up in ("PK", "PRIMARY"):
+                        is_pk = True
+                    if part_up in ("FK", "FOREIGN"):
+                        is_fk = True
+                    if part_up == "NOT":
+                        is_nullable = False
+                break
+
+        if col_name is None:
+            # All tokens are type/modifier — pure type row misidentified; skip
+            continue
+
+        col_def: dict = {
+            "name": col_name,
+            "type": col_type,
+            "primary_key": is_pk,
+            "nullable": is_nullable,
+        }
+        if is_fk:
+            col_def["foreign_key"] = True
+
+        # Auto-detect PK: first column named "id" or ending in "_id"
+        if not columns and (col_name.lower() == "id" or col_name.lower().endswith("_id")):
+            col_def["primary_key"] = True
+            col_def["nullable"] = False
+
+        # If no type found yet, keep as pending (type may appear on next row)
+        if col_type == "TEXT" and len(row_texts) == 1:
+            pending_col = col_def
+        else:
+            columns.append(col_def)
+
+    # Flush final pending
+    if pending_col is not None:
+        pending_col["type"] = "TEXT"
+        columns.append(pending_col)
+
+    if not columns:
+        return None
+
+    return {"name": table_name, "columns": columns}
+
+
+def _infer_relationships_spatially(tables: list[dict]) -> list[dict]:
+    """
+    Infer FK relationships by matching column names of the form <table>_id
+    to actual table names in the schema.
+    Handles common plural/singular mismatches: user_id → users, product_id → products.
+    """
+    relationships: list[dict] = []
+    # Build lookup: exact name AND common variations
+    name_map: dict[str, str] = {}
+    for t in tables:
+        n = t["name"].lower()
+        name_map[n] = t["name"]               # exact: "users"
+        if n.endswith("s"):
+            name_map[n[:-1]] = t["name"]      # singular: "user"
+        else:
+            name_map[n + "s"] = t["name"]     # plural: "orders"
+        if n.endswith("ies"):
+            name_map[n[:-3] + "y"] = t["name"]   # categories → category
+
+    for table in tables:
+        for col in table.get("columns", []):
+            cname = col["name"].lower()
+            if cname.endswith("_id") and not col.get("primary_key"):
+                ref_key = cname[:-3]    # strip "_id"
+                ref_table_name = name_map.get(ref_key)
+                if ref_table_name and ref_table_name != table["name"]:
+                    # Avoid duplicate relationships
+                    dup = any(
+                        r["from_table"] == table["name"] and r["from_col"] == col["name"]
+                        for r in relationships
+                    )
+                    if not dup:
+                        relationships.append({
+                            "from_table": table["name"],
+                            "from_col": col["name"],
+                            "to_table": ref_table_name,
+                            "to_col": "id",
+                            "type": "many-to-one",
+                        })
+    return relationships
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Gemini helpers
+# ════════════════════════════════════════════════════════════════════════════
+
+def _clean_json_response(text: str) -> str:
+    """Strip markdown code fences and whitespace from a Gemini JSON response."""
+    text = text.strip()
+    text = re.sub(r'^```(?:json)?\s*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\s*```\s*$', '', text, flags=re.MULTILINE)
+    return text.strip()
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# CORE: Image-first schema parsing via Gemini Vision
+# ════════════════════════════════════════════════════════════════════════════
+
+# Forbidden table names — data type tokens must NEVER become table names
+_SQL_TYPES_SET = {
+    "UUID", "STRING", "STR", "INT", "INTEGER", "FLOAT", "DOUBLE", "BOOLEAN",
+    "BOOL", "DATE", "TEXT", "VARCHAR", "CHAR", "TIMESTAMP", "DATETIME",
+    "BIGINT", "SMALLINT", "DECIMAL", "NUMERIC", "REAL", "BLOB", "JSON",
+    "ARRAY", "SERIAL", "AUTO_INCREMENT", "AUTOINCREMENT", "NULL", "NOT",
+    "PRIMARY", "FOREIGN", "KEY", "REFERENCES", "DEFAULT", "UNIQUE",
+    "INDEX", "CONSTRAINT", "PK", "FK",
+}
+
+
+SCHEMA_VISION_PROMPT = """You are an expert database schema analyst.
+
+TASK: Analyze this database ER diagram image and extract the exact schema.
+
+═══════════════════════════════════════════════════════════════
+VISUAL STRUCTURE RULES — follow these exactly:
+═══════════════════════════════════════════════════════════════
+
+1. TABLES come from VISUAL BOXES/CONTAINERS in the diagram.
+   • The HEADER ROW at the TOP of each box = the table name.
+   • Body rows INSIDE the box = column definitions.
+   • Never infer a table from a standalone word or data type token.
+
+2. COLUMNS come from the BODY ROWS inside each box.
+   • Left side of a row = column name
+   • Right side of a row = data type abbreviation (UUID, STRING, INT, etc.)
+   • Preserve original column names exactly as written.
+
+3. PRIMARY KEYS: detect by explicit "PK" label, or first column named "id" / "*_id".
+
+4. FOREIGN KEYS: detect by explicit "FK" label, or column named "<other_table>_id".
+
+5. RELATIONSHIPS: detect connector lines/arrows between boxes.
+   • Line from Box A to Box B = relationship between those tables.
+   • Infer FK column from the line's endpoint inside the box.
+
+6. FORBIDDEN TABLE NAMES — the following values are DATA TYPES, never table names:
+   UUID, STRING, INT, INTEGER, FLOAT, DOUBLE, BOOLEAN, DATE, TEXT, VARCHAR,
+   CHAR, TIMESTAMP, BIGINT, DECIMAL, BOOL, REAL, BLOB, JSON, NULL
+
+7. VALIDATION before output:
+   • Every table must have a valid header identifier (not a type keyword).
+   • Every column must have both a name and a data type.
+   • Data types are attached to columns — they are NEVER promoted to table names.
+   • Remove any tables where the name is a data type keyword.
+
+═══════════════════════════════════════════════════════════════
+OUTPUT FORMAT — return ONLY this JSON, no markdown, no text:
+═══════════════════════════════════════════════════════════════
+{
+  "tables": [
+    {
+      "name": "exact_table_name_from_box_header",
+      "columns": [
+        {"name": "column_name", "type": "DATA_TYPE", "primary_key": true, "nullable": false},
+        {"name": "another_col", "type": "STRING",    "primary_key": false, "nullable": true}
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from_table": "orders",
+      "from_col":   "user_id",
+      "to_table":   "users",
+      "to_col":     "user_id",
+      "type":       "many-to-one"
+    }
+  ]
+}
+
+Respond with ONLY the JSON object. No markdown fences. No preamble. No explanation."""
+
+
+SCHEMA_TEXT_PROMPT_TEMPLATE = """You are an expert database schema analyst.
+
+TASK: Reconstruct a database schema from OCR tokens extracted from an ER diagram.
+The tokens are listed with their bounding-box coordinates so you can infer visual grouping.
+
+FORMAT OF EACH TOKEN LINE:
+  x1,y1,x2,y2|text|confidence
+  (x1,y1 = top-left corner;  x2,y2 = bottom-right corner)
+
+═══════════════════════════════════════════════════════════════
+SPATIAL RECONSTRUCTION RULES:
+═══════════════════════════════════════════════════════════════
+1. Tokens with similar X ranges AND close Y positions belong to the SAME table box.
+2. The topmost token (or topmost row) in a visual box = TABLE NAME (header).
+3. Each subsequent row in the same box = one COLUMN DEFINITION.
+4. Within a column row, LEFT token = column name; RIGHT token = data type.
+5. Tokens that appear as the ONLY token in a row AND are data type keywords
+   are data types attached to the PREVIOUS column — never table names.
+
+FORBIDDEN TABLE NAMES — these are DATA TYPES, never table names:
+UUID, STRING, INT, INTEGER, FLOAT, DOUBLE, BOOLEAN, DATE, TEXT, VARCHAR,
+CHAR, TIMESTAMP, BIGINT, DECIMAL, BOOL, REAL, BLOB, JSON, NULL
+
+VALIDATION:
+• Every detected table must have a valid identifier name (not a type keyword).
+• Every column must have a name and a type.
+• Remove any table whose name is a forbidden keyword.
+
+═══════════════════════════════════════════════════════════════
+OUTPUT: return ONLY this JSON structure, no markdown, no explanation:
+═══════════════════════════════════════════════════════════════
 {{
   "tables": [
     {{
@@ -153,27 +560,159 @@ Return ONLY a valid JSON object with this exact structure:
   ]
 }}
 
-OCR Text:
-{ocr_text}
+OCR TOKENS:
+{ocr_tokens}
 
-Return ONLY the JSON, no markdown fences, no explanation."""
-    response = model.generate_content(prompt)
-    raw = response.text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
-    return json.loads(raw)
+Return ONLY the JSON. No markdown fences. No explanation."""
 
+
+def _call_gemini(api_key: str, contents) -> str:
+    """Call Gemini with automatic new-SDK → legacy-SDK fallback. Returns response text."""
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash", contents=contents
+        )
+        return response.text
+    except Exception:
+        import google.generativeai as genai_legacy
+        genai_legacy.configure(api_key=api_key)
+        model = genai_legacy.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(contents)
+        return response.text
+
+
+def _validate_schema_structure(data: dict) -> None:
+    """
+    Ensure the parsed schema has the correct shape.
+    Removes any 'table' whose name is a SQL type keyword.
+    Raises ValueError on structural problems.
+    """
+    if not isinstance(data, dict):
+        raise ValueError("Response is not a dict")
+    if "tables" not in data:
+        raise ValueError("Missing 'tables' key")
+    if not isinstance(data["tables"], list):
+        raise ValueError("'tables' must be a list")
+
+    cleaned = []
+    for t in data["tables"]:
+        if not isinstance(t, dict) or "name" not in t:
+            continue
+        name = str(t["name"]).strip()
+        # Hard reject: table name is a forbidden data-type keyword
+        if name.upper() in _SQL_TYPES_SET:
+            continue
+        # Must be a valid identifier (spaces allowed for multi-word names)
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_ ]*$', name):
+            continue
+        # Normalise columns list
+        if not isinstance(t.get("columns"), list):
+            t["columns"] = []
+        # Remove columns whose name is a type keyword
+        t["columns"] = [
+            c for c in t["columns"]
+            if isinstance(c, dict)
+            and c.get("name")
+            and str(c["name"]).upper() not in _SQL_TYPES_SET
+            and re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', str(c["name"]))
+        ]
+        cleaned.append(t)
+
+    data["tables"] = cleaned
+    if "relationships" not in data:
+        data["relationships"] = []
+
+
+def parse_schema_with_image(image_path: str, api_key: str) -> dict:
+    """
+    PRIMARY path: send the image directly to Gemini Vision.
+    Vision sees the actual boxes, headers, column rows, and connector lines.
+    """
+    import PIL.Image
+    img = PIL.Image.open(image_path)
+    raw_text = _call_gemini(api_key, [SCHEMA_VISION_PROMPT, img])
+    raw = _clean_json_response(raw_text)
+    result = json.loads(raw)
+    _validate_schema_structure(result)
+    return result
+
+
+def parse_schema_with_gemini(ocr_text: str, api_key: str, image_path: str = None) -> dict:
+    """
+    Orchestrator: tries image Vision → spatial OCR text → plain OCR text.
+    Each stage validates and rejects hallucinated type-as-table errors.
+    """
+    # ── Stage 1: Gemini Vision (image) ──────────────────────────────────────
+    if image_path and os.path.exists(image_path):
+        try:
+            result = parse_schema_with_image(image_path, api_key)
+            if result.get("tables"):
+                return result
+        except Exception:
+            pass  # fall through to next stage
+
+    # ── Stage 2: Gemini with spatial OCR tokens ──────────────────────────────
+    # If ocr_text is in our structured format, send it as coordinate-annotated tokens
+    if _ocr_is_spatial(ocr_text):
+        try:
+            prompt = SCHEMA_TEXT_PROMPT_TEMPLATE.format(ocr_tokens=ocr_text)
+            raw_text = _call_gemini(api_key, prompt)
+            raw = _clean_json_response(raw_text)
+            result = json.loads(raw)
+            _validate_schema_structure(result)
+            if result.get("tables"):
+                return result
+        except Exception:
+            pass
+
+    # ── Stage 3: Gemini with plain OCR text ──────────────────────────────────
+    plain_text = ocr_text
+    if _ocr_is_spatial(ocr_text):
+        # Extract just the text tokens from structured format
+        plain_text = "\n".join(
+            line.split("|")[1].strip()
+            for line in ocr_text.strip().splitlines()
+            if "|" in line
+        )
+    try:
+        prompt = SCHEMA_TEXT_PROMPT_TEMPLATE.format(ocr_tokens=plain_text)
+        raw_text = _call_gemini(api_key, prompt)
+        raw = _clean_json_response(raw_text)
+        result = json.loads(raw)
+        _validate_schema_structure(result)
+        return result
+    except Exception as exc:
+        raise RuntimeError(f"All Gemini parsing stages failed: {exc}")
+
+
+# ── SQL generation ─────────────────────────────────────────────────────────
 
 def generate_sql_with_gemini(natural_query: str, schema: dict, api_key: str) -> str:
-    model = get_gemini_model(api_key)
+    """Generate SQL from natural language using Gemini, schema-aware."""
     schema_desc = _build_schema_description(schema)
     prompt = f"""{schema_desc}
 
 User Request: {natural_query}
 
 Generate a single, correct SQL query that satisfies the user's request.
-Use standard SQL syntax. Include table aliases where appropriate.
-Return ONLY the SQL query, no explanation, no markdown fences."""
-    response = model.generate_content(prompt)
-    return response.text.strip().lstrip("```sql").lstrip("```").rstrip("```").strip()
+Use standard SQL syntax. Use table aliases where appropriate.
+Return ONLY the SQL query. No explanation. No markdown fences."""
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash", contents=prompt
+        )
+        return _clean_json_response(response.text).lstrip("sql").strip()
+    except Exception:
+        import google.generativeai as genai_legacy
+        genai_legacy.configure(api_key=api_key)
+        model = genai_legacy.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        return _clean_json_response(response.text).lstrip("sql").strip()
 
 
 def _build_schema_description(schema: dict) -> str:
@@ -181,55 +720,215 @@ def _build_schema_description(schema: dict) -> str:
     for table in schema.get("tables", []):
         cols = ", ".join(
             f"{c['name']} {c.get('type','')}{' PK' if c.get('primary_key') else ''}"
-            for c in table["columns"]
+            for c in table.get("columns", [])
         )
         schema_desc += f"  Table {table['name']}: ({cols})\n"
     for rel in schema.get("relationships", []):
         schema_desc += (
             f"  Relationship: {rel['from_table']}.{rel['from_col']} → "
-            f"{rel['to_table']}.{rel['to_col']} ({rel.get('type','')})\n"
+            f"{rel['to_table']}.{rel['to_col']} ({rel.get('type', '')})\n"
         )
     return schema_desc
 
 
+# ── Heuristic fallback parser (no API key) ─────────────────────────────────
+
+# Alias so existing code that references _SQL_TYPES still works
+_SQL_TYPES = _SQL_TYPES_SET
+
+
 def parse_schema_fallback(ocr_text: str) -> dict:
-    lines = [l.strip() for l in ocr_text.splitlines() if l.strip()]
-    tables = []
-    current_table = None
+    """
+    Spatial heuristic parser for ER diagram OCR text.
+    Works with BOTH our structured coordinate format and plain text.
+
+    When structured (x1,y1,x2,y2|text|conf):
+      - Clusters tokens by visual proximity into table boxes
+      - Within each box, first row = table name; subsequent rows = columns
+      - Left token in a row = column name; right token = data type
+
+    When plain text:
+      - Single-word lines not matching SQL types = table headers
+      - Lines with "name TYPE" pattern = column definitions
+      - "Type on next line" pattern is also handled
+    """
+    if _ocr_is_spatial(ocr_text):
+        return _spatial_fallback(ocr_text)
+    else:
+        return _text_fallback(ocr_text)
+
+
+def _spatial_fallback(ocr_text: str) -> dict:
+    """Parse structured bounding-box OCR into schema using spatial clustering."""
+    tokens = _parse_spatial_ocr(ocr_text)
+    if not tokens:
+        return {"tables": [], "relationships": []}
+
+    boxes = _cluster_tokens_into_boxes(tokens)
+    tables: list[dict] = []
+    for box in boxes:
+        table = _box_to_table(box)
+        if table and table.get("columns"):
+            tables.append(table)
+
+    # Deduplicate by name
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for t in tables:
+        if t["name"] not in seen:
+            seen.add(t["name"])
+            unique.append(t)
+
+    relationships = _infer_relationships_spatially(unique)
+    return {"tables": unique, "relationships": relationships}
+
+
+def _text_fallback(ocr_text: str) -> dict:
+    """
+    State-machine parser for plain-text OCR output.
+
+    Rules:
+    - A line is a TABLE HEADER if it is a single identifier word AND not a type keyword
+    - A line is a COLUMN if it has pattern:  name TYPE [modifiers]
+    - A lone TYPE token on its own line attaches to the previous column
+    """
+    lines = [l.strip() for l in ocr_text.splitlines()]
+    tables: list[dict] = []
+    current: dict | None = None
+    pending_name: str | None = None   # column name waiting for its type
+
+    def flush():
+        nonlocal current
+        if current and current.get("columns"):
+            tables.append(current)
+        current = None
+
+    def new_table(name: str):
+        nonlocal current, pending_name
+        flush()
+        pending_name = None
+        current = {"name": name, "columns": []}
+
+    def add_col(name: str, col_type: str, is_pk: bool = False, nullable: bool = True):
+        nonlocal pending_name
+        pending_name = None
+        if current is None:
+            return
+        # Auto PK: first col named id / *_id
+        if not current["columns"] and (name.lower() == "id" or name.lower().endswith("_id")):
+            is_pk = True
+            nullable = False
+        current["columns"].append({
+            "name": name,
+            "type": col_type,
+            "primary_key": is_pk,
+            "nullable": nullable,
+        })
+
     for line in lines:
-        if re.match(r'^[A-Z_][A-Z0-9_]*$', line.upper()) and len(line) < 40:
-            if current_table:
-                tables.append(current_table)
-            current_table = {"name": line, "columns": []}
-        elif current_table and re.match(r'^[a-zA-Z_][a-zA-Z0-9_ ]*$', line):
-            parts = line.split()
-            col_name = parts[0]
-            col_type = parts[1] if len(parts) > 1 else "TEXT"
-            is_pk = "id" in col_name.lower() and len(current_table["columns"]) == 0
-            current_table["columns"].append({
-                "name": col_name, "type": col_type,
-                "primary_key": is_pk, "nullable": not is_pk
-            })
-    if current_table:
-        tables.append(current_table)
-    return {"tables": tables, "relationships": []}
+        if not line:
+            pending_name = None
+            continue
+
+        parts = line.split()
+        if not parts:
+            continue
+
+        first = parts[0].strip()
+        first_up = first.upper()
+
+        # ── Pending: type on next line ───────────────────────────────────
+        if pending_name and len(parts) == 1 and first_up in _SQL_TYPES_SET:
+            add_col(pending_name, first_up)
+            pending_name = None
+            continue
+
+        if pending_name:
+            # Broken pending — flush with TEXT type
+            add_col(pending_name, "TEXT")
+            pending_name = None
+
+        # Skip lone type tokens
+        if first_up in _SQL_TYPES_SET and len(parts) == 1:
+            continue
+
+        # Skip non-identifier starts
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', first):
+            continue
+
+        # ── Column line: "name TYPE [modifiers]" ────────────────────────
+        if len(parts) >= 2 and parts[1].upper() in _SQL_TYPES_SET:
+            col_type = parts[1].upper()
+            is_pk = any(p.upper() in ("PK", "PRIMARY") for p in parts[2:])
+            nullable = not any(p.upper() == "NOT" for p in parts[2:])
+            add_col(first, col_type, is_pk, nullable)
+            continue
+
+        # ── Table header: single word, not a type keyword ────────────────
+        if first_up not in _SQL_TYPES_SET and len(parts) == 1:
+            new_table(first)
+            continue
+
+        # ── Ambiguous single-word identifier with no type yet ────────────
+        if len(parts) == 1 and current:
+            pending_name = first
+            continue
+
+        # ── Multi-word line without a recognised type token ──────────────
+        # Treat as a new table header if it looks like one
+        if first_up not in _SQL_TYPES_SET and not current:
+            new_table(first)
+
+    flush()
+
+    # Deduplicate
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for t in tables:
+        if t["name"] not in seen and t.get("columns"):
+            seen.add(t["name"])
+            unique.append(t)
+
+    relationships = _infer_relationships_spatially(unique)
+    return {"tables": unique, "relationships": relationships}
 
 
 def _fallback_sql(query: str, schema: dict) -> str:
+    """Generate a basic SQL template when no API key is available."""
     q = query.lower()
     tables = [t["name"] for t in schema.get("tables", [])]
     first_table = tables[0] if tables else "your_table"
+
+    # Try to find the most relevant table by name mention in the query
+    for tname in tables:
+        if tname.lower() in q:
+            first_table = tname
+            break
+
     if "count" in q:
         return f"SELECT COUNT(*) FROM {first_table};"
-    if "all" in q or "list" in q or "show" in q or "get" in q:
+    if "all" in q or "list" in q or "show" in q or "get" in q or "select" in q:
         return f"SELECT * FROM {first_table} LIMIT 100;"
     if "delete" in q:
         return f"-- DELETE FROM {first_table} WHERE <condition>;"
-    if "update" in q or "change" in q:
-        return f"UPDATE {first_table} SET <column> = <value> WHERE <condition>;"
-    if "insert" in q or "add" in q or "create" in q:
+    if "update" in q or "change" in q or "modify" in q:
+        return f"UPDATE {first_table}\nSET <column> = <value>\nWHERE <condition>;"
+    if "insert" in q or "add" in q or "create" in q or "new" in q:
+        if tables:
+            t = next((t for t in schema["tables"] if t["name"] == first_table), None)
+            if t and t.get("columns"):
+                non_pk_cols = [c["name"] for c in t["columns"] if not c.get("primary_key")]
+                if non_pk_cols:
+                    cols_str = ", ".join(non_pk_cols)
+                    vals_str = ", ".join([f"<{c}>" for c in non_pk_cols])
+                    return f"INSERT INTO {first_table} ({cols_str})\nVALUES ({vals_str});"
         return f"INSERT INTO {first_table} (<columns>) VALUES (<values>);"
-    return f"SELECT * FROM {first_table} WHERE <condition>;"
+    if "join" in q or "with" in q or "related" in q:
+        if len(tables) >= 2:
+            return (f"SELECT *\nFROM {tables[0]} a\n"
+                    f"JOIN {tables[1]} b ON a.<id> = b.<id>\n"
+                    f"WHERE <condition>;")
+    return f"SELECT * FROM {first_table}\nWHERE <condition>;"
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -237,7 +936,6 @@ def _fallback_sql(query: str, schema: dict) -> str:
 # ══════════════════════════════════════════════════════════════════
 def explain_sql_with_gemini(sql: str, api_key: str) -> str:
     """Convert SQL into a plain English explanation for non-technical users."""
-    model = get_gemini_model(api_key)
     prompt = f"""You are a helpful database assistant explaining SQL to a non-technical person.
 
 Given this SQL query:
@@ -250,8 +948,16 @@ Write a clear, friendly explanation in 2-4 sentences that:
 - Starts with "This query..."
 
 Return ONLY the explanation text, nothing else."""
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+        return response.text.strip()
+    except Exception:
+        import google.generativeai as genai_legacy
+        genai_legacy.configure(api_key=api_key)
+        model = genai_legacy.GenerativeModel("gemini-1.5-flash")
+        return model.generate_content(prompt).text.strip()
 
 
 def explain_sql_fallback(sql: str) -> str:
@@ -380,7 +1086,6 @@ def evaluate_sql_accuracy(sql: str, natural_query: str, schema: dict, api_key: s
 
 
 def _ai_evaluate_sql(sql: str, natural_query: str, schema: dict, api_key: str) -> dict:
-    model = get_gemini_model(api_key)
     schema_desc = _build_schema_description(schema)
     prompt = f"""You are a senior database developer reviewing a generated SQL query.
 
@@ -400,9 +1105,19 @@ Evaluate this SQL query for correctness. Return ONLY a JSON object with this str
 
 Be concise. If the query looks correct, return empty arrays.
 Return ONLY the JSON, no markdown."""
-    response = model.generate_content(prompt)
-    raw = response.text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
-    return json.loads(raw)
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+        raw = _clean_json_response(response.text)
+        return json.loads(raw)
+    except Exception:
+        import google.generativeai as genai_legacy
+        genai_legacy.configure(api_key=api_key)
+        model = genai_legacy.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        raw = _clean_json_response(response.text)
+        return json.loads(raw)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -416,12 +1131,9 @@ def refine_sql_with_conversation(
     api_key: str
 ) -> str:
     """Refine an existing SQL query based on follow-up natural language instructions."""
-    model = get_gemini_model(api_key)
     schema_desc = _build_schema_description(schema)
-
-    # Build conversation history string
     history_str = ""
-    for turn in conversation_history[-6:]:  # last 6 turns max
+    for turn in conversation_history[-6:]:
         role = "User" if turn["role"] == "user" else "System"
         history_str += f"{role}: {turn['content']}\n"
 
@@ -441,8 +1153,17 @@ Modify the SQL query to incorporate the user's refinement.
 Keep all previous conditions unless the user explicitly asks to remove them.
 Return ONLY the updated SQL query, no explanation, no markdown fences."""
 
-    response = model.generate_content(prompt)
-    return response.text.strip().lstrip("```sql").lstrip("```").rstrip("```").strip()
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+        return _clean_json_response(response.text).lstrip("sql").strip()
+    except Exception:
+        import google.generativeai as genai_legacy
+        genai_legacy.configure(api_key=api_key)
+        model = genai_legacy.GenerativeModel("gemini-1.5-flash")
+        raw = model.generate_content(prompt).text.strip()
+        return raw.lstrip("```sql").lstrip("```").rstrip("```").strip()
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -561,13 +1282,38 @@ def upload_schema():
     api_key = current_user.gemini_key
     if api_key:
         try:
-            parsed = parse_schema_with_gemini(ocr_text, api_key)
+            # Pass the actual image path — Gemini Vision gives far better results
+            parsed = parse_schema_with_gemini(ocr_text, api_key, image_path=filepath)
+            # Validate we got real tables, not type-keyword garbage
+            if not parsed.get("tables"):
+                raise ValueError("No tables extracted from image — trying OCR fallback")
         except Exception as exc:
-            parsed = parse_schema_fallback(ocr_text)
-            flash(f"AI parsing failed ({exc}); used heuristic parser instead.", "warning")
+            try:
+                # Second attempt: text-only Gemini
+                parsed = parse_schema_with_gemini(ocr_text, api_key, image_path=None)
+                if not parsed.get("tables"):
+                    raise ValueError("Text-only parse also produced no tables")
+            except Exception as exc2:
+                parsed = parse_schema_fallback(ocr_text)
+                flash(
+                    f"AI parsing encountered issues ({exc2}); used heuristic parser. "
+                    "Review the schema on the next page and correct any errors.",
+                    "warning"
+                )
     else:
         parsed = parse_schema_fallback(ocr_text)
-        flash("No Gemini API key — used heuristic parser. Add your key in Settings for better results.", "info")
+        if parsed.get("tables"):
+            flash(
+                "No Gemini API key — used heuristic parser. "
+                "Add your key in Settings for AI-powered accuracy.",
+                "info"
+            )
+        else:
+            flash(
+                "No Gemini API key and heuristic parser found no tables. "
+                "Please add tables manually on the confirmation page, or add a Gemini API key.",
+                "warning"
+            )
     schema = SchemaUpload(
         user_id=current_user.id,
         filename=filename,
