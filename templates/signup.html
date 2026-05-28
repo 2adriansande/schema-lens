@@ -5,69 +5,79 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     min-height: 100vh; font-family: 'DM Sans', sans-serif;
-    background: #E7F2EF;
+    background: #DFEBE8; /* Slightly deeper base tint to make white panels pop better */
   }
   body::before {
     content: ''; position: fixed; inset: 0; z-index: 0;
     background:
-      radial-gradient(ellipse 60% 50% at 20% 10%, rgba(112,137,147,0.3) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 60% at 90% 80%, rgba(161,194,189,0.35) 0%, transparent 60%),
-      #E7F2EF;
+      radial-gradient(ellipse 60% 50% at 20% 10%, rgba(85,108,117,0.25) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 60% at 90% 80%, rgba(134,171,165,0.3) 0%, transparent 60%),
+      #DFEBE8;
   }
   .auth-wrap {
     min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; position: relative; z-index: 1;
   }
   .auth-left {
-    background: linear-gradient(150deg, #708993 0%, #A1C2BD 50%, #19183B 100%);
+    background: linear-gradient(150deg, #556C75 0%, #7FA39E 50%, #11102B 100%); /* Deepened gradient colors slightly */
     padding: 64px 58px; display: flex; flex-direction: column; justify-content: space-between;
-    color: #E7F2EF; position: relative; overflow: hidden;
+    color: #F3FAF8; position: relative; overflow: hidden;
   }
   .auth-left::before { content: ''; position: absolute; top: -80px; right: -80px; width: 320px; height: 320px; border-radius: 50%; background: rgba(255,255,255,0.08); pointer-events: none; }
-  .auth-left::after  { content: ''; position: absolute; bottom: -50px; left: -50px; width: 240px; height: 240px; border-radius: 50%; background: rgba(25,24,59,0.12); pointer-events: none; }
+  .auth-left::after  { content: ''; position: absolute; bottom: -50px; left: -50px; width: 240px; height: 240px; border-radius: 50%; background: rgba(17,16,43,0.16); pointer-events: none; }
   .al-logo { display: flex; align-items: center; gap: 11px; position: relative; z-index: 1; }
-  .al-logo-icon { width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
+  .al-logo-icon { width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; }
   .al-logo-icon svg { width: 22px; height: 22px; }
-  .al-logo-text { font-size: 18px; font-weight: 700; letter-spacing: -.4px; }
+  .al-logo-text { font-size: 18px; font-weight: 700; letter-spacing: -.4px; color: #FFFFFF; }
   .al-hero { position: relative; z-index: 1; }
-  .al-hero h1 { font-size: 40px; font-weight: 700; line-height: 1.12; letter-spacing: -1.2px; margin-bottom: 18px; }
-  .al-hero h1 span { color: rgba(231,242,239,.5); }
-  .al-hero p { font-size: 15px; color: rgba(231,242,239,.72); line-height: 1.75; max-width: 360px; }
+  .al-hero h1 { font-size: 40px; font-weight: 700; line-height: 1.12; letter-spacing: -1.2px; margin-bottom: 18px; color: #FFFFFF; }
+  .al-hero h1 span { color: #A4FFF0; text-shadow: 0 1px 2px rgba(0,0,0,0.15); } /* High contrast glowing highlight */
+  .al-hero p { font-size: 15px; color: #E6F5F2; line-height: 1.75; max-width: 360px; font-weight: 500; } /* Maximum contrast readable text */
   .al-features { position: relative; z-index: 1; }
-  .al-feat { display: flex; align-items: center; gap: 11px; margin-bottom: 13px; font-size: 14px; color: rgba(231,242,239,.75); }
-  .al-feat-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(231,242,239,0.5); flex-shrink: 0; }
-  .auth-right { display: flex; align-items: center; justify-content: center; padding: 64px 52px; background: rgba(255,255,255,0.3); backdrop-filter: blur(12px); overflow-y: auto; }
+  .al-feat { display: flex; align-items: center; gap: 11px; margin-bottom: 13px; font-size: 14px; color: #FFFFFF; font-weight: 500; }
+  .al-feat-dot { width: 8px; height: 8px; border-radius: 50%; background: #A4FFF0; flex-shrink: 0; }
+  
+  /* Right Side Panel (Form) Updates */
+  .auth-right { display: flex; align-items: center; justify-content: center; padding: 64px 52px; background: rgba(255,255,255,0.45); backdrop-filter: blur(16px); overflow-y: auto; }
   .auth-box { width: 100%; max-width: 400px; }
-  .auth-box h2 { font-size: 28px; font-weight: 700; letter-spacing: -.6px; margin-bottom: 7px; color: #19183B; }
-  .auth-box .sub { font-size: 14.5px; color: #708993; margin-bottom: 28px; }
+  .auth-box h2 { font-size: 28px; font-weight: 700; letter-spacing: -.6px; margin-bottom: 7px; color: #11102B; }
+  .auth-box .sub { font-size: 14.5px; color: #354A54; margin-bottom: 28px; font-weight: 500; } /* Darker slate for sharp readability */
   .form-group { margin-bottom: 16px; }
-  .form-label { font-size: 12px; font-weight: 600; color: #708993; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .04em; }
-  .form-input { width: 100%; padding: 11px 16px; border: 1.5px solid rgba(112,137,147,0.25); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: #19183B; background: rgba(255,255,255,0.75); outline: none; transition: all .2s; }
-  .form-input:focus { border-color: #A1C2BD; background: rgba(255,255,255,0.95); box-shadow: 0 0 0 3px rgba(161,194,189,0.2); }
-  .btn-submit { width: 100%; padding: 13px; background: linear-gradient(135deg, #19183B, #708993); color: #E7F2EF; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 700; cursor: pointer; transition: all .2s; margin-top: 6px; box-shadow: 0 6px 20px rgba(25,24,59,0.22); }
-  .btn-submit:hover { box-shadow: 0 8px 28px rgba(25,24,59,0.32); transform: translateY(-1px); }
-  .flash-local { padding: 11px 16px; border-radius: 9px; font-size: 13.5px; display: flex; align-items: center; gap: 9px; margin-bottom: 16px; }
-  .flash-error-local { background: rgba(254,226,226,0.8); color: #991b1b; border: 1px solid rgba(153,27,27,0.15); }
-  .flash-success-local { background: rgba(209,250,229,0.8); color: #065f46; border: 1px solid rgba(6,95,70,0.15); }
+  .form-label { font-size: 12px; font-weight: 700; color: #2B3D46; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .05em; } /* Darkened drastically for crispness */
+  .form-input { width: 100%; padding: 11px 16px; border: 1.5px  #617D8A; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: #11102B; background: #FFFFFF; outline: none; transition: all .2s; } /* Solid border and white background */
+  .form-input::placeholder { color: #617D8A; opacity: 0.8; } /* Darker placeholder text */
+  .form-input:focus::placeholder { color: rgba(97, 125, 138, 0.4); } 
+
+  .form-input:focus { border-color: #11102B; box-shadow: 0 0 0 3px rgba(17,16,43,0.12); }
+  
+  .btn-submit { width: 100%; padding: 13px; background: linear-gradient(135deg, #11102B, #354A54); color: #FFFFFF; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 700; cursor: pointer; transition: all .2s; margin-top: 6px; box-shadow: 0 6px 20px rgba(17,16,43,0.25); }
+  .btn-submit:hover { background: linear-gradient(135deg, #1A1942, #415A66); box-shadow: 0 8px 28px rgba(17,16,43,0.35); transform: translateY(-1px); }
+  
+  .flash-local { padding: 11px 16px; border-radius: 9px; font-size: 13.5px; display: flex; align-items: center; gap: 9px; margin-bottom: 16px; font-weight: 500; }
+  .flash-error-local { background: #FEE2E2; color: #7F1D1D; border: 1px solid #FCA5A5; } /* Dark text on brighter background */
+  .flash-success-local { background: #D1FAE5; color: #064E3B; border: 1px solid #6EE7B7; } /* Dark text on brighter background */
   @media (max-width: 768px) { .auth-wrap { grid-template-columns: 1fr; } .auth-left { display: none; } }
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <div class="auth-wrap">
   <div class="auth-left">
+    
+  <a href="{{ url_for('landing')}}" class="al-logo-link" style="text-decoration:none;">
     <div class="al-logo">
       <div class="al-logo-icon">
         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="50" cy="28" rx="26" ry="9" fill="#A1C2BD" opacity="0.7"/>
-          <rect x="24" y="28" width="52" height="38" fill="#A1C2BD" opacity="0.7"/>
-          <ellipse cx="50" cy="66" rx="26" ry="9" fill="#A1C2BD" opacity="0.7"/>
-          <circle cx="50" cy="50" r="22" fill="none" stroke="#E7F2EF" stroke-width="1.5"/>
-          <line x1="28" y1="50" x2="42" y2="50" stroke="#E7F2EF" stroke-width="2"/>
-          <line x1="58" y1="50" x2="72" y2="50" stroke="#E7F2EF" stroke-width="2"/>
-          <circle cx="50" cy="50" r="5" fill="#E7F2EF"/>
+          <ellipse cx="50" cy="28" rx="26" ry="9" fill="#A1C2BD" opacity="0.8"/>
+          <rect x="24" y="28" width="52" height="38" fill="#A1C2BD" opacity="0.8"/>
+          <ellipse cx="50" cy="66" rx="26" ry="9" fill="#A1C2BD" opacity="0.8"/>
+          <circle cx="50" cy="50" r="22" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+          <line x1="28" y1="50" x2="42" y2="50" stroke="#FFFFFF" stroke-width="2.5"/>
+          <line x1="58" y1="50" x2="72" y2="50" stroke="#FFFFFF" stroke-width="2.5"/>
+          <circle cx="50" cy="50" r="5" fill="#FFFFFF"/>
         </svg>
       </div>
       <span class="al-logo-text">SchemaLens</span>
     </div>
+  </a>
     <div class="al-hero">
       <h1>From Schema Image<br>to <span>Perfect SQL</span><br>in Seconds</h1>
       <p>Upload your ER diagram, describe what you need in plain English, and get optimized SQL queries instantly.</p>
@@ -94,7 +104,7 @@
       <form method="POST" action="{{ url_for('signup') }}">
         <div class="form-group">
           <label class="form-label">Full name</label>
-          <input type="text" name="name" class="form-input" placeholder="Jane Smith" required>
+          <input type="text" name="name" class="form-input" placeholder="Bronny James" required>
         </div>
         <div class="form-group">
           <label class="form-label">Email address</label>
@@ -111,9 +121,9 @@
         <button type="submit" class="btn-submit">Get Started Free →</button>
       </form>
 
-      <p style="text-align:center;margin-top:22px;font-size:13.5px;color:#708993;">
+      <p style="text-align:center;margin-top:22px;font-size:13.5px;color:#354A54;font-weight:500;">
         Already have an account?
-        <a href="{{ url_for('login') }}" style="color:#19183B;font-weight:700;text-decoration:none;">Sign In</a>
+        <a href="{{ url_for('login') }}" style="color:#11102B;font-weight:700;text-decoration:none;border-bottom: 1.5px solid #11102B;">Sign In</a>
       </p>
     </div>
   </div>
