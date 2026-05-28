@@ -1,0 +1,932 @@
+{% extends "base.html" %}
+{% block title %}Data Normalizer — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.page-head { margin-bottom: 24px; }
+.page-head h1 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; margin-bottom: 4px; }
+.page-head p  { font-size: 13.5px; color: var(--text-soft); }
+
+/* ── Tab Switcher ── */
+.norm-tabs {
+  display: flex; gap: 4px; background: var(--page-bg);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 4px; width: fit-content; margin-bottom: 24px;
+}
+.norm-tab {
+  padding: 9px 22px; border-radius: 8px; border: none;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  cursor: pointer; background: transparent; color: var(--text-soft);
+  transition: all .2s; display: flex; align-items: center; gap: 7px;
+}
+.norm-tab i { font-size: 14px; }
+.norm-tab:hover { color: var(--primary); }
+.norm-tab.active {
+  background: var(--primary); color: #fff;
+  box-shadow: 0 2px 8px rgba(124,58,237,.25);
+}
+
+/* ── Layout ── */
+.norm-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+
+/* ── Input Card ── */
+.norm-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.nc-header {
+  padding: 14px 20px; display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--primary-border);
+}
+.nc-header.schema-mode { background: linear-gradient(135deg, #F5F3FF, #EFF6FF); }
+.nc-header.data-mode   { background: linear-gradient(135deg, #F0FDF4, #ECFDF5); }
+.nc-header-icon { font-size: 15px; }
+.nc-header-title { font-size: 13.5px; font-weight: 700; }
+.nc-header-sub   { font-size: 12px; margin-top: 1px; }
+.nc-body { padding: 20px; }
+
+.norm-input {
+  width: 100%; border: none; outline: none; resize: vertical;
+  font-family: var(--mono); font-size: 12.5px; color: var(--text);
+  line-height: 1.7; min-height: 200px; background: transparent;
+}
+.norm-input::placeholder { color: #C4B5FD; }
+
+.nc-footer {
+  padding: 12px 20px; border-top: 1px solid #F3F0FF;
+  display: flex; align-items: center; justify-content: space-between;
+  background: #FAFAFE;
+}
+
+.norm-btn {
+  display: flex; align-items: center; gap: 7px; border: none;
+  border-radius: var(--radius-sm); padding: 9px 22px;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .2s; color: #fff;
+}
+.norm-btn.schema-btn { background: linear-gradient(135deg, #7C3AED, #6D28D9); }
+.norm-btn.schema-btn:hover { background: linear-gradient(135deg, #6D28D9, #5B21B6); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,.3); }
+.norm-btn.data-btn { background: linear-gradient(135deg, #059669, #047857); }
+.norm-btn.data-btn:hover { background: linear-gradient(135deg, #047857, #065F46); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(5,150,105,.3); }
+.norm-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ── Output ── */
+.output-area { margin-top: 20px; }
+.output-placeholder { text-align: center; padding: 48px 24px; color: var(--text-xs); }
+.output-placeholder i { font-size: 36px; opacity: .25; display: block; margin-bottom: 10px; }
+.output-placeholder p { font-size: 13px; }
+
+/* ── Schema Result ── */
+.result-analysis {
+  background: linear-gradient(135deg, #F5F3FF, #EFF6FF);
+  border: 1px solid var(--primary-border); border-radius: var(--radius-sm);
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.result-analysis h4 { font-size: 12.5px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+.issue-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 11px; font-weight: 600; background: #FEF3C7; color: #78350F;
+  margin: 2px 4px 2px 0;
+}
+.nf-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 11px; font-weight: 600; background: #D1FAE5; color: #065F46;
+  margin: 2px 4px 2px 0;
+}
+
+.table-card {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  margin-bottom: 12px; overflow: hidden;
+}
+.table-card-header {
+  padding: 10px 14px; background: #F9FAFB;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 700;
+}
+.table-card-header i { color: var(--primary); }
+.col-row {
+  padding: 7px 14px; border-bottom: 1px solid #F3F4F6;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12.5px; font-family: var(--mono);
+}
+.col-row:last-child { border-bottom: none; }
+.col-name { font-weight: 600; color: var(--text); min-width: 120px; }
+.col-type { color: var(--primary); min-width: 80px; }
+.col-badge { font-size: 10px; }
+
+/* ── Data Result ── */
+.summary-bar {
+  display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.summary-stat {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px 18px; flex: 1; min-width: 130px; text-align: center;
+}
+.summary-stat .val { font-size: 22px; font-weight: 800; color: var(--primary); }
+.summary-stat .lbl { font-size: 11px; color: var(--text-soft); margin-top: 2px; }
+
+.data-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 16px; }
+.data-table {
+  width: 100%; border-collapse: collapse; font-size: 12.5px;
+  font-family: var(--mono);
+}
+.data-table th {
+  background: #F9FAFB; padding: 9px 12px;
+  text-align: left; font-weight: 700; color: var(--text);
+  border-bottom: 2px solid var(--border); white-space: nowrap;
+}
+.data-table td {
+  padding: 8px 12px; border-bottom: 1px solid #F3F4F6;
+  color: var(--text); white-space: nowrap;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--primary-bg); }
+.cell-changed { background: #D1FAE5 !important; color: #065F46; font-weight: 600; }
+
+.changes-list {
+  background: #FFFBEB; border: 1px solid #FDE68A; border-radius: var(--radius-sm);
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.changes-list h4 { font-size: 12.5px; font-weight: 700; color: #78350F; margin-bottom: 8px; }
+.change-item {
+  font-size: 12px; color: #92400E; padding: 3px 0;
+  display: flex; align-items: flex-start; gap: 6px;
+}
+.change-item::before { content: '→'; color: #F59E0B; flex-shrink: 0; font-weight: 700; }
+
+/* ── Right Panel ── */
+.tip-card {
+  border-radius: var(--radius); padding: 18px;
+  color: #fff; margin-bottom: 16px;
+}
+.tip-card.schema-tip { background: linear-gradient(135deg, #7C3AED, #4F46E5); }
+.tip-card.data-tip   { background: linear-gradient(135deg, #059669, #0D9488); }
+.tip-header { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+.tip-header i { color: #FCD34D; }
+.tip-list { list-style: none; }
+.tip-list li {
+  font-size: 12.5px; color: rgba(255,255,255,.85);
+  padding: 4px 0; display: flex; align-items: flex-start; gap: 6px;
+}
+.tip-list li::before { content: '•'; color: rgba(255,255,255,.5); margin-top: 1px; flex-shrink: 0; }
+
+.example-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; }
+.example-header {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 700;
+}
+.example-header i { color: var(--accent); }
+.example-item {
+  padding: 11px 16px; border-bottom: 1px solid var(--border);
+  font-size: 12.5px; color: var(--text); cursor: pointer;
+  transition: background .12s; line-height: 1.5;
+  font-family: var(--mono);
+}
+.example-item:last-child { border-bottom: none; }
+.example-item:hover { background: var(--primary-bg); color: var(--primary); }
+
+/* Global Styling for SQL view copy buttons built into app wrappers */
+.sql-code { position: relative; }
+.sql-copy {
+  position: absolute; top: 8px; right: 8px; z-index: 10;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 4px; color: #fff; padding: 4px 10px; font-size: 11px;
+  font-family: var(--font); cursor: pointer; transition: all 0.2s;
+}
+.sql-copy:hover { background: rgba(255,255,255,0.25); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head fade-in">
+  <h1>Data Normalizer</h1>
+  <p>Transform raw data into clean, normalized structures — powered by AI.</p>
+</div>
+
+<div class="norm-tabs fade-in fade-in-1">
+  <button class="norm-tab active" id="tabSchema" onclick="switchTab('schema')">
+    <i class="bi bi-diagram-3"></i> Schema Normalizer
+  </button>
+  <button class="norm-tab" id="tabData" onclick="switchTab('data')">
+    <i class="bi bi-magic"></i> Data Cleaner
+  </button>
+</div>
+
+<div class="norm-grid">
+  <div>
+    <div id="panelSchema">
+      <div class="norm-card fade-in fade-in-2">
+        <div class="nc-header schema-mode">
+          <i class="bi bi-diagram-3 nc-header-icon" style="color:var(--primary);"></i>
+          <div>
+            <div class="nc-header-title" style="color:var(--primary);">Schema Normalizer</div>
+            <div class="nc-header-sub" style="color:#8B5CF6;">Paste flat/denormalized data → get 3NF schema</div>
+          </div>
+        </div>
+        <div class="nc-body">
+          <textarea id="schemaInput" class="norm-input"
+            placeholder="Paste your flat data here, e.g.:&#10;&#10;order_id, customer_name, customer_email, product_name, product_price, quantity, order_date&#10;1, John Doe, john@email.com, Widget A, 29.99, 2, 2024-01-15&#10;2, John Doe, john@email.com, Widget B, 49.99, 1, 2024-01-16&#10;3, Jane Smith, jane@email.com, Widget A, 29.99, 5, 2024-01-17"></textarea>
+        </div>
+        <div class="nc-footer">
+          <div style="font-size:12px;color:var(--text-xs);display:flex;align-items:center;gap:5px;">
+            <i class="bi bi-info-circle"></i> Supports CSV, tab-separated, or plain text
+          </div>
+          <button class="norm-btn schema-btn" id="normSchemaBtn" onclick="normalizeSchema()">
+            <i class="bi bi-diagram-3"></i> Normalize to 3NF
+          </button>
+        </div>
+      </div>
+
+      <div class="output-area" id="schemaOutputArea">
+        <div id="schemaPlaceholder" class="output-placeholder">
+          <i class="bi bi-diagram-3"></i>
+          <p>Your normalized schema will appear here.<br>Paste flat data above and click <strong>Normalize to 3NF</strong>.</p>
+        </div>
+        <div id="schemaLoading" style="display:none;text-align:center;padding:48px;">
+          <div style="width:36px;height:36px;border:3px solid var(--primary-border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;"></div>
+          <p style="font-size:13px;color:var(--text-soft);">Analyzing & normalizing schema…</p>
+        </div>
+        <div id="schemaResult" style="display:none;"></div>
+        <div id="schemaError" style="display:none;">
+          <div class="flash flash-error" id="schemaErrorMsg"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panelData" style="display:none;">
+      <div class="norm-card fade-in fade-in-2">
+        <div class="nc-header data-mode">
+          <i class="bi bi-magic nc-header-icon" style="color:#059669;"></i>
+          <div>
+            <div class="nc-header-title" style="color:#065F46;">Data Cleaner & Standardizer</div>
+            <div class="nc-header-sub" style="color:#059669;">Paste messy data → get clean, standardized output</div>
+          </div>
+        </div>
+        <div class="nc-body">
+          <textarea id="dataInput" class="norm-input"
+            placeholder="Paste your messy data here, e.g.:&#10;&#10;name, email, phone, signup_date, amount&#10;john DOE,  JOHN@EMAIL.COM, (555) 123-4567, 01/15/2024, $1,299.99&#10;JANE smith, jane@email.COM,555.987.6543, 2024-02-20, €850&#10;  bob WILSON ,bob@email.com,  5551234567 ,03-15-24,$2,100.50"></textarea>
+        </div>
+        <div class="nc-footer">
+          <div style="font-size:12px;color:var(--text-xs);display:flex;align-items:center;gap:5px;">
+            <i class="bi bi-info-circle"></i> Supports CSV, tab-separated, or pipe-delimited
+          </div>
+          <button class="norm-btn data-btn" id="normDataBtn" onclick="normalizeData()">
+            <i class="bi bi-magic"></i> Clean & Standardize
+          </button>
+        </div>
+      </div>
+
+      <div class="output-area" id="dataOutputArea">
+        <div id="dataPlaceholder" class="output-placeholder">
+          <i class="bi bi-magic"></i>
+          <p>Your cleaned data will appear here.<br>Paste messy data above and click <strong>Clean & Standardize</strong>.</p>
+        </div>
+        <div id="dataLoading" style="display:none;text-align:center;padding:48px;">
+          <div style="width:36px;height:36px;border:3px solid #A7F3D0;border-top-color:#059669;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;"></div>
+          <p style="font-size:13px;color:var(--text-soft);">Cleaning & standardizing data…</p>
+        </div>
+        <div id="dataResult" style="display:none;"></div>
+        <div id="dataError" style="display:none;">
+          <div class="flash flash-error" id="dataErrorMsg"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div id="schemaTips">
+      <div class="tip-card schema-tip fade-in fade-in-2">
+        <div class="tip-header"><i class="bi bi-lightbulb-fill"></i> What This Does</div>
+        <ul class="tip-list">
+          <li>Analyzes flat/denormalized data structures</li>
+          <li>Identifies redundancies & anomalies</li>
+          <li>Decomposes into 1NF → 2NF → 3NF</li>
+          <li>Generates SQL CREATE TABLE statements</li>
+          <li>Maps foreign key relationships</li>
+        </ul>
+      </div>
+
+      <div class="example-card fade-in fade-in-3">
+        <div class="example-header">
+          <i class="bi bi-lightning-charge-fill"></i> Try an Example
+        </div>
+        <div class="example-item" onclick="loadSchemaExample('orders')">
+          <strong>🛒 E-Commerce Orders</strong><br>
+          <span style="color:var(--text-soft);font-size:11px;">Flat order data with customer & product info</span>
+        </div>
+        <div class="example-item" onclick="loadSchemaExample('students')">
+          <strong>🎓 Student Enrollment</strong><br>
+          <span style="color:var(--text-soft);font-size:11px;">Students, courses, and grades in one table</span>
+        </div>
+        <div class="example-item" onclick="loadSchemaExample('employees')">
+          <strong>👔 Employee Records</strong><br>
+          <span style="color:var(--text-soft);font-size:11px;">Staff with department & manager details</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="dataTips" style="display:none;">
+      <div class="tip-card data-tip fade-in fade-in-2">
+        <div class="tip-header"><i class="bi bi-lightbulb-fill"></i> What This Does</div>
+        <ul class="tip-list">
+          <li>Fixes inconsistent capitalization</li>
+          <li>Standardizes date formats (→ YYYY-MM-DD)</li>
+          <li>Cleans phone numbers & emails</li>
+          <li>Strips currency symbols & formats numbers</li>
+          <li>Removes duplicates & extra whitespace</li>
+          <li>Generates SQL INSERT statements</li>
+        </ul>
+      </div>
+
+      <div class="example-card fade-in fade-in-3">
+        <div class="example-header">
+          <i class="bi bi-lightning-charge-fill"></i> Try an Example
+        </div>
+        <div class="example-item" onclick="loadDataExample('contacts')">
+          <strong>📇 Messy Contact List</strong><br>
+          <span style="color:var(--text-soft);font-size:11px;">Names, emails, phones with mixed formats</span>
+        </div>
+        <div class="example-item" onclick="loadDataExample('sales')">
+          <strong>💰 Sales Records</strong><br>
+          <span style="color:var(--text-soft);font-size:11px;">Dates & currencies in different formats</span>
+        </div>
+        <div class="example-item" onclick="loadDataExample('inventory')">
+          <strong>📦 Inventory Data</strong><br>
+          <span style="color:var(--text-soft);font-size:11px;">Product names & prices with typos</span>
+        </div>
+      </div>
+    </div>
+
+    {% if not current_user.gemini_key %}
+    <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--radius);padding:14px 16px;" class="fade-in">
+      <div style="font-size:12.5px;font-weight:700;color:#78350F;margin-bottom:4px;"><i class="bi bi-key-fill"></i> Add Gemini API Key</div>
+      <div style="font-size:12px;color:#92400E;line-height:1.5;">Get AI-powered normalization. <a href="{{ url_for('settings') }}" style="color:#7C3AED;font-weight:600;">Add key in Settings →</a></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Tab Switching ──
+function switchTab(tab) {
+  document.getElementById('tabSchema').classList.toggle('active', tab === 'schema');
+  document.getElementById('tabData').classList.toggle('active', tab === 'data');
+  document.getElementById('panelSchema').style.display = tab === 'schema' ? '' : 'none';
+  document.getElementById('panelData').style.display   = tab === 'data'   ? '' : 'none';
+  document.getElementById('schemaTips').style.display   = tab === 'schema' ? '' : 'none';
+  document.getElementById('dataTips').style.display     = tab === 'data'   ? '' : 'none';
+}
+
+// ── Schema State ──
+function showSchemaState(s) {
+  ['schemaPlaceholder','schemaLoading','schemaResult','schemaError'].forEach(id =>
+    document.getElementById(id).style.display = 'none');
+  const m = {placeholder:'schemaPlaceholder',loading:'schemaLoading',result:'schemaResult',error:'schemaError'};
+  document.getElementById(m[s]).style.display = 'block';
+}
+
+// ── Data State ──
+function showDataState(s) {
+  ['dataPlaceholder','dataLoading','dataResult','dataError'].forEach(id =>
+    document.getElementById(id).style.display = 'none');
+  const m = {placeholder:'dataPlaceholder',loading:'dataLoading',result:'dataResult',error:'dataError'};
+  document.getElementById(m[s]).style.display = 'block';
+}
+
+// ── Global SQL Copy Function ──
+function copySql(btn) {
+  const container = btn.closest('.sql-code');
+  if (!container) return;
+  const codeEl = container.querySelector('code');
+  if (!codeEl) return;
+  
+  navigator.clipboard.writeText(codeEl.textContent).then(() => {
+    const origText = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+    btn.style.background = '#10B981';
+    setTimeout(() => {
+      btn.innerHTML = origText;
+      btn.style.background = '';
+    }, 2000);
+  }).catch(err => {
+    alert('Failed to copy text: ' + err);
+  });
+}
+
+// ── Schema Normalizer ──
+async function normalizeSchema() {
+  const input = document.getElementById('schemaInput').value.trim();
+  if (!input) {
+    document.getElementById('schemaInput').style.outline = '2px solid var(--danger)';
+    setTimeout(() => document.getElementById('schemaInput').style.outline = '', 1500);
+    return;
+  }
+  const btn = document.getElementById('normSchemaBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span> Analyzing…';
+  showSchemaState('loading');
+
+  try {
+    const resp = await fetch('/api/normalize-schema', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ input })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Unknown error');
+    renderSchemaResult(data.result, data.method);
+    showSchemaState('result');
+  } catch(err) {
+    document.getElementById('schemaErrorMsg').innerHTML = `<i class="bi bi-x-circle-fill"></i> ${err.message}`;
+    showSchemaState('error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-diagram-3"></i> Normalize to 3NF';
+  }
+}
+
+function renderSchemaResult(result, method) {
+  const container = document.getElementById('schemaResult');
+  let html = '';
+
+  // Analysis
+  const analysis = result.analysis || {};
+  html += `<div class="result-analysis">
+    <h4><i class="bi bi-search"></i> Normalization Analysis</h4>
+    <div style="margin-bottom:6px;">`;
+  (analysis.original_issues || []).forEach(issue => {
+    html += `<span class="issue-tag"><i class="bi bi-exclamation-triangle" style="font-size:10px;"></i> ${issue}</span>`;
+  });
+  html += `</div><div>`;
+  (analysis.normal_forms_applied || []).forEach(nf => {
+    html += `<span class="nf-tag"><i class="bi bi-check-circle" style="font-size:10px;"></i> ${nf}</span>`;
+  });
+  html += `</div>
+    <div style="margin-top:6px;font-size:11px;color:var(--text-xs);">Processed with ${method}</div>
+  </div>`;
+
+  // Tables
+  (result.tables || []).forEach(table => {
+    html += `<div class="table-card">
+      <div class="table-card-header"><i class="bi bi-table"></i> ${table.name}</div>`;
+    (table.columns || []).forEach(col => {
+      let badges = '';
+      if (col.primary_key) badges += '<span class="badge badge-purple col-badge">PK</span>';
+      if (col.foreign_key) badges += `<span class="badge badge-blue col-badge">FK → ${col.foreign_key}</span>`;
+      if (col.nullable === false) badges += '<span class="badge badge-amber col-badge">NOT NULL</span>';
+      html += `<div class="col-row">
+        <span class="col-name">${col.name}</span>
+        <span class="col-type">${col.type || 'TEXT'}</span>
+        <span>${badges}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  // Relationships
+  if (result.relationships && result.relationships.length > 0) {
+    html += `<div class="table-card">
+      <div class="table-card-header"><i class="bi bi-link-45deg"></i> Relationships</div>`;
+    result.relationships.forEach(rel => {
+      html += `<div class="col-row" style="font-family:var(--mono);">
+        <span style="color:var(--primary);font-weight:600;">${rel.from_table}.${rel.from_col}</span>
+        <span style="color:var(--text-xs);"> → </span>
+        <span style="color:#059669;font-weight:600;">${rel.to_table}.${rel.to_col}</span>
+        <span class="badge badge-cyan col-badge">${rel.type || ''}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // DDL
+  if (result.ddl) {
+    html += `<div class="norm-card" style="margin-top:12px;">
+      <div class="nc-header schema-mode">
+        <i class="bi bi-code-slash nc-header-icon" style="color:var(--primary);"></i>
+        <div>
+          <div class="nc-header-title" style="color:var(--primary);">SQL DDL Statements</div>
+          <div class="nc-header-sub" style="color:#8B5CF6;">Ready to use CREATE TABLE statements</div>
+        </div>
+      </div>
+      <div class="nc-body" style="padding:0;">
+        <div class="sql-code" style="border-radius:0;">
+          <button class="sql-copy" onclick="copySql(this)">Copy</button>
+          <pre><code class="language-sql">${escapeHtml(result.ddl)}</code></pre>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Normalized Data Preview & Export
+  if (result.normalized_data && Object.keys(result.normalized_data).length > 0) {
+    window.lastNormalizedData = result.normalized_data;
+    
+    html += `<div class="norm-card" style="margin-top:20px;">
+      <div class="nc-header schema-mode">
+        <i class="bi bi-download nc-header-icon" style="color:var(--primary);"></i>
+        <div>
+          <div class="nc-header-title" style="color:var(--primary);">Normalized Data Records</div>
+          <div class="nc-header-sub" style="color:#8B5CF6;">Preview, copy, or download the split records</div>
+        </div>
+      </div>
+      <div class="nc-body" style="padding: 20px;">
+        <div style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap;" id="normDataTabs">`;
+    
+    const tablesList = Object.keys(result.normalized_data);
+    tablesList.forEach((tname, idx) => {
+      const activeClass = idx === 0 ? 'active' : '';
+      html += `<button class="norm-tab ${activeClass}" style="padding: 6px 14px; font-size: 12px; height: auto;" onclick="switchSchemaDataTab('${tname}', this)">
+        <i class="bi bi-table"></i> ${tname} (${result.normalized_data[tname].length} rows)
+      </button>`;
+    });
+    
+    html += `</div>
+        <div id="schemaDataPreviewWrap">`;
+    
+    if (tablesList.length > 0) {
+      html += renderSchemaTablePreviewHtml(tablesList[0], result.normalized_data[tablesList[0]]);
+    }
+    
+    html += `</div>
+      </div>
+    </div>`;
+  }
+
+  // SQL Inserts
+  if (result.sql_inserts) {
+    html += `<div class="norm-card" style="margin-top:12px;">
+      <div class="nc-header schema-mode">
+        <i class="bi bi-database-fill-add nc-header-icon" style="color:var(--primary);"></i>
+        <div>
+          <div class="nc-header-title" style="color:var(--primary);">SQL INSERT Statements</div>
+          <div class="nc-header-sub" style="color:#8B5CF6;">Populated data inserts for the normalized tables</div>
+        </div>
+      </div>
+      <div class="nc-body" style="padding:0;">
+        <div class="sql-code" style="border-radius:0;">
+          <button class="sql-copy" onclick="copySql(this)">Copy</button>
+          <pre><code class="language-sql">${escapeHtml(result.sql_inserts)}</code></pre>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  container.innerHTML = html;
+  container.querySelectorAll('code.language-sql').forEach(el => hljs.highlightElement(el));
+}
+
+// ── Data Cleaner ──
+async function normalizeData() {
+  const input = document.getElementById('dataInput').value.trim();
+  if (!input) {
+    document.getElementById('dataInput').style.outline = '2px solid var(--danger)';
+    setTimeout(() => document.getElementById('dataInput').style.outline = '', 1500);
+    return;
+  }
+  const btn = document.getElementById('normDataBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span> Cleaning…';
+  showDataState('loading');
+
+  try {
+    const resp = await fetch('/api/normalize-data', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ input })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Unknown error');
+    renderDataResult(data.result, data.method);
+    showDataState('result');
+  } catch(err) {
+    document.getElementById('dataErrorMsg').innerHTML = `<i class="bi bi-x-circle-fill"></i> ${err.message}`;
+    showDataState('error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-magic"></i> Clean & Standardize';
+  }
+}
+
+function renderDataResult(result, method) {
+  const container = document.getElementById('dataResult');
+  let html = '';
+
+  const summary = result.summary || {};
+  
+  // Summary stats cards
+  html += `<div class="summary-bar">
+    <div class="summary-stat">
+      <div class="val">${summary.rows_processed || 0}</div>
+      <div class="lbl">Rows Processed</div>
+    </div>
+    <div class="summary-stat">
+      <div class="val" style="color:#F59E0B;">${(summary.issues_found || []).length}</div>
+      <div class="lbl">Issues Found</div>
+    </div>
+    <div class="summary-stat">
+      <div class="val" style="color:#10B981;">${(summary.changes_made || []).length}</div>
+      <div class="lbl">Changes Made</div>
+    </div>
+  </div>`;
+
+  // List of changes applied
+  const changes = summary.changes_made || [];
+  if (changes.length > 0) {
+    html += `<div class="changes-list">
+      <h4><i class="bi bi-pencil-square"></i> Changes Applied</h4>`;
+    changes.forEach(c => {
+      html += `<div class="change-item">${escapeHtml(c)}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Cleaned data table preview with Export Actions
+  const headers = result.headers || [];
+  const cleaned = result.cleaned_data || [];
+  if (headers.length > 0 && cleaned.length > 0) {
+    // Cache parameters to window memory scope for click event exports
+    window.lastCleanedDataHeaders = headers;
+    window.lastCleanedDataRows = cleaned;
+
+    html += `<div style="margin-bottom:12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <span style="font-size:13px;font-weight:700;"><i class="bi bi-table"></i> Cleaned Data</span>
+        <span style="font-size:11px;color:var(--text-soft);margin-left:8px;">Processed with ${method}</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="norm-btn data-btn" style="padding: 5px 12px; font-size: 12px; background: #6B7280;" onclick="copyCleanedDataJson(this)">
+          <i class="bi bi-clipboard"></i> Copy Cleaned JSON
+        </button>
+        <button class="norm-btn data-btn" style="padding: 5px 12px; font-size: 12px; background: #4B5563;" onclick="downloadCleanedDataCsv()">
+          <i class="bi bi-file-earmark-arrow-down"></i> Download Cleaned CSV
+        </button>
+      </div>
+    </div>`;
+    
+    html += `<div class="data-table-wrap"><table class="data-table"><thead><tr>`;
+    headers.forEach(h => { html += `<th>${escapeHtml(h)}</th>`; });
+    html += `</tr></thead><tbody>`;
+    
+    cleaned.forEach(row => {
+      html += `<tr>`;
+      // CRITICAL LOGIC FIX: Always map values strictly by tracking programmatic header indices to enforce spatial alignment
+      if (Array.isArray(row)) {
+        for (let i = 0; i < headers.length; i++) {
+          const cell = row[i] !== undefined && row[i] !== null ? row[i] : "";
+          html += `<td>${escapeHtml(cell)}</td>`;
+        }
+      } else {
+        // Safe dict-to-array key translation layer fallback 
+        headers.forEach(h => {
+          const cell = row[h] !== undefined && row[h] !== null ? row[h] : "";
+          html += `<td>${escapeHtml(cell)}</td>`;
+        });
+      }
+      html += `</tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  // Generated Database SQL Inserts block panel
+  if (result.sql_inserts) {
+    html += `<div class="norm-card" style="margin-top:4px;">
+      <div class="nc-header data-mode">
+        <i class="bi bi-code-slash nc-header-icon" style="color:#059669;"></i>
+        <div>
+          <div class="nc-header-title" style="color:#065F46;">SQL INSERT Statements</div>
+          <div class="nc-header-sub" style="color:#059669;">Ready to import into your database</div>
+        </div>
+      </div>
+      <div class="nc-body" style="padding:0;">
+        <div class="sql-code" style="border-radius:0;">
+          <button class="sql-copy" onclick="copySql(this)">Copy</button>
+          <pre><code class="language-sql">${escapeHtml(result.sql_inserts)}</code></pre>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  container.innerHTML = html;
+  container.querySelectorAll('code.language-sql').forEach(el => hljs.highlightElement(el));
+}
+
+// ── Data Export Copy & Download Implementations ──
+function copyCleanedDataJson(btn) {
+  const headers = window.lastCleanedDataHeaders || [];
+  const rows = window.lastCleanedDataRows || [];
+  
+  // Reconstruct cleanly to a standard JSON object array structure
+  const formattedObj = rows.map(row => {
+    let entry = {};
+    headers.forEach((h, idx) => {
+      entry[h] = Array.isArray(row) ? row[idx] : row[h];
+    });
+    return entry;
+  });
+
+  navigator.clipboard.writeText(JSON.stringify(formattedObj, null, 2)).then(() => {
+    const origText = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied Object!';
+    btn.style.background = '#10B981';
+    setTimeout(() => {
+      btn.innerHTML = origText;
+      btn.style.background = '#6B7280';
+    }, 2000);
+  }).catch(err => {
+    alert('Failed to copy Data JSON: ' + err);
+  });
+}
+
+function downloadCleanedDataCsv() {
+  const headers = window.lastCleanedDataHeaders || [];
+  const rows = window.lastCleanedDataRows || [];
+  if (headers.length === 0) return;
+
+  const csvRows = [headers.join(',')];
+  
+  rows.forEach(row => {
+    const values = headers.map((header, idx) => {
+      const val = Array.isArray(row) ? row[idx] : row[header];
+      const valStr = val === null || val === undefined ? '' : '' + val;
+      const escaped = valStr.replace(/"/g, '""');
+      return (escaped.includes(',') || escaped.includes('"') || escaped.includes('\n')) ? `"${escaped}"` : escaped;
+    });
+    csvRows.push(values.join(','));
+  });
+
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `cleaned_data_output.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ── Examples ──
+const schemaExamples = {
+  orders: `order_id, customer_name, customer_email, customer_phone, product_name, product_category, product_price, quantity, order_date, shipping_address
+1, John Doe, john@email.com, 555-0101, Widget A, Electronics, 29.99, 2, 2024-01-15, 123 Main St
+2, John Doe, john@email.com, 555-0101, Widget B, Home, 49.99, 1, 2024-01-16, 123 Main St
+3, Jane Smith, jane@email.com, 555-0202, Widget A, Electronics, 29.99, 5, 2024-01-17, 456 Oak Ave
+4, Jane Smith, jane@email.com, 555-0202, Gadget C, Electronics, 99.99, 1, 2024-01-18, 456 Oak Ave`,
+
+  students: `student_id, student_name, student_email, course_code, course_name, instructor, instructor_email, semester, grade
+S001, Alice Johnson, alice@uni.edu, CS101, Intro to Programming, Dr. Smith, smith@uni.edu, Fall 2024, A
+S001, Alice Johnson, alice@uni.edu, MATH201, Linear Algebra, Dr. Lee, lee@uni.edu, Fall 2024, B+
+S002, Bob Williams, bob@uni.edu, CS101, Intro to Programming, Dr. Smith, smith@uni.edu, Fall 2024, B
+S002, Bob Williams, bob@uni.edu, ENG102, Academic Writing, Prof. Davis, davis@uni.edu, Fall 2024, A-`,
+
+  employees: `emp_id, emp_name, emp_email, dept_name, dept_location, dept_manager, manager_email, job_title, salary, hire_date
+E001, Maria Garcia, maria@corp.com, Engineering, Building A, Tom Brown, tom@corp.com, Software Engineer, 95000, 2023-03-15
+E002, James Wilson, james@corp.com, Engineering, Building A, Tom Brown, tom@corp.com, QA Analyst, 75000, 2023-06-01
+E003, Sarah Chen, sarah@corp.com, Marketing, Building B, Lisa White, lisa@corp.com, Content Manager, 72000, 2022-11-20`
+};
+
+const dataExamples = {
+  contacts: `name, email, phone, signup_date, amount_spent
+john DOE,  JOHN@EMAIL.COM, (555) 123-4567, 01/15/2024, $1,299.99
+JANE smith, jane@email.COM,555.987.6543, 2024-02-20, €850.00
+  bob WILSON ,bob@email.com,  5551234567 ,03-15-24,$2,100.50
+MARIA garcia, MARIA@email.com, 555 444 3333, 15.04.2024, $499
+  TOM   brown, tom@EMAIL.COM,(555)222-1111, 5/1/24, $3,750.00`,
+
+  sales: `product, region, date, quantity, unit_price, total
+widget A, NORTH, 01/15/2024, 10, $29.99, $299.90
+WIDGET a, north, 2024-1-20, 5, $29.99,  $149.95
+gadget B, South, 15-02-24, 3, €49.99, €149.97
+  GADGET b,south,02/28/2024, 7, $49.99, $349.93
+Widget C, EAST, 3/5/24, 12, £19.99, £239.88`,
+
+  inventory: `item_name, sku, category, price, stock, last_updated
+  laptop PRO 15,  LP-001, ELECTRONICS, $1,299.00, 45, 01/10/2024
+LAPTOP pro 15, LP-001, electronics, $1299, 45, 2024-01-10
+wireless MOUSE, WM-002, electronics, €29.99, 150, 02/15/24
+USB  cable  TYPE-C, UC-003, accessories,  $9.99 ,300, 2024-3-1
+  WIRELESS mouse, WM-002,ELECTRONICS,$29.99, 150, 15-02-2024`
+};
+
+function loadSchemaExample(key) {
+  document.getElementById('schemaInput').value = schemaExamples[key] || '';
+  document.getElementById('schemaInput').focus();
+}
+function loadDataExample(key) {
+  document.getElementById('dataInput').value = dataExamples[key] || '';
+  document.getElementById('dataInput').focus();
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ── Schema Data Helper Functions ──
+function switchSchemaDataTab(tname, btn) {
+  const tabContainer = document.getElementById('normDataTabs');
+  tabContainer.querySelectorAll('.norm-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  const data = (window.lastNormalizedData && window.lastNormalizedData[tname]) || [];
+  const previewWrap = document.getElementById('schemaDataPreviewWrap');
+  previewWrap.innerHTML = renderSchemaTablePreviewHtml(tname, data);
+}
+
+function renderSchemaTablePreviewHtml(tname, data) {
+  if (!data || data.length === 0) {
+    return `<div style="text-align:center; padding: 24px; color: var(--text-soft); font-size: 13px;">No rows in this table.</div>`;
+  }
+  
+  const headers = Object.keys(data[0]);
+  let html = '';
+  
+  html += `<div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 12px;">
+    <button class="norm-btn schema-btn" style="padding: 6px 12px; font-size: 12px; background: #6B7280;" onclick="copyTableJson('${tname}', this)">
+      <i class="bi bi-clipboard"></i> Copy as JSON
+    </button>
+    <button class="norm-btn schema-btn" style="padding: 6px 12px; font-size: 12px; background: #4B5563;" onclick="downloadTableCsv('${tname}')">
+      <i class="bi bi-file-earmark-arrow-down"></i> Download CSV
+    </button>
+  </div>`;
+  
+  html += `<div class="data-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>`;
+  headers.forEach(h => {
+    html += `<th>${escapeHtml(h)}</th>`;
+  });
+  html += `     </tr>
+      </thead>
+      <tbody>`;
+  data.forEach(row => {
+    html += `   <tr>`;
+    headers.forEach(h => {
+      html += `   <td>${escapeHtml(row[h] !== null ? row[h] : '')}</td>`;
+    });
+    html += `   </tr>`;
+  });
+  html += `   </tbody>
+    </table>
+  </div>`;
+  
+  return html;
+}
+
+function copyTableJson(tname, btn) {
+  const data = (window.lastNormalizedData && window.lastNormalizedData[tname]) || [];
+  const text = JSON.stringify(data, null, 2);
+  
+  navigator.clipboard.writeText(text).then(() => {
+    const origText = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+    btn.style.background = '#10B981';
+    setTimeout(() => {
+      btn.innerHTML = origText;
+      btn.style.background = '#6B7280';
+    }, 2000);
+  }).catch(err => {
+    alert('Failed to copy: ' + err);
+  });
+}
+
+function downloadTableCsv(tname) {
+  const data = (window.lastNormalizedData && window.lastNormalizedData[tname]) || [];
+  if (data.length === 0) return;
+  
+  const headers = Object.keys(data[0]);
+  const csvRows = [];
+  
+  csvRows.push(headers.join(','));
+  
+  for (const row of data) {
+    const values = headers.map(header => {
+      const val = row[header];
+      const valStr = val === null || val === undefined ? '' : '' + val;
+      const escaped = valStr.replace(/"/g, '""');
+      if (escaped.includes(',') || escaped.includes('"') || escaped.includes('\n')) {
+        return `"${escaped}"`;
+      }
+      return escaped;
+    });
+    csvRows.push(values.join(','));
+  }
+  
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${tname}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+</script>
+{% endblock %}

@@ -3,6 +3,7 @@ import json
 import re
 import datetime
 from pathlib import Path
+import google.generativeai as genai
 
 from flask import (Flask, render_template, request, redirect, url_for,
                    flash, jsonify, send_from_directory)
@@ -506,6 +507,589 @@ def settings():
         return redirect(url_for("settings"))
 
     return render_template("settings.html", user=current_user)
+
+
+# ── Data Normalization ─────────────────────────────────────────────────────
+@app.route("/normalize")
+@login_required
+def normalize():
+    schemas = SchemaUpload.query.filter_by(user_id=current_user.id)\
+              .order_by(SchemaUpload.uploaded_at.desc()).all()
+    return render_template("normalize.html", schemas=schemas)
+
+
+@app.route('/api/normalize-schema', methods=['POST'])
+@login_required
+def normalize_schema_api():
+    data = request.get_json()
+    raw_input = (data.get("input") or "").strip()
+
+    if not raw_input:
+        return jsonify({"error": "Input cannot be empty."}), 400
+
+    api_key = current_user.gemini_key
+
+    if not api_key:
+        return jsonify({"error": "Gemini API key not configured."}), 400
+
+    result = _normalize_schema_gemini(raw_input, api_key)
+
+    return jsonify({
+        "result": result,
+        "method": "gemini-1.5-flash"
+    })
+
+
+@app.route("/api/normalize-data", methods=["POST"])
+@login_required
+def normalize_data_api():
+    """Option B: Data cleaner — standardize dirty/random data."""
+    data = request.get_json()
+    raw_input = (data.get("input") or "").strip()
+    if not raw_input:
+        return jsonify({"error": "Input cannot be empty."}), 400
+
+    api_key = current_user.gemini_key
+    if api_key:
+        try:
+            result = _normalize_data_gemini(raw_input, api_key)
+            return jsonify({"result": result, "method": "gemini-1.5-flash"})
+        except Exception as exc:
+            return jsonify({"error": f"Gemini error: {exc}"}), 500
+    else:
+        result = _normalize_data_heuristic(raw_input)
+        return jsonify({"result": result, "method": "heuristic"})
+
+
+def _normalize_schema_gemini(raw_input: str, api_key: str) -> dict:
+    """Normalize flat/denormalized data into 3NF using Gemini."""
+    genai.configure(api_key=api_key)
+
+    model = genai.GenerativeModel(
+        "gemini-1.5-flash",
+        generation_config={
+            "temperature": 0.2,
+            "top_p": 0.8,
+            "top_k": 40,
+            "max_output_tokens": 8192,
+            "response_mime_type": "application/json"
+        }
+    )
+
+    prompt = f"""
+You are a database normalization expert.
+
+Analyze the following denormalized dataset and convert it into a proper relational schema up to Third Normal Form (3NF).
+
+IMPORTANT RULES:
+- Return ONLY valid JSON
+- Do NOT wrap in markdown
+- Do NOT explain anything
+- Ensure all arrays and objects are valid JSON
+- Use double quotes only
+- Generate realistic normalized data rows
+- Deduplicate entities properly
+
+Dataset:
+{raw_input}
+
+Return this exact structure:
+
+{{
+  "analysis": {{
+    "original_issues": [],
+    "normal_forms_applied": []
+  }},
+  "tables": [
+    {{
+      "name": "",
+      "columns": [
+        {{
+          "name": "",
+          "type": "TEXT",
+          "primary_key": false,
+          "nullable": true,
+          "foreign_key": ""
+        }}
+      ]
+    }}
+  ],
+  "relationships": [
+    {{
+      "from_table": "",
+      "from_col": "",
+      "to_table": "",
+      "to_col": "",
+      "type": "one-to-many"
+    }}
+  ],
+  "ddl": "",
+  "normalized_data": {{
+    "table_name": []
+  }},
+  "sql_inserts": ""
+}}
+"""
+
+    try:
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+
+        # Remove markdown code fences if Gemini adds them
+        text = re.sub(r"^```json\s*", "", text)
+        text = re.sub(r"^```", "", text)
+        text = re.sub(r"```$", "", text)
+        text = text.strip()
+
+        # Parse JSON safely
+        result = json.loads(text)
+
+        # Ensure required keys exist
+        required_keys = {
+            "analysis": {},
+            "tables": [],
+            "relationships": [],
+            "ddl": "",
+            "normalized_data": {},
+            "sql_inserts": ""
+        }
+
+        for key, default_value in required_keys.items():
+            if key not in result:
+                result[key] = default_value
+
+        # Ensure analysis keys exist
+        if "original_issues" not in result["analysis"]:
+            result["analysis"]["original_issues"] = []
+
+        if "normal_forms_applied" not in result["analysis"]:
+            result["analysis"]["normal_forms_applied"] = ["1NF", "2NF", "3NF"]
+
+        # Prevent frontend crashes
+        if not isinstance(result["tables"], list):
+            result["tables"] = []
+
+        if not isinstance(result["relationships"], list):
+            result["relationships"] = []
+
+        if not isinstance(result["normalized_data"], dict):
+            result["normalized_data"] = {}
+
+        return result
+
+    except json.JSONDecodeError as e:
+        return {
+            "analysis": {"original_issues": [f"Gemini returned invalid JSON: {str(e)}"], "normal_forms_applied": []},
+            "tables": [], "relationships": [], "ddl": "", "normalized_data": {}, "sql_inserts": ""
+        }
+    except Exception as e:
+        return {
+            "analysis": {"original_issues": [f"Normalization failed: {str(e)}"], "normal_forms_applied": []},
+            "tables": [], "relationships": [], "ddl": "", "normalized_data": {}, "sql_inserts": ""
+        }
+
+
+def _normalize_schema_heuristic(raw_input: str) -> dict:
+    """Basic heuristic schema normalizer and data splitter when no API key is available."""
+    import csv
+    from io import StringIO
+
+    def detect_delimiter(sample: str) -> str:
+        for delim in [",", "\t", "|", ";"]:
+            if sample.count(delim) > 1:
+                return delim
+        return ","
+
+    def build_stage_table(name: str, rows: list[dict], columns: list[dict]) -> dict:
+        headers = [c["name"] for c in columns]
+        preview_rows = [[row.get(h, "") for h in headers] for row in rows]
+        return {"name": name, "headers": headers, "rows": preview_rows}
+
+    lines = [l for l in raw_input.splitlines() if l.strip()]
+    if not lines:
+        return {
+            "analysis": {"original_issues": [], "normal_forms_applied": []},
+            "tables": [], "relationships": [], "ddl": "", "normalized_data": {}, "sql_inserts": "", "stages": []
+        }
+
+    delim = detect_delimiter(lines[0])
+    try:
+        f = StringIO(raw_input)
+        reader = csv.reader(f, delimiter=delim, skipinitialspace=True)
+        all_rows = [row for row in reader if any(cell.strip() for cell in row)]
+    except Exception:
+        all_rows = [[c.strip() for c in l.split(delim)] for l in lines]
+
+    if not all_rows:
+        return {
+            "analysis": {"original_issues": [], "normal_forms_applied": []},
+            "tables": [], "relationships": [], "ddl": "", "normalized_data": {}, "sql_inserts": "", "stages": []
+        }
+
+    headers = [h.strip() for h in all_rows[0]]
+    data_rows = all_rows[1:]
+
+    clean_headers = []
+    for h in headers:
+        ch = h.lower().replace(" ", "_")
+        ch = re.sub(r"[^a-z0-9_]", "", ch)
+        if not ch:
+            ch = f"col_{len(clean_headers)}"
+        clean_headers.append(ch)
+
+    first_col = clean_headers[0] if clean_headers else ""
+    first_parts = first_col.split("_")
+    main_prefix = first_parts[0] if len(first_parts) > 1 and first_parts[0] not in ("id", "pk", "key") else ""
+
+    if main_prefix:
+        main_table = main_prefix + "s"
+        if main_table.endswith("ss"):
+            main_table = main_prefix + "es"
+    else:
+        main_table = "main_data"
+
+    prefix_to_cols = {}
+    for col in clean_headers:
+        parts = col.split("_")
+        if len(parts) > 1:
+            pfx = parts[0]
+            prefix_to_cols.setdefault(pfx, []).append(col)
+
+    lookup_tables_info = {}
+    for pfx, cols in prefix_to_cols.items():
+        if pfx != main_prefix and len(cols) >= 2 and pfx not in ("id", "date", "qty", "quantity", "is", "has", "col"):
+            tname = pfx + "s"
+            if tname.endswith("ss"):
+                tname = pfx + "es"
+
+            tcols = [{"name": "id", "type": "INTEGER", "primary_key": True, "nullable": False, "foreign_key": ""}]
+            orig_cols = []
+            for col in cols:
+                rest = col[len(pfx):].lstrip("_")
+                cname = rest if rest else "name"
+                tcols.append({"name": cname, "type": "TEXT", "primary_key": False, "nullable": True, "foreign_key": ""})
+                orig_cols.append(col)
+            lookup_tables_info[tname] = {
+                "prefix": pfx,
+                "columns": tcols,
+                "orig_cols": orig_cols,
+                "data": [],
+                "seen": {}
+            }
+
+    main_columns = []
+    first_is_pk = False
+    if clean_headers:
+        fc = clean_headers[0]
+        if fc.endswith("_id") or fc == "id" or fc == "pk":
+            first_is_pk = True
+
+    lookup_orig_cols = [c for info in lookup_tables_info.values() for c in info["orig_cols"]]
+
+    for idx, col in enumerate(clean_headers):
+        if col in lookup_orig_cols:
+            continue
+        is_pk = idx == 0 and first_is_pk
+        main_columns.append({
+            "name": col,
+            "type": "INTEGER" if is_pk or col.endswith("_id") else "TEXT",
+            "primary_key": is_pk,
+            "nullable": not is_pk,
+            "foreign_key": ""
+        })
+
+    for tname, info in lookup_tables_info.items():
+        fk_col = f"{info['prefix']}_id"
+        main_columns.append({
+            "name": fk_col,
+            "type": "INTEGER",
+            "primary_key": False,
+            "nullable": True,
+            "foreign_key": f"{tname}.id"
+        })
+
+    if not any(c["primary_key"] for c in main_columns):
+        main_columns.insert(0, {"name": "id", "type": "INTEGER", "primary_key": True, "nullable": False, "foreign_key": ""})
+
+    main_table_data = []
+    stage1_rows = []
+    for row_idx, row in enumerate(data_rows, 1):
+        row_vals = [row[h_idx].strip() if h_idx < len(row) else "" for h_idx in range(len(clean_headers))]
+        stage1_rows.append(row_vals)
+
+        row_dict = {clean_headers[h_idx]: row_vals[h_idx] for h_idx in range(len(clean_headers))}
+
+        fk_values = {}
+        for tname, info in lookup_tables_info.items():
+            vals = tuple(row_dict.get(c, "") for c in info["orig_cols"])
+            if not any(vals):
+                fk_values[tname] = None
+                continue
+            if vals not in info["seen"]:
+                new_id = len(info["seen"]) + 1
+                info["seen"][vals] = new_id
+                lookup_row = {"id": new_id}
+                for c in info["orig_cols"]:
+                    rest = c[len(info["prefix"]):].lstrip("_")
+                    cname = rest if rest else "name"
+                    lookup_row[cname] = row_dict.get(c, "")
+                info["data"].append(lookup_row)
+            fk_values[tname] = info["seen"][vals]
+
+        main_row = {}
+        for c in main_columns:
+            cname = c["name"]
+            if c["primary_key"] and cname not in clean_headers:
+                main_row[cname] = row_idx
+            elif c["foreign_key"]:
+                t_ref = c["foreign_key"].split(".")[0]
+                main_row[cname] = fk_values.get(t_ref)
+            else:
+                main_row[cname] = row_dict.get(cname, "")
+        main_table_data.append(main_row)
+
+    tables = [{"name": main_table, "columns": main_columns}]
+    for tname, info in lookup_tables_info.items():
+        tables.append({"name": tname, "columns": info["columns"]})
+
+    relationships = []
+    for col in main_columns:
+        if col["foreign_key"]:
+            ref_parts = col["foreign_key"].split(".")
+            relationships.append({
+                "from_table": main_table,
+                "from_col": col["name"],
+                "to_table": ref_parts[0],
+                "to_col": ref_parts[1],
+                "type": "many-to-one"
+            })
+
+    ddl_parts = []
+    for t in tables:
+        cols_sql = []
+        pks = []
+        for c in t["columns"]:
+            line = f"  {c['name']} {c['type']}"
+            if not c["nullable"]:
+                line += " NOT NULL"
+            cols_sql.append(line)
+            if c["primary_key"]:
+                pks.append(c["name"])
+        if pks:
+            cols_sql.append(f"  PRIMARY KEY ({', '.join(pks)})")
+        ddl_parts.append(f"CREATE TABLE {t['name']} (\n" + ",\n".join(cols_sql) + "\n);")
+
+    normalized_data = {main_table: main_table_data}
+    for tname, info in lookup_tables_info.items():
+        normalized_data[tname] = info["data"]
+
+    inserts_list = []
+    for tname in lookup_tables_info.keys():
+        tinfo = lookup_tables_info[tname]
+        for r in tinfo["data"]:
+            cols = list(r.keys())
+            vals = ["'" + str(v).replace("'", "''") + "'" if isinstance(v, str) else str(v) if v is not None else "NULL" for v in r.values()]
+            inserts_list.append(f"INSERT INTO {tname} ({', '.join(cols)}) VALUES ({', '.join(vals)});")
+    for r in main_table_data:
+        cols = list(r.keys())
+        vals = ["'" + str(v).replace("'", "''") + "'" if isinstance(v, str) else str(v) if v is not None else "NULL" for v in r.values()]
+        inserts_list.append(f"INSERT INTO {main_table} ({', '.join(cols)}) VALUES ({', '.join(vals)});")
+
+    stage2_tables = [build_stage_table(main_table, main_table_data, main_columns)]
+    for tname, info in lookup_tables_info.items():
+        stage2_tables.append(build_stage_table(tname, info["data"], info["columns"]))
+
+    stage3_tables = stage2_tables.copy()
+
+    return {
+        "analysis": {
+            "original_issues": ["Flat structure detected — separated lookup tables for foreign keys"],
+            "normal_forms_applied": ["1NF", "2NF", "3NF"]
+        },
+        "tables": tables,
+        "relationships": relationships,
+        "ddl": "\n\n".join(ddl_parts),
+        "normalized_data": normalized_data,
+        "sql_inserts": "\n".join(inserts_list),
+        "stages": [
+            {"name": "1NF", "description": "Flat input table with atomic values", "tables": [{"name": main_table + "_raw", "headers": clean_headers, "rows": stage1_rows}]},
+            {"name": "2NF", "description": "Split repeating groups into separate lookup tables", "tables": stage2_tables},
+            {"name": "3NF", "description": "Final normalized tables with inferred foreign keys", "tables": stage3_tables}
+        ]
+    }
+
+
+def _normalize_data_gemini(raw_input: str, api_key: str) -> dict:
+    """Use Gemini to clean and standardize dirty/random data."""
+    import google.generativeai as genai
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-1.5-flash")
+
+    prompt = f"""You are a data cleaning and standardization expert.
+Given the following raw, messy, or inconsistently formatted data, clean and normalize it.
+
+Perform these operations:
+1. Fix inconsistent capitalization (use Title Case for names, UPPER for codes)
+2. Standardize date formats to YYYY-MM-DD
+3. Remove extra whitespace, fix spacing
+4. Standardize phone numbers, emails, addresses if present
+5. Fix obvious typos if detectable
+6. Remove duplicate entries
+7. Fill obvious missing patterns
+8. Standardize numeric formats (remove currency symbols, fix decimal places)
+
+Return ONLY a valid JSON object with this exact structure:
+{{
+  "summary": {{
+    "rows_processed": 0,
+    "issues_found": ["list of issues found and fixed"],
+    "changes_made": ["list of specific changes"]
+  }},
+  "headers": ["col1", "col2"],
+  "original_data": [["row1col1", "row1col2"]],
+  "cleaned_data": [["row1col1_clean", "row1col2_clean"]],
+  "sql_inserts": "INSERT INTO statements as a single string"
+}}
+
+Raw Input:
+{raw_input}
+
+Return ONLY the JSON, no markdown fences, no explanation."""
+
+    response = model.generate_content(prompt)
+    raw = response.text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+    return json.loads(raw)
+
+
+def _normalize_data_heuristic(raw_input: str) -> dict:
+    """Basic heuristic data cleaner when no API key is available."""
+    import csv
+    from io import StringIO
+
+    def detect_delimiter(header_line: str) -> str:
+        candidates = [",", "\t", "|", ";"]
+        return max(candidates, key=lambda d: header_line.count(d))
+
+    def normalize_value(value: str, header: str) -> str:
+        text = " ".join(value.strip().split())
+        lower_header = header.lower()
+
+        if not text:
+            return ""
+
+        if "email" in lower_header:
+            return text.lower()
+
+        if any(token in lower_header for token in ["phone", "tel", "contact"]):
+            digits = re.sub(r"\D", "", text)
+            if len(digits) == 11 and digits.startswith("1"):
+                digits = digits[1:]
+            if len(digits) == 10:
+                return f"{digits[0:3]}-{digits[3:6]}-{digits[6:10]}"
+            if len(digits) == 7:
+                return f"{digits[0:3]}-{digits[3:7]}"
+            return text
+
+        if any(token in lower_header for token in ["date", "dob", "joined", "signup", "created", "updated"]):
+            for fmt in ["%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d", "%m/%d/%Y", "%d/%m/%Y", "%m-%d-%Y", "%d-%m-%Y", "%m.%d.%Y", "%d.%m.%Y", "%m/%d/%y", "%d/%m/%y", "%m-%d-%y", "%d-%m-%y", "%m.%d.%y", "%d.%m.%y"]:
+                try:
+                    date = datetime.datetime.strptime(text, fmt)
+                    return date.strftime("%Y-%m-%d")
+                except ValueError:
+                    continue
+            match = re.match(r'^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$', text)
+            if match:
+                p1, p2, year = match.groups()
+                if len(year) == 2:
+                    year = "20" + year
+                if int(p1) > 12 and int(p2) <= 12:
+                    return f"{year}-{p2.zfill(2)}-{p1.zfill(2)}"
+                return f"{year}-{p1.zfill(2)}-{p2.zfill(2)}"
+            return text
+
+        if any(token in lower_header for token in ["amount", "price", "total", "cost", "spent", "value"]):
+            cleaned = re.sub(r"[,$€£¥₱ ]", "", text)
+            return cleaned
+
+        if any(token in lower_header for token in ["code", "sku", "id", "region", "status", "type"]):
+            return text.upper()
+
+        if any(token in lower_header for token in ["name", "city", "state", "country", "address", "street"]):
+            return text.title()
+
+        if text.isupper() and len(text.split()) <= 3:
+            return text.title()
+
+        return text
+
+    lines = [line for line in raw_input.splitlines() if line.strip()]
+    if not lines:
+        return {"summary": {"rows_processed": 0, "issues_found": [], "changes_made": []},
+                "headers": [], "original_data": [], "cleaned_data": [], "sql_inserts": ""}
+
+    delim = detect_delimiter(lines[0])
+    try:
+        f = StringIO(raw_input)
+        reader = csv.reader(f, delimiter=delim, skipinitialspace=True)
+        all_rows = [row for row in reader if any(cell.strip() for cell in row)]
+    except Exception:
+        all_rows = [[cell.strip() for cell in line.split(delim)] for line in lines]
+
+    if not all_rows:
+        return {"summary": {"rows_processed": 0, "issues_found": [], "changes_made": []},
+                "headers": [], "original_data": [], "cleaned_data": [], "sql_inserts": ""}
+
+    headers = [h.strip().lower().replace(" ", "_") for h in all_rows[0] if h.strip()]
+    cleaned_data = []
+    original_data = []
+    changes = []
+    seen = set()
+
+    for idx, row in enumerate(all_rows[1:], 1):
+        cells = [cell.strip() for cell in row]
+        if len(cells) < len(headers):
+            cells += [""] * (len(headers) - len(cells))
+        else:
+            cells = cells[:len(headers)]
+
+        original_data.append(list(cells))
+        normalized_row = []
+
+        for j, cell in enumerate(cells):
+            normalized = normalize_value(cell, headers[j])
+            if normalized != cell and cell.strip():
+                changes.append(f"Row {idx}, {headers[j]}: '{cell}' → '{normalized}'")
+            normalized_row.append(normalized)
+
+        row_key = tuple(normalized_row)
+        if row_key in seen:
+            continue
+        seen.add(row_key)
+        cleaned_data.append(normalized_row)
+
+    table_name = "cleaned_data"
+    inserts = []
+    for row in cleaned_data:
+        vals = ", ".join("'" + str(val).replace("'", "''") + "'" for val in row)
+        inserts.append(f"INSERT INTO {table_name} ({', '.join(headers)}) VALUES ({vals});")
+
+    issues = []
+    if changes:
+        issues.append(f"{len(changes)} changes applied")
+    if len(original_data) != len(cleaned_data):
+        issues.append(f"{len(original_data) - len(cleaned_data)} duplicate rows removed")
+
+    return {
+        "summary": {
+            "rows_processed": len(cleaned_data),
+            "issues_found": issues,
+            "changes_made": changes[:20]
+        },
+        "headers": headers,
+        "original_data": original_data,
+        "cleaned_data": cleaned_data,
+        "sql_inserts": "\n".join(inserts)
+    }
 
 
 # ── Static uploads serving ─────────────────────────────────────────────────
