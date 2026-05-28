@@ -566,21 +566,44 @@ OCR TOKENS:
 Return ONLY the JSON. No markdown fences. No explanation."""
 
 
+MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+]
+
 def _call_gemini(api_key: str, contents) -> str:
-    """Call Gemini with automatic new-SDK → legacy-SDK fallback. Returns response text."""
     try:
         from google import genai
+
         client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash", contents=contents
-        )
-        return response.text
+
+        for model_name in MODELS:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                )
+                return response.text
+            except Exception:
+                pass
+
     except Exception:
-        import google.generativeai as genai_legacy
-        genai_legacy.configure(api_key=api_key)
-        model = genai_legacy.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(contents)
-        return response.text
+        pass
+
+    # Legacy fallback
+    import google.generativeai as genai_legacy
+
+    genai_legacy.configure(api_key=api_key)
+
+    for model_name in MODELS:
+        try:
+            model = genai_legacy.GenerativeModel(model_name)
+            response = model.generate_content(contents)
+            return response.text
+        except Exception:
+            pass
+
+    raise RuntimeError("No working Gemini model found")
 
 
 def _validate_schema_structure(data: dict) -> None:
@@ -710,7 +733,7 @@ Return ONLY the SQL query. No explanation. No markdown fences."""
     except Exception:
         import google.generativeai as genai_legacy
         genai_legacy.configure(api_key=api_key)
-        model = genai_legacy.GenerativeModel("gemini-1.5-flash")
+        model = genai_legacy.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
         return _clean_json_response(response.text).lstrip("sql").strip()
 
@@ -956,7 +979,7 @@ Return ONLY the explanation text, nothing else."""
     except Exception:
         import google.generativeai as genai_legacy
         genai_legacy.configure(api_key=api_key)
-        model = genai_legacy.GenerativeModel("gemini-1.5-flash")
+        model = genai_legacy.GenerativeModel("gemini-2.0-flash")
         return model.generate_content(prompt).text.strip()
 
 
@@ -1114,7 +1137,7 @@ Return ONLY the JSON, no markdown."""
     except Exception:
         import google.generativeai as genai_legacy
         genai_legacy.configure(api_key=api_key)
-        model = genai_legacy.GenerativeModel("gemini-1.5-flash")
+        model = genai_legacy.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
         raw = _clean_json_response(response.text)
         return json.loads(raw)
@@ -1161,7 +1184,7 @@ Return ONLY the updated SQL query, no explanation, no markdown fences."""
     except Exception:
         import google.generativeai as genai_legacy
         genai_legacy.configure(api_key=api_key)
-        model = genai_legacy.GenerativeModel("gemini-1.5-flash")
+        model = genai_legacy.GenerativeModel("gemini-2.0-flash")
         raw = model.generate_content(prompt).text.strip()
         return raw.lstrip("```sql").lstrip("```").rstrip("```").strip()
 
@@ -1448,7 +1471,7 @@ def generate_sql():
     if api_key and parsed.get("tables"):
         try:
             sql = generate_sql_with_gemini(natural_query, parsed, api_key)
-            model_used = "gemini-1.5-flash"
+            model_used = "gemini-2.0-flash"
         except Exception as exc:
             return jsonify({"error": f"Gemini error: {exc}"}), 500
     else:
@@ -1575,7 +1598,7 @@ def refine_sql():
         schema_id=schema_obj.id if schema_obj else history_obj.schema_id,
         natural_query=f"[Refined] {refinement}",
         generated_sql=new_sql,
-        model_used="gemini-1.5-flash",
+        model_used="gemini-2.0-flash",
         sql_explanation=explanation,
         accuracy_score=eval_result["score"],
         accuracy_notes=json.dumps(eval_result),
