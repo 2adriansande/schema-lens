@@ -19,7 +19,7 @@
       --shadow-lg: 0 8px 40px rgba(25,24,59,0.14);
     }
     html { scroll-behavior: smooth; font-size: 14px; }
-    body { font-family: var(--font); color: var(--text); background: var(--bg); }
+    body { font-family: var(--font); color: var(--text); background: var(--bg); overflow-x: hidden; }
     body::before {
       content: ''; position: fixed; inset: 0; z-index: -1;
       background:
@@ -30,8 +30,8 @@
 
     /* NAV */
     nav {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(231,242,239,0.8); backdrop-filter: blur(20px);
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(231,242,239,0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
       padding: 0 6%;
       display: flex; align-items: center; height: 68px; gap: 32px;
@@ -44,16 +44,24 @@
     }
     .nav-logo-icon svg { width:20px; height:20px; }
     .nav-logo-text { font-size:17px; font-weight:700; color:var(--text); letter-spacing:-.4px; }
+    
     .nav-links { display:flex; gap:28px; margin-left:24px; }
-    .nav-links a { font-size:14px; color:var(--text-soft); text-decoration:none; font-weight:500; transition:color .15s; }
+    .nav-links a { font-size:14px; color:var(--text-soft); text-decoration:none; font-weight:500; transition:color .15s; position: relative; }
     .nav-links a:hover { color:var(--text); }
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px;
+      background: var(--primary-mid); transition: width 0.2s ease;
+    }
+    .nav-links a:hover::after { width: 100%; }
+
     .nav-auth { margin-left:auto; display:flex; gap:10px; align-items:center; }
     .btn-nav-ghost {
       padding:8px 20px; border-radius:var(--radius-sm); font-family:var(--font);
       font-size:14px; font-weight:600; color:var(--text-soft); background:none; border:none;
-      cursor:pointer; text-decoration:none; transition:color .15s;
+      cursor:pointer; text-decoration:none; transition:color .15s, transform 0.1s;
     }
     .btn-nav-ghost:hover { color:var(--text); }
+    .btn-nav-ghost:active { transform: scale(0.97); }
     .btn-nav {
       padding:9px 22px; border-radius:var(--radius-sm); font-family:var(--font);
       font-size:14px; font-weight:700; color:var(--primary-xlight);
@@ -62,20 +70,34 @@
       box-shadow: 0 4px 12px rgba(25,24,59,0.2);
     }
     .btn-nav:hover { box-shadow: 0 6px 20px rgba(25,24,59,0.3); transform: translateY(-1px); }
+    .btn-nav:active { transform: translateY(0) scale(0.97); }
+
+    .mobile-menu-toggle {
+      display: none; background: none; border: none; font-size: 22px;
+      color: var(--text); cursor: pointer; margin-left: auto;
+    }
 
     /* HERO */
     .hero {
       padding: 90px 6% 80px;
-      display: grid; grid-template-columns: 1fr 1fr;
+      display: grid; 
+      /* Locked 50/50 column ratio prevents layout shift of left text block */
+      grid-template-columns: 1fr 1fr;
       gap: 64px; align-items: center; max-width: 1200px; margin: 0 auto;
     }
+    /* Ensure grid children do not dynamically stretch columns */
+    .hero > div {
+      min-width: 0;
+      width: 100%;
+    }
+    
     .hero-badge {
       display: inline-flex; align-items: center; gap: 7px;
       background: rgba(161,194,189,0.25); color: var(--primary-mid);
       border: 1px solid var(--border);
       padding: 5px 14px; border-radius: 100px;
       font-size: 12.5px; font-weight: 600; margin-bottom: 22px;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     }
     .hero h1 {
       font-size: 50px; font-weight: 700; letter-spacing: -1.8px;
@@ -96,9 +118,10 @@
       transition: all .2s; box-shadow: 0 6px 20px rgba(25,24,59,0.22);
     }
     .btn-hero-primary:hover { transform:translateY(-2px); box-shadow:0 10px 28px rgba(25,24,59,0.3); }
+    .btn-hero-primary:active { transform: translateY(0) scale(0.97); }
     .btn-hero-ghost {
       padding: 14px 26px; border-radius: var(--radius-sm);
-      background: rgba(255,255,255,0.6); backdrop-filter: blur(12px);
+      background: rgba(255,255,255,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       color: var(--text-soft);
       font-family: var(--font); font-size: 14.5px; font-weight: 600;
       text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
@@ -109,31 +132,64 @@
     .hero-ind { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-soft); }
     .hero-ind i { color: #059669; font-size:15px; }
 
-    /* Hero demo card */
+    /* Hero Interactive Live Demo Card */
     .hero-demo {
-      background: rgba(255,255,255,0.7); backdrop-filter: blur(20px);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      box-shadow: var(--shadow-lg);
+      background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; box-shadow: var(--shadow-lg); transition: transform 0.3s ease;
+      
+      /* Rigid architectural boundaries to lock dimensions */
+      height: 310px;
+      width: 100%;
+      max-width: 480px;
+      margin-left: auto; /* Aligns to right side of its container column */
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
     }
+    .hero-demo:hover { transform: scale(1.01); }
+    
     .demo-top {
       background: linear-gradient(135deg, rgba(231,242,239,0.8), rgba(161,194,189,0.2));
-      border-bottom: 1px solid var(--border);
-      padding: 16px 22px;
+      border-bottom: 1px solid var(--border); padding: 16px 22px;
+      flex-shrink: 0;
     }
     .demo-top p { font-size:12px; color:var(--primary-mid); margin-bottom:5px; font-weight:600; text-transform: uppercase; letter-spacing: .06em; }
-    .demo-query { font-size: 14px; color: var(--text); font-style: italic; line-height: 1.5; }
+    
+    /* Strict height rules and wrap limits on typewriter containers */
+    .demo-query { 
+      font-size: 14px; 
+      color: var(--text); 
+      font-style: italic; 
+      line-height: 1.5; 
+      height: 42px; 
+      position: relative; 
+      overflow: hidden;
+      word-break: break-word;
+      white-space: normal;
+    }
+    .typewriter-cursor::after {
+      content: '|'; position: absolute; color: var(--primary-mid);
+      animation: blink 0.75s step-end infinite; font-style: normal; font-weight: bold; margin-left: 2px;
+    }
+    @keyframes blink { from, to { color: transparent } 50% { color: var(--primary-mid); } }
+    
+    /* Code block wraps safely, preventing vertical/horizontal size creep */
     .demo-sql {
-      background: var(--primary); padding: 18px 22px;
-      font-family: var(--mono); font-size: 12.5px; color: var(--primary-light);
-      line-height: 1.8;
+      background: var(--primary); padding: 22px; 
+      flex-grow: 1;
+      font-family: var(--mono); font-size: 12.5px; color: var(--primary-light); line-height: 1.8;
+      white-space: pre-wrap; 
+      word-break: break-all;
+      overflow: auto;
     }
     .demo-footer {
       padding: 13px 22px; display:flex; align-items:center; gap:9px;
       border-top: 1px solid var(--border); background: rgba(255,255,255,0.4);
+      flex-shrink: 0;
     }
-    .demo-dot { width:8px; height:8px; border-radius:50%; }
+    .demo-dot { width:8px; height:8px; border-radius:50%; transition: background 0.3s; }
+    .demo-status-text { font-size:13px; font-weight:600; color:#065f46; transition: color 0.3s; }
 
     /* FEATURES */
     .features { padding: 90px 6%; }
@@ -143,18 +199,17 @@
     .section-header p  { font-size:15.5px; color:var(--text-soft); }
     .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
     .feat-card {
-      background: rgba(255,255,255,0.65); backdrop-filter: blur(12px);
-      border:1px solid var(--border);
-      border-radius:var(--radius); padding:26px;
-      transition: box-shadow .2s, transform .2s;
-      box-shadow: var(--shadow);
+      background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border:1px solid var(--border); border-radius:var(--radius); padding:26px;
+      transition: box-shadow .25s, transform .25s; box-shadow: var(--shadow);
     }
-    .feat-card:hover { box-shadow:var(--shadow-lg); transform:translateY(-3px); }
+    .feat-card:hover { box-shadow:var(--shadow-lg); transform:translateY(-4px); }
     .feat-icon {
       width:48px; height:48px; border-radius:12px;
       display:flex; align-items:center; justify-content:center;
-      font-size:21px; margin-bottom:16px;
+      font-size:21px; margin-bottom:16px; transition: transform 0.3s ease;
     }
+    .feat-card:hover .feat-icon { transform: scale(1.1) rotate(3deg); }
     .feat-card h3 { font-size:15.5px; font-weight:700; margin-bottom:7px; }
     .feat-card p  { font-size:13.5px; color:var(--text-soft); line-height:1.65; }
 
@@ -165,14 +220,12 @@
     .how-step { text-align:center; }
     .step-icon-box {
       width:68px; height:68px; border-radius:18px;
-      background: rgba(255,255,255,0.7); backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
-      display:flex; align-items:center; justify-content:center;
-      font-size:28px; margin:0 auto 16px;
-      box-shadow: var(--shadow);
-      transition: transform .2s;
+      background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border); display:flex; align-items:center; justify-content:center;
+      font-size:28px; margin:0 auto 16px; box-shadow: var(--shadow);
+      transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .how-step:hover .step-icon-box { transform: translateY(-4px); }
+    .how-step:hover .step-icon-box { transform: translateY(-6px) scale(1.04); border-color: var(--primary-light); }
     .how-step h3 { font-size:15.5px; font-weight:700; margin-bottom:7px; }
     .how-step p  { font-size:13.5px; color:var(--text-soft); line-height:1.65; }
     .step-num {
@@ -187,11 +240,11 @@
     .testimonials { padding:90px 6%; }
     .test-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; max-width:1100px; margin:52px auto 0; }
     .test-card {
-      background: rgba(255,255,255,0.65); backdrop-filter: blur(12px);
-      border:1px solid var(--border);
-      border-radius:var(--radius); padding:26px;
-      box-shadow: var(--shadow);
+      background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border:1px solid var(--border); border-radius:var(--radius); padding:26px;
+      box-shadow: var(--shadow); transition: transform 0.2s;
     }
+    .test-card:hover { transform: translateY(-2px); }
     .test-avatar {
       width:44px; height:44px; border-radius:50%;
       display:flex; align-items:center; justify-content:center;
@@ -206,8 +259,7 @@
       margin:50px 6%; border-radius:var(--radius);
       background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);
       padding: 72px 52px; text-align:center; color: var(--primary-xlight);
-      box-shadow: var(--shadow-lg);
-      position: relative; overflow: hidden;
+      box-shadow: var(--shadow-lg); position: relative; overflow: hidden;
     }
     .cta::before {
       content: ''; position: absolute; top: -80px; right: -80px;
@@ -224,13 +276,10 @@
       text-decoration:none; display:inline-flex; align-items:center; gap:8px;
       transition:all .2s; position: relative;
     }
-    .btn-cta:hover { background: rgba(255,255,255,0.25); box-shadow:0 8px 28px rgba(25,24,59,0.2); }
+    .btn-cta:hover { background: rgba(255,255,255,0.25); box-shadow:0 8px 28px rgba(25,24,59,0.2); transform: translateY(-1px); }
 
     /* FOOTER */
-    footer {
-      background: var(--primary); color:rgba(231,242,239,.6);
-      padding:60px 6% 36px;
-    }
+    footer { background: var(--primary); color:rgba(231,242,239,.6); padding:60px 6% 36px; }
     .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:44px; max-width:1100px; margin:0 auto 44px; }
     .footer-brand .logo-text { font-size:19px; font-weight:700; color:var(--primary-xlight); margin-bottom:11px; }
     .footer-brand p  { font-size:13.5px; line-height:1.75; max-width:270px; }
@@ -242,8 +291,7 @@
     .footer-bottom {
       border-top: 1px solid rgba(255,255,255,.08);
       padding-top: 26px; max-width:1100px; margin:0 auto;
-      display:flex; align-items:center; justify-content:space-between;
-      font-size:13px;
+      display:flex; align-items:center; justify-content:space-between; font-size:13px;
     }
     .footer-socials { display:flex; gap:10px; }
     .social-btn {
@@ -251,20 +299,38 @@
       background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center;
       color:rgba(255,255,255,.45); text-decoration:none; font-size:15px; transition:all .15s;
     }
-    .social-btn:hover { background:rgba(255,255,255,.16); color:var(--primary-xlight); }
+    .social-btn:hover { background:rgba(255,255,255,.16); color:var(--primary-xlight); transform: translateY(-1px); }
 
+    /* SCROLL ANIMATION GRAPHICS ENGINE */
+    .scroll-reveal {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity 0.6s cubic-bezier(0.215, 0.61, 0.355, 1), transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
+    .scroll-reveal.revealed { opacity: 1; transform: translateY(0); }
+
+    /* RESPONSIVE MEDIA QUERIES */
+    @media(max-width:991px) {
+      .nav-links, .nav-auth { display: none; }
+      .mobile-menu-toggle { display: block; }
+      nav { justify-content: space-between; }
+      
+      nav.mobile-open { height: auto; flex-direction: column; padding: 20px 6%; align-items: flex-start; gap: 20px; }
+      nav.mobile-open .nav-links { display: flex; flex-direction: column; width: 100%; margin-left: 0; gap: 16px; }
+      nav.mobile-open .nav-auth { display: flex; flex-direction: column; width: 100%; align-items: flex-start; gap: 12px; }
+      nav.mobile-open .btn-nav { width: 100%; text-align: center; }
+    }
     @media(max-width:768px) {
-      .hero { grid-template-columns:1fr; }
+      .hero { grid-template-columns:1fr; gap: 40px; padding-top: 50px; }
       .hero h1 { font-size:34px; }
-      .features-grid, .how-steps, .test-grid { grid-template-columns:1fr; }
-      .footer-grid { grid-template-columns:1fr 1fr; }
+      .features-grid, .how-steps, .test-grid { grid-template-columns:1fr; gap: 24px; }
+      .footer-grid { grid-template-columns:1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
     }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
+<nav id="navbar">
   <a href="{{ url_for('landing') }}" class="nav-logo">
     <div class="nav-logo-icon">
       <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -279,6 +345,7 @@
     </div>
     <span class="nav-logo-text">SchemaLens</span>
   </a>
+  <button class="mobile-menu-toggle" id="menuToggleBtn"><i class="bi bi-list"></i></button>
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#how-it-works">How It Works</a>
@@ -290,7 +357,6 @@
   </div>
 </nav>
 
-<!-- HERO -->
 <section style="background:transparent;">
   <div class="hero">
     <div>
@@ -299,7 +365,7 @@
       <p>Stop wrestling with complex SQL syntax. Describe what you need in plain English and let AI generate optimized queries for you.</p>
       <div class="hero-btns">
         <a href="{{ url_for('signup') }}" class="btn-hero-primary"><i class="bi bi-stars"></i> Get Started Free</a>
-        <a href="#how-it-works" class="btn-hero-ghost"><i class="bi bi-play-circle"></i> Watch Demo</a>
+        <a href="#how-it-works" class="btn-hero-ghost"><i class="bi bi-play-circle"></i> Explore Steps</a>
       </div>
       <div class="hero-indicators">
         <div class="hero-ind"><i class="bi bi-check-circle-fill"></i> No credit card required</div>
@@ -310,27 +376,20 @@
       <div class="hero-demo">
         <div class="demo-top">
           <p>✦ Describe Your Query</p>
-          <div class="demo-query">"Show me all active users who signed up in the last 30 days"</div>
+          <div class="demo-query typewriter-cursor" id="typewriterText">"Show me active users..."</div>
         </div>
-        <div class="demo-sql">
-SELECT u.id, u.name, u.email, u.created_at<br>
-FROM users u<br>
-WHERE u.status = 'active'<br>
-&nbsp;&nbsp;AND u.created_at >= NOW() - INTERVAL 30 DAY<br>
-ORDER BY u.created_at DESC;
-        </div>
+        <div class="demo-sql" id="sqlTerminalCode">-- Processing pipeline...</div>
         <div class="demo-footer">
-          <div class="demo-dot" style="background:#10b981;"></div>
-          <span style="font-size:13px;font-weight:600;color:#065f46;">SQL Generated Successfully</span>
-          <span style="margin-left:auto;font-size:12px;color:var(--text-soft);font-family:var(--mono);">gemini-1.5-flash · 1.2s</span>
+          <div class="demo-dot" id="statusDot" style="background:#b45309;"></div>
+          <span class="demo-status-text" id="statusLabel" style="color:#92400e;">Analyzing Schema</span>
+          <span style="margin-left:auto;font-size:12px;color:var(--text-soft);font-family:var(--mono);" id="modelLabel">gemini-2.0-flash · --</span>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FEATURES -->
-<section class="features" id="features">
+<section class="features scroll-reveal" id="features">
   <div class="features-inner">
     <div class="section-header">
       <h2>Powerful Features for Modern Teams</h2>
@@ -356,8 +415,7 @@ ORDER BY u.created_at DESC;
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="how" id="how-it-works">
+<section class="how scroll-reveal" id="how-it-works">
   <div class="how-inner">
     <div class="section-header">
       <h2>How It Works</h2>
@@ -392,8 +450,7 @@ ORDER BY u.created_at DESC;
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
-<section class="testimonials" id="testimonials">
+<section class="testimonials scroll-reveal" id="testimonials">
   <div style="max-width:1100px;margin:0 auto;">
     <div class="section-header">
       <h2>Loved by Teams Worldwide</h2>
@@ -417,14 +474,12 @@ ORDER BY u.created_at DESC;
   </div>
 </section>
 
-<!-- CTA -->
-<div class="cta">
+<div class="cta scroll-reveal">
   <h2>Ready to Transform Your Database Workflow?</h2>
   <p>Join thousands of developers and data professionals using SchemaLens</p>
   <a href="{{ url_for('signup') }}" class="btn-cta"><i class="bi bi-stars"></i> Start Free Trial →</a>
 </div>
 
-<!-- FOOTER -->
 <footer>
   <div class="footer-grid">
     <div class="footer-brand">
@@ -434,7 +489,7 @@ ORDER BY u.created_at DESC;
     <div>
       <h4>Product</h4>
       <ul>
-        <li><a href="#">Features</a></li>
+        <li><a href="#features">Features</a></li>
         <li><a href="#">Pricing</a></li>
         <li><a href="#">Documentation</a></li>
         <li><a href="#">API</a></li>
@@ -466,5 +521,120 @@ ORDER BY u.created_at DESC;
     </div>
   </div>
 </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // --- RESPONSIVE MOBILE NAVIGATION DRAWER ---
+  const navbar = document.getElementById('navbar');
+  const menuToggleBtn = document.getElementById('menuToggleBtn');
+  
+  if (menuToggleBtn && navbar) {
+    menuToggleBtn.addEventListener('click', () => {
+      const isOpen = navbar.classList.toggle('mobile-open');
+      menuToggleBtn.innerHTML = isOpen ? '<i class="bi bi-x-lg"></i>' : '<i class="bi bi-list"></i>';
+    });
+  }
+
+  // --- SCROLL-DRIVEN VIEWPORT ANIMATION HANDLER ---
+  const revealElements = document.querySelectorAll('.scroll-reveal');
+  const revealObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+        observer.unobserve(entry.target); // Run animation once
+      }
+    });
+  }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+
+  revealElements.forEach(el => revealObserver.observe(el));
+
+  // --- INTERACTIVE LIVE TYPEWRITER SIMULATOR ENGINE ---
+  const demoData = [
+    {
+      prompt: "Show me all active users who signed up in the last 30 days",
+      sql: "SELECT u.id, u.name, u.email, u.created_at\nFROM users u\nWHERE u.status = 'active'\n  AND u.created_at >= NOW() - INTERVAL 30 DAY\nORDER BY u.created_at DESC;",
+      model: "gemini-2.0-flash · 1.2s"
+    },
+    {
+      prompt: "Get total sales and order counts grouped by category this month",
+      sql: "SELECT c.name, SUM(o.total_amount) AS revenue, COUNT(o.id) AS orders\nFROM orders o\nJOIN products p ON o.product_id = p.id\nJOIN categories c ON p.category_id = c.id\nWHERE o.created_at >= DATE_TRUNC('month', CURRENT_DATE)\nGROUP BY c.name\nORDER BY revenue DESC;",
+      model: "gemini-2.0-pro · 1.8s"
+    }
+  ];
+
+  const txtField = document.getElementById('typewriterText');
+  const codeField = document.getElementById('sqlTerminalCode');
+  const dot = document.getElementById('statusDot');
+  const statusLabel = document.getElementById('statusLabel');
+  const modelLabel = document.getElementById('modelLabel');
+
+  let setIndex = 0;
+
+  function runPipeline() {
+    const activeSet = demoData[setIndex];
+    let charIdx = 0;
+    txtField.textContent = '"';
+    txtField.classList.add('typewriter-cursor');
+    
+    // Step 1: Simulating active typing input
+    dot.style.background = '#b45309';
+    statusLabel.style.color = '#92400e';
+    statusLabel.textContent = 'Typing prompt...';
+    codeField.textContent = '-- Awaiting prompt completion...'; 
+    modelLabel.textContent = 'gemini-2.0-flash · --';
+
+    function typeCharacter() {
+      if (charIdx < activeSet.prompt.length) {
+        txtField.textContent += activeSet.prompt.charAt(charIdx);
+        charIdx++;
+        setTimeout(typeCharacter, 45);
+      } else {
+        txtField.textContent += '"';
+        txtField.classList.remove('typewriter-cursor');
+        // Step 2: Prompt done typing, simulate schema lookup/compilation delay
+        setTimeout(streamSQLOutput, 600);
+      }
+    }
+    
+    typeCharacter();
+
+    // Step 3: Stream generated syntax block out dynamically
+    function streamSQLOutput() {
+      dot.style.background = '#2563eb';
+      statusLabel.style.color = '#1e40af';
+      statusLabel.textContent = 'Generating Schema-Aware SQL...';
+      
+      let currentString = "";
+      const splitLines = activeSet.sql.split('\n');
+      let lineIdx = 0;
+
+      function renderLine() {
+        if (lineIdx < splitLines.length) {
+          currentString += (lineIdx === 0 ? "" : "\n") + splitLines[lineIdx];
+          codeField.textContent = currentString;
+          lineIdx++;
+          setTimeout(renderLine, 180);
+        } else {
+          // Step 4: Generation finalized, showcase output metadata metrics
+          dot.style.background = '#10b981';
+          statusLabel.style.color = '#065f46';
+          statusLabel.textContent = 'SQL Generated Successfully';
+          modelLabel.textContent = activeSet.model;
+          
+          // Hold view state before cycling to the next demo pipeline data object
+          setIndex = (setIndex + 1) % demoData.length;
+          setTimeout(runPipeline, 5000);
+        }
+      }
+      renderLine();
+    }
+  }
+
+  // Engage the loop sequence engine on initial layout paint setup
+  if (txtField && codeField) {
+    setTimeout(runPipeline, 800);
+  }
+});
+</script>
 </body>
 </html>
