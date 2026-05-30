@@ -96,15 +96,15 @@
   .input-container { position: relative; width: 100%; }
   .form-input {
     width: 100%; padding: 11px 16px;
-    border: 1.5px solid #617D8A; border-radius: 10px;
+    border: none; border-radius: 10px;
     font-family: 'DM Sans', sans-serif; font-size: 14px; color: #11102B;
-    background: #FFFFFF; outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    background: #F7F9FB; outline: none;
+    box-shadow: inset 0 0 0 1px rgba(97, 125, 138, 0.14);
+    transition: box-shadow 0.2s, transform 0.2s;
   }
   .form-input::placeholder { color: #617D8A; opacity: .8}
   .form-input:focus::placeholder { color: rgba(97, 125, 138, 0.4); } 
   .form-input:focus {
-    border-color: #11102B;
     box-shadow: 0 0 0 3px rgba(17,16,43,0.12);
     transform: translateY(-1px);
   }
