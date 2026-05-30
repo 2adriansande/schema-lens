@@ -7,154 +7,448 @@
     min-height: 100vh;
     background: #DFEBE8; /* Deepened base shade to reduce glaring light and raise card contrast */
     font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
   }
+  
+  /* GLOBAL BACKGROUND CANVAS */
+  #antigravity-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    will-change: transform;
+  }
+
   body::before {
     content: ''; position: fixed; inset: 0; z-index: 0;
     background:
       radial-gradient(ellipse 60% 50% at 80% 10%, rgba(134,171,165,0.3) 0%, transparent 60%),
       radial-gradient(ellipse 40% 60% at 0% 80%, rgba(85,108,117,0.25) 0%, transparent 60%),
       #DFEBE8;
+    pointer-events: none;
   }
   .auth-wrap {
     min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; position: relative; z-index: 1;
   }
+  
+  /* AUTH-LEFT CONTAINER WITH INTEGRATED ANIMATION CANVAS */
   .auth-left {
     background: linear-gradient(135deg, #11102B 0%, #556C75 100%); /* Slightly deeper values for cleaner backing */
     padding: 64px 58px; display: flex; flex-direction: column; justify-content: space-between;
     color: #F3FAF8; position: relative; overflow: hidden;
   }
+  #auth-left-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
   .auth-left::before {
     content: ''; position: absolute; top: -80px; right: -80px;
     width: 320px; height: 320px; border-radius: 50%;
-    background: rgba(161,194,189,0.15); pointer-events: none;
+    background: rgba(161,194,189,0.15); pointer-events: none; z-index: 1;
   }
   .auth-left::after {
     content: ''; position: absolute; bottom: -50px; left: -50px;
     width: 240px; height: 240px; border-radius: 50%;
-    background: rgba(231,242,239,0.08); pointer-events: none;
+    background: rgba(231,242,239,0.08); pointer-events: none; z-index: 1;
   }
-  .al-logo { display: flex; align-items: center; gap: 11px; position: relative; z-index: 1; }
+  
+  /* Ensure structural content hovers above the canvas context safely */
+  .al-logo-link, .al-hero, .al-features { position: relative; z-index: 2; }
+
+  .al-logo { display: flex; align-items: center; gap: 11px; }
   .al-logo-icon {
     width: 38px; height: 38px; border-radius: 10px;
     background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+  .al-logo-link:hover .al-logo-icon { transform: scale(1.08) rotate(3deg); }
   .al-logo-icon svg { width: 22px; height: 22px; }
   .al-logo-text { font-size: 18px; font-weight: 700; letter-spacing: -.4px; color: #FFFFFF; }
-  .al-hero { position: relative; z-index: 1; }
+  
   .al-hero h1 { font-size: 42px; font-weight: 700; line-height: 1.12; letter-spacing: -1.2px; margin-bottom: 18px; color: #FFFFFF; }
   .al-hero h1 span { color: #A4FFF0; text-shadow: 0 1px 2px rgba(0,0,0,0.15); } /* Crisp, high-contrast text pop */
   .al-hero p { font-size: 15.5px; color: #E6F5F2; line-height: 1.75; max-width: 360px; font-weight: 500; } /* Maximum definition prose text */
-  .al-features { position: relative; z-index: 1; }
+  
   .al-feat {
     display: flex; align-items: center; gap: 11px; margin-bottom: 13px;
     font-size: 14px; color: #FFFFFF; font-weight: 500;
+    transition: transform 0.2s ease;
   }
+  .al-feat:hover { transform: translateX(4px); }
   .al-feat-dot { width: 8px; height: 8px; border-radius: 50%; background: #A4FFF0; flex-shrink: 0; }
 
   /* Right Column (Sign-In Card Styling) */
   .auth-right {
     display: flex; align-items: center; justify-content: center; padding: 64px 52px;
-    background: rgba(255,255,255,0.45); backdrop-filter: blur(16px);
+    background: rgba(255,255,255,0.45); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   }
   .auth-box { width: 100%; max-width: 390px; }
   .auth-box h2 { font-size: 28px; font-weight: 700; letter-spacing: -.6px; margin-bottom: 7px; color: #11102B; }
   .auth-box .sub { font-size: 14.5px; color: #354A54; margin-bottom: 30px; font-weight: 500; } /* Sharp, readable description */
+  
   .form-group { margin-bottom: 17px; }
   .form-label { font-size: 12px; font-weight: 700; color: #2B3D46; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .05em; } /* Crisp dark labels */
+  
+  .input-container { position: relative; width: 100%; }
   .form-input {
     width: 100%; padding: 11px 16px;
-    border: 1.5px #617D8A; border-radius: 10px; /* Solid visual boundaries */
+    border: 1.5px solid #617D8A; border-radius: 10px;
     font-family: 'DM Sans', sans-serif; font-size: 14px; color: #11102B;
     background: #FFFFFF; outline: none;
-    transition: all .2s;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
   }
   .form-input::placeholder { color: #617D8A; opacity: .8}
   .form-input:focus::placeholder { color: rgba(97, 125, 138, 0.4); } 
   .form-input:focus {
     border-color: #11102B;
     box-shadow: 0 0 0 3px rgba(17,16,43,0.12);
+    transform: translateY(-1px);
   }
+
+  /* Interactive Field Adornment */
+  .password-toggle {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: #617D8A; cursor: pointer;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+    padding: 4px; border-radius: 4px; transition: color 0.15s;
+    z-index: 5;
+  }
+  .password-toggle:hover { color: #11102B; }
+  .form-input-has-adornment { padding-right: 44px; }
+
   .btn-submit {
     width: 100%; padding: 13px;
     background: linear-gradient(135deg, #11102B, #354A54);
     color: #FFFFFF; border: none; border-radius: 10px;
     font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 700;
-    cursor: pointer; transition: all .2s; margin-top: 6px;
+    cursor: pointer; transition: all .2s cubic-bezier(0.16, 1, 0.3, 1); margin-top: 6px;
     box-shadow: 0 6px 20px rgba(17,16,43,0.25);
   }
-  .btn-submit:hover { background: linear-gradient(135deg, #1A1942, #415A66); box-shadow: 0 8px 28px rgba(17,16,43,0.35); transform: translateY(-1px); }
+  .btn-submit:hover { 
+    background: linear-gradient(135deg, #1A1942, #415A66); 
+    box-shadow: 0 8px 28px rgba(17,16,43,0.35); 
+    transform: translateY(-2px); 
+  }
+  .btn-submit:active { transform: translateY(0) scale(0.98); }
   
   .flash-local { padding: 11px 16px; border-radius: 9px; font-size: 13.5px; display: flex; align-items: center; gap: 9px; margin-bottom: 16px; font-weight: 500; }
   .flash-error-local { background: #FEE2E2; color: #7F1D1D; border: 1px solid #FCA5A5; }
 
+  .link-interactive {
+    color: #11102B; font-weight: 700; text-decoration: none; position: relative; display: inline-block;
+  }
+  .link-interactive::after {
+    content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 1.5px;
+    background-color: #11102B; transition: transform 0.2s ease; transform-origin: right;
+  }
+  .link-interactive:hover::after { transform: scaleX(0); }
+
   @media (max-width: 768px) { .auth-wrap { grid-template-columns: 1fr; } .auth-left { display: none; } }
 </style>
 
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<div class="auth-wrap">
+
+<canvas id="antigravity-canvas"></canvas>
+
+<div class="auth-wrap" id="authWrapContainer">
   <div class="auth-left">
+    <canvas id="auth-left-canvas"></canvas>
     
     <a href="{{ url_for('landing')}}" class="al-logo-link" style="text-decoration:none;">
-    <div class="al-logo">
-      <div class="al-logo-icon">
-        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="50" cy="28" rx="26" ry="9" fill="#A1C2BD" opacity="0.8"/>
-          <rect x="24" y="28" width="52" height="38" fill="#A1C2BD" opacity="0.8"/>
-          <ellipse cx="50" cy="66" rx="26" ry="9" fill="#A1C2BD" opacity="0.8"/>
-          <circle cx="50" cy="50" r="22" fill="none" stroke="#FFFFFF" stroke-width="2"/>
-          <line x1="28" y1="50" x2="42" y2="50" stroke="#FFFFFF" stroke-width="2.5"/>
-          <line x1="58" y1="50" x2="72" y2="50" stroke="#FFFFFF" stroke-width="2.5"/>
-          <circle cx="50" cy="50" r="5" fill="#FFFFFF"/>
-        </svg>
+      <div class="al-logo">
+        <div class="al-logo-icon">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="50" cy="28" rx="26" ry="9" fill="#A1C2BD" opacity="0.8"/>
+            <rect x="24" y="28" width="52" height="38" fill="#A1C2BD" opacity="0.8"/>
+            <ellipse cx="50" cy="66" rx="26" ry="9" fill="#A1C2BD" opacity="0.8"/>
+            <circle cx="50" cy="50" r="22" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="28" y1="50" x2="42" y2="50" stroke="#FFFFFF" stroke-width="2.5"/>
+            <line x1="58" y1="50" x2="72" y2="50" stroke="#FFFFFF" stroke-width="2.5"/>
+            <circle cx="50" cy="50" r="5" fill="#FFFFFF"/>
+          </svg>
+        </div>
+        <span class="al-logo-text">SchemaLens</span>
       </div>
-      <span class="al-logo-text">SchemaLens</span>
-    </div>
-  </a>
+    </a>
     <div class="al-hero">
-      <h1>Convert Natural Language<br>into <span>SQL Queries</span><br>Instantly</h1>
-      <p>Stop wrestling with complex SQL syntax. Describe what you need in plain English and AI generates optimized queries for you.</p>
+      <h1 class="stagger-reveal">Convert Natural Language<br>into <span>SQL Queries</span><br>Instantly</h1>
+      <p class="stagger-reveal" style="animation-delay: 0.1s;">Stop wrestling with complex SQL syntax. Describe what you need in plain English and AI generates optimized queries for you.</p>
     </div>
     <div class="al-features">
-      <div class="al-feat"><div class="al-feat-dot"></div> AI Query Generation — Schema-aware</div>
-      <div class="al-feat"><div class="al-feat-dot"></div> Schema Image Recognition via OCR</div>
-      <div class="al-feat"><div class="al-feat-dot"></div> Full Query History &amp; Analytics</div>
+      <div class="al-feat stagger-reveal" style="animation-delay: 0.2s;"><div class="al-feat-dot"></div> AI Query Generation — Schema-aware</div>
+      <div class="al-feat stagger-reveal" style="animation-delay: 0.25s;"><div class="al-feat-dot"></div> Schema Image Recognition via OCR</div>
+      <div class="al-feat stagger-reveal" style="animation-delay: 0.3s;"><div class="al-feat-dot"></div> Full Query History &amp; Analytics</div>
     </div>
   </div>
+  
   <div class="auth-right">
     <div class="auth-box fade-in">
       <h2>Welcome back</h2>
       <p class="sub">Sign in to your account to continue</p>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}{% for cat, msg in messages %}
-          <div class="flash-local flash-{{ 'error-local' if cat=='error' else '' }}">
-            <i class="bi bi-{% if cat=='success' %}check-circle-fill{% else %}x-circle-fill{% endif %}"></i>{{ msg }}
-          </div>
-        {% endfor %}{% endif %}
+        {% if messages %}
+          {% for cat, msg in messages %}
+            <div class="flash-local flash-{{ 'error-local' if cat=='error' else '' }}">
+              <i class="bi bi-{% if cat=='success' %}check-circle-fill{% else %}x-circle-fill{% endif %}"></i>{{ msg }}
+            </div>
+          {% endfor %}
+        {% endif %}
       {% endwith %}
 
       <form method="POST" action="{{ url_for('login') }}">
         <div class="form-group">
           <label class="form-label">Email address</label>
-          <input type="email" name="email" class="form-input" placeholder="you@example.com" required>
+          <div class="input-container">
+            <input type="email" name="email" class="form-input" placeholder="you@example.com" required>
+          </div>
         </div>
         <div class="form-group" style="margin-bottom:22px;">
           <label class="form-label">Password</label>
-          <input type="password" name="password" class="form-input" placeholder="••••••••" required>
+          <div class="input-container">
+            <input type="password" name="password" id="passwordInput" class="form-input form-input-has-adornment" placeholder="••••••••" required>
+            <button type="button" class="password-toggle" id="passwordToggle" aria-label="Toggle password visibility">
+              <i class="bi bi-eye" id="toggleIcon"></i>
+            </button>
+          </div>
         </div>
         <button type="submit" class="btn-submit">Sign In →</button>
       </form>
 
       <p style="text-align:center;margin-top:22px;font-size:13.5px;color:#354A54;font-weight:500;">
         Don't have an account?
-        <a href="{{ url_for('signup') }}" style="color:#11102B;font-weight:700;text-decoration:none;border-bottom: 1.5px solid #11102B;">Get Started Free</a>
+        <a href="{{ url_for('signup') }}" class="link-interactive">Get Started Free</a>
       </p>
     </div>
   </div>
 </div>
 
 <style>
-.fade-in { animation: fadeIn .35s ease both; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.fade-in { animation: fadeIn .4s cubic-bezier(0.215, 0.61, 0.355, 1) both; }
+.stagger-reveal { opacity: 0; transform: translateY(16px); animation: fadeIn .5s cubic-bezier(0.215, 0.61, 0.355, 1) forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // --- PASSWORD VISIBILITY ELEMENT TOGGLE ---
+  const passwordInput = document.getElementById('passwordInput');
+  const passwordToggle = document.getElementById('passwordToggle');
+  const toggleIcon = document.getElementById('toggleIcon');
+
+  if (passwordToggle && passwordInput && toggleIcon) {
+    passwordToggle.addEventListener('click', () => {
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+      toggleIcon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+    });
+  }
+
+  // --- ENGINE 1: MAIN BACKGROUND ENGINE ---
+  const mainCanvas = document.getElementById('antigravity-canvas');
+  const mainCtx = mainCanvas.getContext('2d');
+  let mainParticles = [];
+  let globalMouse = { x: null, y: null, radius: 140 };
+
+  function resizeMainCanvas() {
+    mainCanvas.width = window.innerWidth;
+    mainCanvas.height = window.innerHeight;
+    initMainParticles();
+  }
+
+  class MainParticle {
+    constructor() {
+      this.x = Math.random() * mainCanvas.width;
+      this.y = Math.random() * mainCanvas.height;
+      this.width = 2 + Math.random() * 2;
+      this.height = 6 + Math.random() * 10;
+      this.baseSpeedY = -(0.2 + Math.random() * 0.4);
+      this.baseSpeedX = (Math.random() - 0.5) * 0.15;
+      this.vx = this.baseSpeedX;
+      this.vy = this.baseSpeedY;
+      this.opacity = 0.12 + Math.random() * 0.25;
+      const colors = ['rgba(112, 137, 147, ', 'rgba(161, 194, 189, '];
+      this.colorBase = colors[Math.floor(Math.random() * colors.length)];
+    }
+    draw() {
+      mainCtx.save();
+      mainCtx.beginPath();
+      mainCtx.translate(this.x, this.y);
+      const angle = Math.atan2(this.vy, this.vx) + Math.PI / 2;
+      mainCtx.rotate(angle);
+      mainCtx.roundRect(-this.width / 2, -this.height / 2, this.width, this.height, 2);
+      mainCtx.fillStyle = `${this.colorBase}${this.opacity})`;
+      mainCtx.fill();
+      mainCtx.restore();
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      if (this.y < -20) { this.y = mainCanvas.height + 20; this.x = Math.random() * mainCanvas.width; }
+      if (this.x < -20) this.x = mainCanvas.width + 20;
+      if (this.x > mainCanvas.width + 20) this.x = -20;
+
+      if (globalMouse.x !== null && globalMouse.y !== null) {
+        let dx = this.x - globalMouse.x;
+        let dy = this.y - globalMouse.y;
+        let distance = Math.hypot(dx, dy);
+        if (distance < globalMouse.radius) {
+          let force = (globalMouse.radius - distance) / globalMouse.radius;
+          this.vx += (dx / distance) * force * 4;
+          this.vy += (dy / distance) * force * 4;
+        } else {
+          this.vx += (this.baseSpeedX - this.vx) * 0.04;
+          this.vy += (this.baseSpeedY - this.vy) * 0.04;
+        }
+      } else {
+        this.vx += (this.baseSpeedX - this.vx) * 0.04;
+        this.vy += (this.baseSpeedY - this.vy) * 0.04;
+      }
+    }
+  }
+
+  function initMainParticles() {
+    mainParticles = [];
+    const count = Math.floor((mainCanvas.width * mainCanvas.height) / 11000);
+    for (let i = 0; i < count; i++) mainParticles.push(new MainParticle());
+  }
+
+
+  // --- ENGINE 2: AUTH-LEFT CONNECTIONS ENGINE ---
+  const leftCanvas = document.getElementById('auth-left-canvas');
+  const leftCtx = leftCanvas.getContext('2d');
+  const leftSection = document.querySelector('.auth-left');
+  let leftParticles = [];
+  let leftMouse = { x: null, y: null, radius: 160 };
+
+  function resizeLeftCanvas() {
+    const box = leftSection.getBoundingClientRect();
+    leftCanvas.width = box.width;
+    leftCanvas.height = box.height;
+    initLeftParticles();
+  }
+
+  class LeftParticle {
+    constructor() {
+      this.x = Math.random() * leftCanvas.width;
+      this.y = Math.random() * leftCanvas.height;
+      this.radius = 1.5 + Math.random() * 2;
+      this.vx = (Math.random() - 0.5) * 0.6;
+      this.vy = (Math.random() - 0.5) * 0.6;
+      this.opacity = 0.2 + Math.random() * 0.4;
+    }
+    draw() {
+      leftCtx.beginPath();
+      leftCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      leftCtx.fillStyle = `rgba(164, 255, 240, ${this.opacity})`;
+      leftCtx.fill();
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      if (this.x < 0 || this.x > leftCanvas.width) this.vx *= -1;
+      if (this.y < 0 || this.y > leftCanvas.height) this.vy *= -1;
+
+      if (leftMouse.x !== null && leftMouse.y !== null) {
+        let dx = this.x - leftMouse.x;
+        let dy = this.y - leftMouse.y;
+        let distance = Math.hypot(dx, dy);
+        if (distance < leftMouse.radius) {
+          let force = (leftMouse.radius - distance) / leftMouse.radius;
+          // Smoothly pull particles closer toward active mouse focal points
+          this.x -= (dx / distance) * force * 0.8;
+          this.y -= (dy / distance) * force * 0.8;
+        }
+      }
+    }
+  }
+
+  function initLeftParticles() {
+    leftParticles = [];
+    const count = Math.floor((leftCanvas.width * leftCanvas.height) / 7000);
+    for (let i = 0; i < count; i++) leftParticles.push(new LeftParticle());
+  }
+
+  function drawConnections() {
+    for (let i = 0; i < leftParticles.length; i++) {
+      for (let j = i + 1; j < leftParticles.length; j++) {
+        let dx = leftParticles[i].x - leftParticles[j].x;
+        let dy = leftParticles[i].y - leftParticles[j].y;
+        let dist = Math.hypot(dx, dy);
+
+        if (dist < 95) {
+          leftCtx.beginPath();
+          leftCtx.moveTo(leftParticles[i].x, leftParticles[i].y);
+          leftCtx.lineTo(leftParticles[j].x, leftParticles[j].y);
+          let alpha = (1 - (dist / 95)) * 0.15;
+          leftCtx.strokeStyle = `rgba(164, 255, 240, ${alpha})`;
+          leftCtx.lineWidth = 1;
+          leftCtx.stroke();
+        }
+      }
+    }
+  }
+
+
+  // --- DUAL ANIMATION loop TICKER ---
+  function updateAndRender() {
+    // Clear & Render Global Canvas
+    mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+    for (let i = 0; i < mainParticles.length; i++) {
+      mainParticles[i].update();
+      mainParticles[i].draw();
+    }
+
+    // Clear & Render Auth Left Segment Canvas
+    if (window.getComputedStyle(leftSection).display !== 'none') {
+      leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
+      for (let i = 0; i < leftParticles.length; i++) {
+        leftParticles[i].update();
+        leftParticles[i].draw();
+      }
+      drawConnections();
+    }
+    
+    requestAnimationFrame(updateAndRender);
+  }
+
+  // --- EVENT ATTACHMENTS & HOVER MAPPING ---
+  window.addEventListener('mousemove', (e) => {
+    globalMouse.x = e.clientX;
+    globalMouse.y = e.clientY;
+
+    if (window.getComputedStyle(leftSection).display !== 'none') {
+      const box = leftSection.getBoundingClientRect();
+      if (e.clientX >= box.left && e.clientX <= box.right && e.clientY >= box.top && e.clientY <= box.bottom) {
+        leftMouse.x = e.clientX - box.left;
+        leftMouse.y = e.clientY - box.top;
+      } else {
+        leftMouse.x = null; leftMouse.y = null;
+      }
+    }
+  });
+
+  window.addEventListener('mouseleave', () => {
+    globalMouse.x = null; globalMouse.y = null;
+    leftMouse.x = null; leftMouse.y = null;
+  });
+
+  window.addEventListener('resize', () => {
+    resizeMainCanvas();
+    if (window.getComputedStyle(leftSection).display !== 'none') {
+      resizeLeftCanvas();
+    }
+  });
+
+  // Launch Matrix Pipelines
+  resizeMainCanvas();
+  if (window.getComputedStyle(leftSection).display !== 'none') {
+    resizeLeftCanvas();
+  }
+  updateAndRender();
+});
+</script>
 {% endblock %}

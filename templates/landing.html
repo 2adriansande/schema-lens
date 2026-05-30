@@ -19,19 +19,31 @@
       --shadow-lg: 0 8px 40px rgba(25,24,59,0.14);
     }
     html { scroll-behavior: smooth; font-size: 14px; }
+    
     body { font-family: var(--font); color: var(--text); background: var(--bg); overflow-x: hidden; }
+    
+    /* Subtle static ambient background gradients */
     body::before {
-      content: ''; position: fixed; inset: 0; z-index: -1;
+      content: ''; position: fixed; inset: 0; z-index: -2;
       background:
-        radial-gradient(ellipse 70% 50% at 85% 5%, rgba(161,194,189,0.4) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 60% at 5% 85%, rgba(112,137,147,0.2) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 50% at 85% 5%, rgba(161,194,189,0.3) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 5% 85%, rgba(112,137,147,0.15) 0%, transparent 60%),
         #E7F2EF;
+    }
+
+    /* ANTIGRAVITY INTERACTIVE BACKGROUND CANVAS */
+    #antigravity-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none; /* Allows standard clicks/hovers to pass through to UI */
+      will-change: transform;
     }
 
     /* NAV */
     nav {
       position: sticky; top: 0; z-index: 1000;
-      background: rgba(231,242,239,0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      background: rgba(231,242,239,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
       padding: 0 6%;
       display: flex; align-items: center; height: 68px; gap: 32px;
@@ -81,11 +93,9 @@
     .hero {
       padding: 90px 6% 80px;
       display: grid; 
-      /* Locked 50/50 column ratio prevents layout shift of left text block */
       grid-template-columns: 1fr 1fr;
       gap: 64px; align-items: center; max-width: 1200px; margin: 0 auto;
     }
-    /* Ensure grid children do not dynamically stretch columns */
     .hero > div {
       min-width: 0;
       width: 100%;
@@ -142,12 +152,10 @@
       background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border); border-radius: var(--radius);
       overflow: hidden; box-shadow: var(--shadow-lg); transition: transform 0.3s ease;
-      
-      /* Rigid architectural boundaries to lock dimensions */
       height: 310px;
       width: 100%;
-      max-width: 480px;
-      margin-left: auto; /* Aligns to right side of its container column */
+      max-width: 560px;
+      margin-left: auto;
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
@@ -161,7 +169,6 @@
     }
     .demo-top p { font-size:12px; color:var(--primary-mid); margin-bottom:5px; font-weight:600; text-transform: uppercase; letter-spacing: .06em; }
     
-    /* Strict height rules and wrap limits on typewriter containers */
     .demo-query { 
       font-size: 14px; 
       color: var(--text); 
@@ -179,7 +186,6 @@
     }
     @keyframes blink { from, to { color: transparent } 50% { color: var(--primary-mid); } }
     
-    /* Code block wraps safely, preventing vertical/horizontal size creep */
     .demo-sql {
       background: var(--primary); padding: 22px; 
       flex-grow: 1;
@@ -214,14 +220,34 @@
       display:flex; align-items:center; justify-content:center;
       font-size:21px; margin-bottom:16px; transition: transform 0.3s ease;
     }
+    .feat-icon-ai { background:linear-gradient(135deg,var(--primary-xlight),rgba(161,194,189,0.3)); color:var(--primary-mid); }
+    .feat-icon-schema { background:rgba(112,137,147,0.12); color:var(--primary); }
+    .feat-icon-validate { background:rgba(16,185,129,0.1); color:#059669; }
+    .feat-icon-recognition { background:rgba(161,194,189,0.2); color:var(--primary); }
+    .feat-icon-history { background:rgba(112,137,147,0.1); color:var(--primary-mid); }
+    .feat-icon-secure { background:rgba(25,24,59,0.07); color:var(--primary); }
     .feat-card:hover .feat-icon { transform: scale(1.1) rotate(3deg); }
     .feat-card h3 { font-size:15.5px; font-weight:700; margin-bottom:7px; }
     .feat-card p  { font-size:13.5px; color:var(--text-soft); line-height:1.65; }
 
     /* HOW IT WORKS */
-    .how { padding:90px 6%; }
-    .how-inner { max-width:900px; margin:0 auto; }
-    .how-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:44px; margin-top:52px; }
+    .how { padding:90px 0; }
+    .how-inner { width:100%; max-width:none; margin:0; }
+    
+    /* Integrated Transparent Glassmorphic Wrapper Card */
+    .how-container-card {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(112,137,147,0.1);
+      border-radius: calc(var(--radius) * 1.5);
+      padding: 60px 40px;
+      box-shadow: 0 4px 24px rgba(25,24,59,0.06);
+    }
+    
+    /* Updated layout matrix grid to seamlessly hold 4 columns instead of 3 */
+    .how-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:32px; margin-top:52px; }
     .how-step { text-align:center; }
     .step-icon-box {
       width:68px; height:68px; border-radius:18px;
@@ -255,9 +281,12 @@
       display:flex; align-items:center; justify-content:center;
       font-size:15px; font-weight:700; color:#fff; margin-bottom:14px;
     }
-    .test-name  { font-size:15px; font-weight:700; margin-bottom:2px; }
+    .test-avatar-sc { background: linear-gradient(135deg,var(--primary),var(--primary-mid)); }
+    .test-avatar-mr { background: linear-gradient(135deg,var(--primary-mid),var(--primary-light)); }
+    .test-avatar-ew { background: linear-gradient(135deg,var(--primary-light),#7ba59d); }
+    .test-name { font-size:15px; font-weight:700; margin-bottom:2px; }
     .test-title { font-size:12.5px; color:var(--text-soft); margin-bottom:14px; }
-    .test-text  { font-size:13.5px; color:var(--text-soft); line-height:1.7; font-style:italic; }
+    .test-text { font-size:13.5px; color:var(--text-soft); line-height:1.7; font-style:italic; }
 
     /* CTA */
     .cta {
@@ -272,8 +301,9 @@
       background: rgba(161,194,189,0.12);
     }
     .cta h2 { font-size:38px; font-weight:700; letter-spacing:-1px; margin-bottom:13px; position: relative; }
-    .cta p  { font-size:16px; color:rgba(231,242,239,.75); margin-bottom:30px; position: relative; }
+    .cta p  { font-size:16px; color:rgba(231,242,239,.75); margin-bottom:30px; position: relative; }
     .btn-cta {
+      margin-top: 18px;
       padding:14px 34px; border-radius:var(--radius-sm);
       background:rgba(255,255,255,0.15); color:var(--primary-xlight);
       border: 1.5px solid rgba(255,255,255,0.3);
@@ -287,7 +317,7 @@
     footer { background: var(--primary); color:rgba(231,242,239,.6); padding:60px 6% 36px; }
     .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:44px; max-width:1100px; margin:0 auto 44px; }
     .footer-brand .logo-text { font-size:19px; font-weight:700; color:var(--primary-xlight); margin-bottom:11px; }
-    .footer-brand p  { font-size:13.5px; line-height:1.75; max-width:270px; }
+    .footer-brand p  { font-size:13.5px; line-height:1.75; max-width:270px; }
     footer h4 { font-size:13px; font-weight:700; color:var(--primary-xlight); margin-bottom:16px; text-transform: uppercase; letter-spacing: .06em; }
     footer ul { list-style:none; }
     footer ul li { margin-bottom:9px; }
@@ -306,7 +336,7 @@
     }
     .social-btn:hover { background:rgba(255,255,255,.16); color:var(--primary-xlight); transform: translateY(-1px); }
 
-    /* SCROLL ANIMATION GRAPHICS ENGINE */
+    /* SCROLL ANIMATION ENGINE */
     .scroll-reveal {
       opacity: 0; transform: translateY(24px);
       transition: opacity 0.6s cubic-bezier(0.215, 0.61, 0.355, 1), transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
@@ -324,16 +354,22 @@
       nav.mobile-open .nav-auth { display: flex; flex-direction: column; width: 100%; align-items: flex-start; gap: 12px; }
       nav.mobile-open .btn-nav { width: 100%; text-align: center; }
     }
+    @media(max-width:991px) and (min-width:769px) {
+      .how-steps { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+    }
     @media(max-width:768px) {
       .hero { grid-template-columns:1fr; gap: 40px; padding-top: 50px; }
       .hero h1 { font-size:34px; }
       .features-grid, .how-steps, .test-grid { grid-template-columns:1fr; gap: 24px; }
+      .how-container-card { padding: 40px 20px; }
       .footer-grid { grid-template-columns:1fr; gap: 32px; }
       .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
     }
   </style>
 </head>
 <body>
+
+<canvas id="antigravity-canvas"></canvas>
 
 <nav id="navbar">
   <a href="{{ url_for('landing') }}" class="nav-logo">
@@ -402,16 +438,16 @@
     </div>
     <div class="features-grid">
       {% set feats = [
-        ('bi-stars','background:linear-gradient(135deg,var(--primary-xlight),rgba(161,194,189,0.3));color:var(--primary-mid);','AI Query Generation','Transform natural language into optimized SQL queries instantly using Gemini AI.'),
-        ('bi-layers','background:rgba(112,137,147,0.12);color:var(--primary);','Schema Management','Upload and manage database schemas with intelligent OCR-powered extraction.'),
-        ('bi-check-circle','background:rgba(16,185,129,0.1);color:#059669;','Query Validation','Auto-validate SQL syntax and optimize for performance automatically.'),
-        ('bi-cpu','background:rgba(161,194,189,0.2);color:var(--primary);','Schema Recognition','OCR-powered extraction of tables and relationships from ER diagrams.'),
-        ('bi-clock-history','background:rgba(112,137,147,0.1);color:var(--primary-mid);','Query History','Full history of all generated queries with search, filter, and re-run.'),
-        ('bi-shield-check','background:rgba(25,24,59,0.07);color:var(--primary);','Secure & Private','Your data and API keys are stored securely in your own account only.')
+        ('bi-stars','feat-icon-ai','AI Query Generation','Transform natural language into optimized SQL queries instantly using Gemini AI.'),
+        ('bi-layers','feat-icon-schema','Schema Management','Upload and manage database schemas with intelligent OCR-powered extraction.'),
+        ('bi-check-circle','feat-icon-validate','Query Validation','Auto-validate SQL syntax and optimize for performance automatically.'),
+        ('bi-cpu','feat-icon-recognition','Schema Recognition','OCR-powered extraction of tables and relationships from ER diagrams.'),
+        ('bi-clock-history','feat-icon-history','Query History','Full history of all generated queries with search, filter, and re-run.'),
+        ('bi-shield-check','feat-icon-secure','Secure & Private','Your data and API keys are stored securely in your own account only.')
       ] %}
-      {% for icon, style, title, desc in feats %}
+      {% for icon, icon_class, title, desc in feats %}
       <div class="feat-card">
-        <div class="feat-icon" style="{{ style }}"><i class="bi {{ icon }}"></i></div>
+        <div class="feat-icon {{ icon_class }}"><i class="bi {{ icon }}"></i></div>
         <h3>{{ title }}</h3>
         <p>{{ desc }}</p>
       </div>
@@ -422,34 +458,44 @@
 
 <section class="how scroll-reveal" id="how-it-works">
   <div class="how-inner">
-    <div class="section-header">
-      <h2>How It Works</h2>
-      <p>Three simple steps to transform your database workflow</p>
-    </div>
-    <div class="how-steps">
-      <div class="how-step">
-        <div class="step-num">1</div>
-        <div class="step-icon-box">
-          <i class="bi bi-chat-text" style="color:var(--primary-mid);"></i>
-        </div>
-        <h3>Describe Your Query</h3>
-        <p>Type what you need in plain English — no SQL knowledge required.</p>
+    <div class="how-container-card">
+      <div class="section-header">
+        <h2>How It Works</h2>
+        <p>Four simple steps to transform your database workflow</p>
       </div>
-      <div class="how-step">
-        <div class="step-num">2</div>
-        <div class="step-icon-box">
-          <i class="bi bi-cpu" style="color:var(--primary);"></i>
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="step-num">1</div>
+          <div class="step-icon-box">
+            <i class="bi bi-cloud-arrow-up" style="color:var(--primary-mid);"></i>
+          </div>
+          <h3>Upload Your Schema</h3>
+          <p>Import your database DDL, connect directly, or upload an ER diagram image.</p>
         </div>
-        <h3>AI Generates SQL</h3>
-        <p>AI creates schema-aware SQL queries optimized for your specific database.</p>
-      </div>
-      <div class="how-step">
-        <div class="step-num">3</div>
-        <div class="step-icon-box">
-          <i class="bi bi-clipboard-check" style="color:var(--primary-mid);"></i>
+        <div class="how-step">
+          <div class="step-num">2</div>
+          <div class="step-icon-box">
+            <i class="bi bi-chat-text" style="color:var(--primary);"></i>
+          </div>
+          <h3>Describe Your Query</h3>
+          <p>Type what you need in plain English — no SQL knowledge required.</p>
         </div>
-        <h3>Execute &amp; View</h3>
-        <p>Copy the generated SQL and run it in your database client instantly.</p>
+        <div class="how-step">
+          <div class="step-num">3</div>
+          <div class="step-icon-box">
+            <i class="bi bi-cpu" style="color:var(--primary-mid);"></i>
+          </div>
+          <h3>AI Generates SQL</h3>
+          <p>AI creates schema-aware SQL queries optimized for your specific database.</p>
+        </div>
+        <div class="how-step">
+          <div class="step-num">4</div>
+          <div class="step-icon-box">
+            <i class="bi bi-clipboard-check" style="color:var(--primary);"></i>
+          </div>
+          <h3>Execute &amp; View</h3>
+          <p>Copy the generated SQL and run it in your database client instantly.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -463,13 +509,13 @@
     </div>
     <div class="test-grid">
       {% set tests = [
-        ('SC','linear-gradient(135deg,var(--primary),var(--primary-mid))','Sarah Chen','Senior Data Analyst','This tool has revolutionized how I work with databases. I can query complex schemas in seconds now.'),
-        ('MR','linear-gradient(135deg,var(--primary-mid),var(--primary-light))','Michael Rodriguez','Full Stack Developer','The AI-powered query generation is incredibly accurate. It understands context better than I expected.'),
-        ('EW','linear-gradient(135deg,var(--primary-light),#7ba59d)','Emily Watson','Database Engineer','Even without deep SQL knowledge I can now pull data insights myself. The schema recognition is magic.')
+        ('SC','test-avatar-sc','Sarah Chen','Senior Data Analyst','This tool has revolutionized how I work with databases. I can query complex schemas in seconds now.'),
+        ('MR','test-avatar-mr','Michael Rodriguez','Full Stack Developer','The AI-powered query generation is incredibly accurate. It understands context better than I expected.'),
+        ('EW','test-avatar-ew','Emily Watson','Database Engineer','Even without deep SQL knowledge I can now pull data insights myself. The schema recognition is magic.')
       ] %}
-      {% for init, bg, name, title, text in tests %}
+      {% for init, avatar_class, name, title, text in tests %}
       <div class="test-card">
-        <div class="test-avatar" style="background:{{ bg }};">{{ init }}</div>
+        <div class="test-avatar {{ avatar_class }}">{{ init }}</div>
         <div class="test-name">{{ name }}</div>
         <div class="test-title">{{ title }}</div>
         <div class="test-text">"{{ text }}"</div>
@@ -529,6 +575,128 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+
+  // ==========================================================================
+  // ANTIGRAVITY INTERACTIVE BACKGROUND ENGINE
+  // ==========================================================================
+  const canvas = document.getElementById('antigravity-canvas');
+  const ctx = canvas.getContext('2d');
+
+  let particles = [];
+  let mouse = { x: null, y: null, radius: 160 }; // Forcefield threshold radius
+
+  // Match density to client viewport size
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    initParticles();
+  }
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.radius = 1.5 + Math.random() * 2.5;
+      
+      // Base natural drift vectors (floating gently upward)
+      this.baseSpeedY = -(0.1 + Math.random() * 0.3);
+      this.baseSpeedX = (Math.random() - 0.5) * 0.1;
+      
+      this.vx = this.baseSpeedX;
+      this.vy = this.baseSpeedY;
+      
+      // Dynamic opacity tracking for entry/exit fades
+      this.opacity = 0.08 + Math.random() * 0.25;
+      
+      // Organic branding hue variants matching your design tokens (#708993 & #A1C2BD)
+      const colors = ['rgba(112, 137, 147, ', 'rgba(161, 194, 189, ', 'rgba(25, 24, 59, '];
+      this.colorBase = colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fillStyle = `${this.colorBase}${this.opacity})`;
+      ctx.fill();
+    }
+
+    update() {
+      // Float naturally
+      this.x += this.vx;
+      this.y += this.vy;
+
+      // Wrap around boundaries cleanly if out of viewport
+      if (this.y < -20) {
+        this.y = canvas.height + 20;
+        this.x = Math.random() * canvas.width;
+      }
+      if (this.x < -20) this.x = canvas.width + 20;
+      if (this.x > canvas.width + 20) this.x = -20;
+
+      // Mouse Proximity Vector Math Engine (The Antigravity effect)
+      if (mouse.x !== null && mouse.y !== null) {
+        let dx = this.x - mouse.x;
+        let dy = this.y - mouse.y;
+        let distance = Math.hypot(dx, dy);
+
+        if (distance < mouse.radius) {
+          // Calculate push vector force scaled exponentially by proximity
+          let force = (mouse.radius - distance) / mouse.radius;
+          let forceX = (dx / distance) * force * 6;
+          let forceY = (dy / distance) * force * 6;
+
+          // Apply forcefield acceleration vectors
+          this.vx += forceX;
+          this.vy += forceY;
+        } else {
+          // Smooth structural drag return to base drift values over time
+          this.vx += (this.baseSpeedX - this.vx) * 0.04;
+          this.vy += (this.baseSpeedY - this.vy) * 0.04;
+        }
+      } else {
+        // Smooth transition back if mouse leaves layout frame completely
+        this.vx += (this.baseSpeedX - this.vx) * 0.04;
+        this.vy += (this.baseSpeedY - this.vy) * 0.04;
+      }
+    }
+  }
+
+  function initParticles() {
+    particles = [];
+    // Balanced particle count to match screenshot density without lowering FPS
+    const particleCount = Math.floor((canvas.width * canvas.height) / 7000);
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(new Particle());
+    }
+  }
+
+  function animateParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].update();
+      particles[i].draw();
+    }
+    requestAnimationFrame(animateParticles);
+  }
+
+  // Event bindings for interaction vectors
+  window.addEventListener('mousemove', (e) => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+  });
+
+  window.addEventListener('mouseleave', () => {
+    mouse.x = null;
+    mouse.y = null;
+  });
+
+  window.addEventListener('resize', resizeCanvas);
+  
+  // Fire initialization sequence
+  resizeCanvas();
+  animateParticles();
+
+
   // --- RESPONSIVE MOBILE NAVIGATION DRAWER ---
   const navbar = document.getElementById('navbar');
   const menuToggleBtn = document.getElementById('menuToggleBtn');
@@ -546,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add('revealed');
-        observer.unobserve(entry.target); // Run animation once
+        observer.unobserve(entry.target);
       }
     });
   }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
@@ -576,69 +744,46 @@ document.addEventListener('DOMContentLoaded', () => {
   let setIndex = 0;
 
   function runPipeline() {
-    const activeSet = demoData[setIndex];
-    let charIdx = 0;
+    let currentSet = demoData[setIndex];
+    let charIndex = 0;
+    
+    // Reset fields to initialization defaults
     txtField.textContent = '"';
     txtField.classList.add('typewriter-cursor');
+    codeField.textContent = '-- Compiling processing channels...';
     
-    // Step 1: Simulating active typing input
     dot.style.background = '#b45309';
     statusLabel.style.color = '#92400e';
-    statusLabel.textContent = 'Typing prompt...';
-    codeField.textContent = '-- Awaiting prompt completion...'; 
+    statusLabel.textContent = 'Analyzing Schema';
     modelLabel.textContent = 'gemini-2.0-flash · --';
 
     function typeCharacter() {
-      if (charIdx < activeSet.prompt.length) {
-        txtField.textContent += activeSet.prompt.charAt(charIdx);
-        charIdx++;
-        setTimeout(typeCharacter, 45);
+      if (charIndex < currentSet.prompt.length) {
+        txtField.textContent += currentSet.prompt.charAt(charIndex);
+        charIndex++;
+        setTimeout(typeCharacter, 35);
       } else {
         txtField.textContent += '"';
         txtField.classList.remove('typewriter-cursor');
-        // Step 2: Prompt done typing, simulate schema lookup/compilation delay
-        setTimeout(streamSQLOutput, 600);
-      }
-    }
-    
-    typeCharacter();
-
-    // Step 3: Stream generated syntax block out dynamically
-    function streamSQLOutput() {
-      dot.style.background = '#2563eb';
-      statusLabel.style.color = '#1e40af';
-      statusLabel.textContent = 'Generating Schema-Aware SQL...';
-      
-      let currentString = "";
-      const splitLines = activeSet.sql.split('\n');
-      let lineIdx = 0;
-
-      function renderLine() {
-        if (lineIdx < splitLines.length) {
-          currentString += (lineIdx === 0 ? "" : "\n") + splitLines[lineIdx];
-          codeField.textContent = currentString;
-          lineIdx++;
-          setTimeout(renderLine, 180);
-        } else {
-          // Step 4: Generation finalized, showcase output metadata metrics
+        
+        // Trigger model state evaluation window changes
+        setTimeout(() => {
           dot.style.background = '#10b981';
           statusLabel.style.color = '#065f46';
-          statusLabel.textContent = 'SQL Generated Successfully';
-          modelLabel.textContent = activeSet.model;
+          statusLabel.textContent = 'Query Validated & Optimized';
+          codeField.textContent = currentSet.sql;
+          modelLabel.textContent = currentSet.model;
           
-          // Hold view state before cycling to the next demo pipeline data object
+          // Queue next dataset loop execution stage
           setIndex = (setIndex + 1) % demoData.length;
           setTimeout(runPipeline, 5000);
-        }
+        }, 600);
       }
-      renderLine();
     }
+    setTimeout(typeCharacter, 800);
   }
 
-  // Engage the loop sequence engine on initial layout paint setup
-  if (txtField && codeField) {
-    setTimeout(runPipeline, 800);
-  }
+  if (txtField && codeField) runPipeline();
 });
 </script>
 </body>
