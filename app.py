@@ -42,6 +42,8 @@ class User(UserMixin, db.Model):
     role         = db.Column(db.String(80), default="")
     gemini_key   = db.Column(db.String(256), default="")
     created_at   = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    agreement_accepted = db.Column(db.Boolean, default=False)
+    agreement_accepted_at = db.Column(db.DateTime, nullable=True)
     schemas      = db.relationship("SchemaUpload", backref="owner", lazy=True,
                                    cascade="all, delete-orphan")
     queries      = db.relationship("QueryHistory", backref="owner", lazy=True,
@@ -88,6 +90,8 @@ def run_migrations():
     with db.engine.connect() as conn:
         migrations = [
             ("schema_uploads", "confirmed_schema", "TEXT DEFAULT ''"),
+            ("users", "agreement_accepted", "INTEGER DEFAULT 0"),
+            ("users", "agreement_accepted_at", "DATETIME"),
             ("query_history", "sql_explanation", "TEXT DEFAULT ''"),
             ("query_history", "accuracy_score", "REAL"),
             ("query_history", "accuracy_notes", "TEXT DEFAULT ''"),
@@ -1190,6 +1194,29 @@ Return ONLY the updated SQL query, no explanation, no markdown fences."""
 
 
 # ══════════════════════════════════════════════════════════════════
+# AGREEMENT ROUTES
+# ══════════════════════════════════════════════════════════════════
+
+@app.route("/agreement")
+@login_required
+def agreement_page():
+    """Show Terms & Privacy agreement screen."""
+    return render_template("agreement.html")
+
+
+@app.route("/agreement/accept", methods=["POST"])
+@login_required
+def accept_agreement():
+    """Record that the user has accepted the agreement."""
+    current_user.agreement_accepted    = True
+    current_user.agreement_accepted_at = datetime.datetime.utcnow()
+    db.session.commit()
+    next_url = request.form.get("next") or url_for("dashboard")
+    return redirect(next_url)
+
+
+
+# ══════════════════════════════════════════════════════════════════
 # AUTH ROUTES
 # ══════════════════════════════════════════════════════════════════
 @app.route("/")
@@ -1263,6 +1290,11 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+
+
+    #Agreement gate: force users to accept before accessing dashboard
+    if not current_user.agreement_accepted:
+        return redirect(url_for("agreement_page", next=url_for("dashboard")))
     schemas  = SchemaUpload.query.filter_by(user_id=current_user.id)\
                 .order_by(SchemaUpload.uploaded_at.desc()).all()
     recent_q = QueryHistory.query.filter_by(user_id=current_user.id)\

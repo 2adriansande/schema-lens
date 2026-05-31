@@ -155,7 +155,7 @@
               <span class="qh-meta-item"><i class="bi bi-dot"></i> {{ q.model_used or 'heuristic' }}</span>
             </div>
           </div>
-          <button onclick="deleteQuery({{ q.id }})" class="btn btn-ghost btn-sm btn-icon" style="flex-shrink:0;color:var(--text-xs);" title="Delete">
+          <button onclick="deleteQuery('{{ q.id }}')" class="btn btn-ghost btn-sm btn-icon" style="flex-shrink:0;color:var(--text-xs);" title="Delete">
             <i class="bi bi-trash"></i>
           </button>
         </div>
