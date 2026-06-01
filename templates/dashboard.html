@@ -45,7 +45,7 @@
   transition: opacity .15s;
 }
 .schema-row:last-child { border-bottom: none; }
-.schema-row:hover { opacity: .8; }
+.schema-row:hover { opacity: .8;border:solid .4px var(--border); border-width:1px 0; }
 .schema-thumb {
   width: 40px; height: 40px; border-radius: 10px;
   background: linear-gradient(135deg, var(--primary-xlight), rgba(161,194,189,0.3));
@@ -159,7 +159,7 @@
   <div class="stat-card">
     <div class="stat-card-top">
       <div class="stat-card-icon {% if current_user.gemini_key %}teal{% else %}light{% endif %}"><i class="bi bi-cpu"></i></div>
-      <span class="stat-change" style="{% if current_user.gemini_key %}background:rgba(14,124,90,0.12);color:#0e7c5a;{% endif %}">
+      <span class="stat-change{% if current_user.gemini_key %} active{% endif %}" {% if current_user.gemini_key %}style="background:rgba(14,124,90,0.12);color:#0e7c5a;"{% endif %}>
         {% if current_user.gemini_key %}<i class="bi bi-check-circle-fill"></i> ON{% else %}No Key{% endif %}
       </span>
     </div>
