@@ -97,7 +97,7 @@ def parse_schema_with_gemini(ocr_text: str, api_key: str) -> dict:
     """Use Gemini to turn raw OCR text into a structured schema dict."""
     import google.generativeai as genai
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     prompt = f"""You are a database schema expert. 
 Given the following raw OCR text extracted from a database schema diagram, 
@@ -133,7 +133,7 @@ def generate_sql_with_gemini(natural_query: str, schema: dict, api_key: str) -> 
     """Generate a SQL query from natural language given a parsed schema."""
     import google.generativeai as genai
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     schema_desc = "Database Schema:\n"
     for table in schema.get("tables", []):
@@ -561,14 +561,89 @@ def normalize_data_api():
         return jsonify({"result": result, "method": "heuristic"})
 
 
+# ── DDL Generation (on demand) ─────────────────────────────────────────────
+@app.route('/api/generate-ddl', methods=['POST'])
+@login_required
+def generate_ddl_api():
+    """Generate SQL DDL (CREATE TABLE) from 3NF tables — only called when user requests it."""
+    data = request.get_json()
+    tables = data.get("tables", [])
+
+    if not tables:
+        return jsonify({"error": "No tables provided."}), 400
+
+    api_key = current_user.gemini_key
+    if api_key:
+        try:
+            result = _generate_ddl_gemini(tables, api_key)
+            return jsonify({"ddl": result, "method": "gemini-1.5-flash"})
+        except Exception:
+            pass  # Fall through to heuristic
+
+    # Heuristic DDL generation
+    ddl_parts = []
+    for t in tables:
+        tname = t.get("name", "table")
+        cols = t.get("columns", [])
+        col_lines = []
+        fk_lines = []
+        pk_names = []
+        for c in cols:
+            cname = c.get("name", "col") if isinstance(c, dict) else str(c)
+            ctype = c.get("type", "TEXT") if isinstance(c, dict) else "TEXT"
+            nullable = c.get("nullable", True) if isinstance(c, dict) else True
+            is_pk = c.get("primary_key", False) if isinstance(c, dict) else False
+            fk = c.get("foreign_key", "") if isinstance(c, dict) else ""
+            line = f"  {cname} {ctype}"
+            if not nullable:
+                line += " NOT NULL"
+            col_lines.append(line)
+            if is_pk:
+                pk_names.append(cname)
+            if fk and "." in fk:
+                ref_t, ref_c = fk.split(".", 1)
+                fk_lines.append(f"  FOREIGN KEY ({cname}) REFERENCES {ref_t}({ref_c})")
+        if pk_names:
+            col_lines.append(f"  PRIMARY KEY ({', '.join(pk_names)})")
+        all_lines = col_lines + fk_lines
+        ddl_parts.append(f"CREATE TABLE {tname} (\n" + ",\n".join(all_lines) + "\n);")
+    return jsonify({"ddl": "\n\n".join(ddl_parts), "method": "heuristic"})
+
+
+def _generate_ddl_gemini(tables: list, api_key: str) -> str:
+    """Generate complete SQL DDL from 3NF table definitions using Gemini."""
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-2.5-flash")
+    tables_desc = json.dumps(tables, indent=2)
+    prompt = f"""Given these 3NF normalized table definitions, generate complete SQL DDL.
+
+Tables:
+{tables_desc}
+
+Generate CREATE TABLE statements with:
+- Proper SQL data types (INT, VARCHAR, TEXT, DATE, DECIMAL, BOOLEAN)
+- PRIMARY KEY constraints
+- FOREIGN KEY constraints with REFERENCES
+- NOT NULL on required fields
+- Appropriate UNIQUE constraints where logical
+
+Return ONLY the SQL statements, no markdown fences, no explanation."""
+    response = model.generate_content(prompt)
+    sql = response.text.strip()
+    sql = re.sub(r"^```sql\s*", "", sql)
+    sql = re.sub(r"^```\s*", "", sql)
+    sql = re.sub(r"\s*```$", "", sql)
+    return sql.strip()
+
+
 def _normalize_schema_gemini(raw_input: str, api_key: str) -> dict:
-    """Normalize flat/denormalized data into 3NF using Gemini."""
+    """Perform rigorous step-by-step normalization (UNF→1NF→2NF→3NF) using Gemini."""
     genai.configure(api_key=api_key)
 
     model = genai.GenerativeModel(
-        "gemini-1.5-flash",
+        "gemini-2.5-flash",
         generation_config={
-            "temperature": 0.2,
+            "temperature": 0.1,
             "top_p": 0.8,
             "top_k": 40,
             "max_output_tokens": 8192,
@@ -576,117 +651,173 @@ def _normalize_schema_gemini(raw_input: str, api_key: str) -> dict:
         }
     )
 
-    prompt = f"""
-You are a database normalization expert.
+    prompt = f"""You are a senior database normalization expert.
+Perform rigorous step-by-step normalization from UNF to 3NF.
 
-Analyze the following denormalized dataset and convert it into a proper relational schema up to Third Normal Form (3NF).
-
-IMPORTANT RULES:
-- Return ONLY valid JSON
-- Do NOT wrap in markdown
-- Do NOT explain anything
-- Ensure all arrays and objects are valid JSON
-- Use double quotes only
-- Generate realistic normalized data rows
-- Deduplicate entities properly
+STRICT RULES:
+- Return ONLY valid JSON. No markdown fences, no explanation outside JSON.
+- NEVER skip normalization stages (UNF then 1NF then 2NF then 3NF).
+- NEVER invent data not present in the source dataset.
+- State all assumptions explicitly in explanation fields.
+- Explain EVERY normalization decision in detail.
+- Identify ALL functional, partial, and transitive dependencies.
 
 Dataset:
 {raw_input}
 
-Return this exact structure:
+Return this EXACT JSON structure (fill every field):
 
 {{
-  "analysis": {{
-    "original_issues": [],
-    "normal_forms_applied": []
+  "unf": {{
+    "description": "Plain-English description of the original unnormalized structure",
+    "candidate_keys": ["candidate key set 1", "candidate key set 2"],
+    "primary_key": "chosen primary key (or col1, col2 for composite)",
+    "repeating_groups": ["repeating group or multi-valued attribute found"],
+    "multivalued_attributes": ["attribute containing multiple values per cell"],
+    "functional_dependencies": [
+      {{"determinant": "A", "dependent": "B, C", "description": "A uniquely determines B and C"}}
+    ],
+    "original_issues": ["normalization violation 1", "normalization violation 2"]
   }},
-  "tables": [
-    {{
-      "name": "",
-      "columns": [
-        {{
-          "name": "",
-          "type": "TEXT",
-          "primary_key": false,
-          "nullable": true,
-          "foreign_key": ""
-        }}
+  "1nf": {{
+    "explanation": "Detailed explanation of what was done to achieve 1NF — atomicity, unique rows, single data type per column",
+    "changes_made": ["specific change 1", "specific change 2"],
+    "functional_dependencies": [
+      {{"determinant": "A", "dependent": "B, C"}}
+    ],
+    "table": {{
+      "name": "table_name_1nf",
+      "columns": ["col1", "col2", "col3"],
+      "primary_key": "col1",
+      "sample_rows": [
+        {{"col1": "val1", "col2": "val2"}}
       ]
     }}
-  ],
-  "relationships": [
-    {{
-      "from_table": "",
-      "from_col": "",
-      "to_table": "",
-      "to_col": "",
-      "type": "one-to-many"
-    }}
-  ],
-  "ddl": "",
-  "normalized_data": {{
-    "table_name": []
   }},
-  "sql_inserts": ""
+  "2nf": {{
+    "explanation": "Detailed explanation of 2NF — partial dependencies identified and removed",
+    "partial_dependencies_removed": [
+      {{
+        "attribute": "attribute_name",
+        "depends_on": "part_of_composite_key",
+        "full_key": "full composite key",
+        "moved_to_table": "new_table_name",
+        "reason": "why this is a partial dependency"
+      }}
+    ],
+    "tables": [
+      {{
+        "name": "table_name",
+        "primary_key": "pk_col",
+        "foreign_keys": ["fk_col to other_table(pk)"],
+        "columns": ["col1", "col2"]
+      }}
+    ]
+  }},
+  "3nf": {{
+    "explanation": "Detailed explanation of 3NF — transitive dependencies identified and removed",
+    "transitive_dependencies_removed": [
+      {{
+        "non_key_attribute": "attribute_A",
+        "determines": "attribute_B",
+        "via": "through which non-key attribute",
+        "moved_to_table": "new_table_name",
+        "reason": "why this is a transitive dependency"
+      }}
+    ],
+    "tables": [
+      {{
+        "name": "table_name",
+        "primary_key": "pk_col",
+        "foreign_keys": ["fk_col to other_table(pk)"],
+        "columns": [
+          {{"name": "col", "type": "TEXT", "primary_key": false, "nullable": true, "foreign_key": ""}}
+        ]
+      }}
+    ]
+  }},
+  "validation": {{
+    "1nf": {{"satisfied": true, "reason": "All cells atomic, rows uniquely identifiable, single data type per column"}},
+    "2nf": {{"satisfied": true, "reason": "No partial dependencies exist — all non-key attributes depend on the whole primary key"}},
+    "3nf": {{"satisfied": true, "reason": "No transitive dependencies — every non-key attribute depends only on the primary key"}}
+  }},
+  "relationships": [
+    {{"from_table": "t1", "from_col": "c1", "to_table": "t2", "to_col": "c2", "type": "one-to-many"}}
+  ],
+  "normalized_data": {{
+    "table_name": [{{"col1": "val1"}}]
+  }},
+  "sql_inserts": "INSERT INTO ... statements as one string"
 }}
 """
 
     try:
         response = model.generate_content(prompt)
         text = response.text.strip()
-
-        # Remove markdown code fences if Gemini adds them
         text = re.sub(r"^```json\s*", "", text)
-        text = re.sub(r"^```", "", text)
-        text = re.sub(r"```$", "", text)
+        text = re.sub(r"^```\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
         text = text.strip()
 
-        # Parse JSON safely
         result = json.loads(text)
 
-        # Ensure required keys exist
-        required_keys = {
-            "analysis": {},
-            "tables": [],
+        # Ensure all required top-level keys with safe defaults
+        defaults = {
+            "unf": {"description": "", "candidate_keys": [], "primary_key": "",
+                    "repeating_groups": [], "multivalued_attributes": [],
+                    "functional_dependencies": [], "original_issues": []},
+            "1nf": {"explanation": "", "changes_made": [], "functional_dependencies": [],
+                    "table": {"name": "", "columns": [], "primary_key": "", "sample_rows": []}},
+            "2nf": {"explanation": "", "partial_dependencies_removed": [], "tables": []},
+            "3nf": {"explanation": "", "transitive_dependencies_removed": [], "tables": []},
+            "validation": {
+                "1nf": {"satisfied": True, "reason": ""},
+                "2nf": {"satisfied": True, "reason": ""},
+                "3nf": {"satisfied": True, "reason": ""}
+            },
             "relationships": [],
-            "ddl": "",
             "normalized_data": {},
             "sql_inserts": ""
         }
-
-        for key, default_value in required_keys.items():
+        for key, default_val in defaults.items():
             if key not in result:
-                result[key] = default_value
+                result[key] = default_val
 
-        # Ensure analysis keys exist
-        if "original_issues" not in result["analysis"]:
-            result["analysis"]["original_issues"] = []
-
-        if "normal_forms_applied" not in result["analysis"]:
-            result["analysis"]["normal_forms_applied"] = ["1NF", "2NF", "3NF"]
-
-        # Prevent frontend crashes
-        if not isinstance(result["tables"], list):
-            result["tables"] = []
-
-        if not isinstance(result["relationships"], list):
-            result["relationships"] = []
-
-        if not isinstance(result["normalized_data"], dict):
-            result["normalized_data"] = {}
+        # Supply legacy keys for backward-compat with any existing callers
+        result["analysis"] = {
+            "original_issues": result.get("unf", {}).get("original_issues", []),
+            "normal_forms_applied": ["UNF", "1NF", "2NF", "3NF"]
+        }
+        result["tables"] = result.get("3nf", {}).get("tables", [])
+        result["ddl"] = ""  # DDL generated on-demand via /api/generate-ddl
 
         return result
 
     except json.JSONDecodeError as e:
-        return {
-            "analysis": {"original_issues": [f"Gemini returned invalid JSON: {str(e)}"], "normal_forms_applied": []},
-            "tables": [], "relationships": [], "ddl": "", "normalized_data": {}, "sql_inserts": ""
-        }
+        return _normalize_schema_error(f"Gemini returned invalid JSON: {str(e)}")
     except Exception as e:
-        return {
-            "analysis": {"original_issues": [f"Normalization failed: {str(e)}"], "normal_forms_applied": []},
-            "tables": [], "relationships": [], "ddl": "", "normalized_data": {}, "sql_inserts": ""
-        }
+        return _normalize_schema_error(f"Normalization failed: {str(e)}")
+
+
+def _normalize_schema_error(msg: str) -> dict:
+    """Return a safe error-state structure for the schema normalizer."""
+    empty_table = {"name": "", "columns": [], "primary_key": "", "sample_rows": []}
+    return {
+        "unf": {"description": msg, "candidate_keys": [], "primary_key": "",
+                "repeating_groups": [], "multivalued_attributes": [],
+                "functional_dependencies": [], "original_issues": [msg]},
+        "1nf": {"explanation": "", "changes_made": [], "functional_dependencies": [], "table": empty_table},
+        "2nf": {"explanation": "", "partial_dependencies_removed": [], "tables": []},
+        "3nf": {"explanation": "", "transitive_dependencies_removed": [], "tables": []},
+        "validation": {
+            "1nf": {"satisfied": False, "reason": msg},
+            "2nf": {"satisfied": False, "reason": msg},
+            "3nf": {"satisfied": False, "reason": msg}
+        },
+        "relationships": [], "normalized_data": {}, "sql_inserts": "",
+        "analysis": {"original_issues": [msg], "normal_forms_applied": []},
+        "tables": [], "ddl": ""
+    }
 
 
 def _normalize_schema_heuristic(raw_input: str) -> dict:
@@ -920,49 +1051,82 @@ def _normalize_schema_heuristic(raw_input: str) -> dict:
 
 
 def _normalize_data_gemini(raw_input: str, api_key: str) -> dict:
-    """Use Gemini to clean and standardize dirty/random data."""
-    import google.generativeai as genai
+    """Use Gemini to clean and standardize dirty/random data — with full change tracking."""
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel(
+        "gemini-2.5-flash",
+        generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
+    )
 
-    prompt = f"""You are a data cleaning and standardization expert.
-Given the following raw, messy, or inconsistently formatted data, clean and normalize it.
+    prompt = f"""You are a professional data cleaning and standardization expert.
 
-Perform these operations:
-1. Fix inconsistent capitalization (use Title Case for names, UPPER for codes)
-2. Standardize date formats to YYYY-MM-DD
-3. Remove extra whitespace, fix spacing
-4. Standardize phone numbers, emails, addresses if present
-5. Fix obvious typos if detectable
-6. Remove duplicate entries
-7. Fill obvious missing patterns
-8. Standardize numeric formats (remove currency symbols, fix decimal places)
+Clean and standardize the following raw dataset. Apply ALL these rules:
+1. Fix inconsistent capitalization: Title Case for names/cities, UPPER for codes/SKUs, lowercase for emails
+2. Standardize ALL date formats to YYYY-MM-DD
+3. Remove extra whitespace (leading, trailing, consecutive spaces)
+4. Standardize phone numbers to XXX-XXX-XXXX format where possible
+5. Standardize email addresses to lowercase
+6. Strip currency symbols from numeric fields, standardize decimal format
+7. Remove exact duplicate rows
+8. Detect missing values (empty cells, "N/A", "null", "?", "-", "none", "unknown")
+9. Flag suspicious values (future dates, negative prices, malformed emails, etc.)
+10. NEVER fabricate missing data — leave genuinely missing values as empty strings
 
-Return ONLY a valid JSON object with this exact structure:
+Return ONLY valid JSON with this structure:
 {{
   "summary": {{
     "rows_processed": 0,
-    "issues_found": ["list of issues found and fixed"],
-    "changes_made": ["list of specific changes"]
+    "duplicates_removed": 0,
+    "formatting_corrections": 0,
+    "missing_values_detected": 0,
+    "suspicious_values_flagged": 0,
+    "issues_found": ["issue 1"],
+    "changes_made": ["Row N, col_name: 'old' to 'new'"]
   }},
   "headers": ["col1", "col2"],
-  "original_data": [["row1col1", "row1col2"]],
-  "cleaned_data": [["row1col1_clean", "row1col2_clean"]],
-  "sql_inserts": "INSERT INTO statements as a single string"
+  "original_data": [["r1c1", "r1c2"]],
+  "cleaned_data": [["r1c1_clean", "r1c2_clean"]],
+  "changed_cells": [
+    {{"row": 0, "col": 0, "original": "old_val", "cleaned": "new_val"}}
+  ],
+  "missing_values": [
+    {{"row": 1, "col": 2, "column_name": "email", "description": "Cell is empty"}}
+  ],
+  "suspicious_values": [
+    {{"row": 2, "col": 3, "column_name": "date", "value": "2099-01-01", "reason": "Date is in the far future"}}
+  ],
+  "sql_inserts": "INSERT INTO cleaned_data (...) VALUES (...);"
 }}
 
 Raw Input:
 {raw_input}
 
-Return ONLY the JSON, no markdown fences, no explanation."""
+Return ONLY the JSON object, no markdown fences, no explanation outside the JSON."""
 
     response = model.generate_content(prompt)
-    raw = response.text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
-    return json.loads(raw)
+    raw = response.text.strip()
+    raw = re.sub(r"^```json\s*", "", raw)
+    raw = re.sub(r"^```\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+    result = json.loads(raw.strip())
+
+    # Ensure required keys with safe defaults
+    for key, default in [
+        ("summary", {"rows_processed": 0, "duplicates_removed": 0, "formatting_corrections": 0,
+                     "missing_values_detected": 0, "suspicious_values_flagged": 0,
+                     "issues_found": [], "changes_made": []}),
+        ("headers", []), ("original_data", []), ("cleaned_data", []),
+        ("changed_cells", []), ("missing_values", []), ("suspicious_values", []),
+        ("sql_inserts", "")
+    ]:
+        if key not in result:
+            result[key] = default
+
+    return result
 
 
 def _normalize_data_heuristic(raw_input: str) -> dict:
-    """Basic heuristic data cleaner when no API key is available."""
+    """Enhanced heuristic data cleaner — detects missing and suspicious values."""
     import csv
     from io import StringIO
 
@@ -1008,7 +1172,7 @@ def _normalize_data_heuristic(raw_input: str) -> dict:
             return text
 
         if any(token in lower_header for token in ["amount", "price", "total", "cost", "spent", "value"]):
-            cleaned = re.sub(r"[,$€£¥₱ ]", "", text)
+            cleaned = re.sub(r"[$,€£¥₱ ]", "", text)
             return cleaned
 
         if any(token in lower_header for token in ["code", "sku", "id", "region", "status", "type"]):
@@ -1022,45 +1186,75 @@ def _normalize_data_heuristic(raw_input: str) -> dict:
 
         return text
 
+    def is_missing(val: str) -> bool:
+        return val.strip().lower() in ("", "n/a", "na", "null", "none", "?", "-", "--", "unknown")
+
+    def is_suspicious(val: str, header: str):
+        lower_h = header.lower()
+        if any(t in lower_h for t in ["date", "dob", "joined", "signup"]):
+            for fmt in ["%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y", "%m-%d-%Y"]:
+                try:
+                    d = datetime.datetime.strptime(val, fmt)
+                    if d > datetime.datetime.now():
+                        return "Date is in the future"
+                    if d.year < 1900:
+                        return "Date is suspiciously old (before 1900)"
+                except ValueError:
+                    pass
+        if any(t in lower_h for t in ["amount", "price", "total", "cost"]):
+            cleaned_num = re.sub(r"[$,€£¥₱ ]", "", val)
+            try:
+                if float(cleaned_num) < 0:
+                    return "Negative value in a price/amount field"
+            except ValueError:
+                pass
+        if any(t in lower_h for t in ["date", "dob"]):
+            try:
+                d = datetime.datetime.strptime(val, "%Y-%m-%d")
+                if d > datetime.datetime.now(): return "Date is in the future"
+            except ValueError: pass
+        if any(t in lower_h for t in ["amount", "price"]):
+            try:
+                if float(re.sub(r"[$,€£¥₱ ]", "", val)) < 0: return "Negative value"
+            except ValueError: pass
+        return None
+
     lines = [line for line in raw_input.splitlines() if line.strip()]
-    if not lines:
-        return {"summary": {"rows_processed": 0, "issues_found": [], "changes_made": []},
-                "headers": [], "original_data": [], "cleaned_data": [], "sql_inserts": ""}
+    if not lines: return {"summary": {}, "headers": [], "original_data": [], "cleaned_data": [], "changed_cells": [], "missing_values": [], "suspicious_values": [], "sql_inserts": ""}
 
     delim = detect_delimiter(lines[0])
-    try:
-        f = StringIO(raw_input)
-        reader = csv.reader(f, delimiter=delim, skipinitialspace=True)
-        all_rows = [row for row in reader if any(cell.strip() for cell in row)]
-    except Exception:
-        all_rows = [[cell.strip() for cell in line.split(delim)] for line in lines]
-
-    if not all_rows:
-        return {"summary": {"rows_processed": 0, "issues_found": [], "changes_made": []},
-                "headers": [], "original_data": [], "cleaned_data": [], "sql_inserts": ""}
-
+    f = StringIO(raw_input)
+    reader = csv.reader(f, delimiter=delim, skipinitialspace=True)
+    all_rows = [row for row in reader if any(cell.strip() for cell in row)]
     headers = [h.strip().lower().replace(" ", "_") for h in all_rows[0] if h.strip()]
     cleaned_data = []
     original_data = []
     changes = []
+    changed_cells = []
+    missing_values = []
+    suspicious_values = []
     seen = set()
+    formatting_corrections = 0
 
     for idx, row in enumerate(all_rows[1:], 1):
         cells = [cell.strip() for cell in row]
-        if len(cells) < len(headers):
-            cells += [""] * (len(headers) - len(cells))
-        else:
-            cells = cells[:len(headers)]
-
+        if len(cells) < len(headers): cells += [""] * (len(headers) - len(cells))
+        else: cells = cells[:len(headers)]
         original_data.append(list(cells))
         normalized_row = []
-
         for j, cell in enumerate(cells):
-            normalized = normalize_value(cell, headers[j])
+            header = headers[j] if j < len(headers) else f"col_{j}"
+            if is_missing(cell):
+                missing_values.append({"row": idx, "col": j, "column_name": header, "description": f"Missing value: '{cell}'" if cell.strip() else "Empty cell"})
+            normalized = normalize_value(cell, header)
+            susp_reason = is_suspicious(normalized or cell, header)
+            if susp_reason and not is_missing(cell):
+                suspicious_values.append({"row": idx, "col": j, "column_name": header, "value": normalized or cell, "reason": susp_reason})
             if normalized != cell and cell.strip():
-                changes.append(f"Row {idx}, {headers[j]}: '{cell}' → '{normalized}'")
+                changes.append(f"Row {idx}, {header}: '{cell}' → '{normalized}'")
+                changed_cells.append({"row": idx - 1, "col": j, "original": cell, "cleaned": normalized})
+                formatting_corrections += 1
             normalized_row.append(normalized)
-
         row_key = tuple(normalized_row)
         if row_key in seen:
             continue
