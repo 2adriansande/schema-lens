@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.dash-header { margin-bottom: 28px; }
+.dash-header h1 {
+  font-size: 26px; font-weight: 700; letter-spacing: -.5px;
+  margin-bottom: 5px; display: flex; align-items: center; gap: 12px;
+}
+.dash-header p { font-size: 14px; color: var(--text-soft); }
+
+/* Wave hand SVG animation */
+.wave-icon {
+  width: 30px; height: 30px; flex-shrink: 0;
+  animation: wave-anim 1.8s ease-in-out 1;
+  transform-origin: 70% 80%;
+}
+@keyframes wave-anim {
+  0%   { transform: rotate(0deg); }
+  15%  { transform: rotate(14deg); }
+  30%  { transform: rotate(-8deg); }
+  45%  { transform: rotate(14deg); }
+  60%  { transform: rotate(-4deg); }
+  75%  { transform: rotate(10deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* 5-column stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px; margin-bottom: 26px;
+}
+
+.stat-card {
+  background: var(--card-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 22px; box-shadow: var(--shadow);
+  transition: transform .2s, box-shadow .2s;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+.stat-card-top {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; margin-bottom: 16px;
+}
+.stat-card-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 19px;
+}
+/* Original icon variants — unchanged */
+.stat-card-icon.dark  { background: var(--primary); color: var(--primary-xlight); }
+.stat-card-icon.mid   { background: rgba(112,137,147,0.15); color: var(--primary-mid); }
+.stat-card-icon.light { background: var(--primary-xlight); color: var(--primary-mid); }
+.stat-card-icon.teal  { background: rgba(161,194,189,0.25); color: var(--primary); }
+/* Streak — theme gradient, matches primary buttons */
+.stat-card-icon.streak {
+  background: var(--primary);
+  color: var(--primary-xlight);
+}
+
+.stat-change {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 100px;
+  background: rgba(161,194,189,0.2); color: var(--primary-mid);
+}
+.stat-change.on  { background: rgba(14,124,90,0.12); color: #0e7c5a; }
+.stat-change.str { background: rgba(112,137,147,0.15); color: var(--primary-mid); }
+
+.stat-label {
+  font-size: 12px; color: var(--text-soft); margin-bottom: 3px;
+  font-weight: 500; text-transform: uppercase; letter-spacing: .04em;
+}
+.stat-value { font-size: 28px; font-weight: 700; letter-spacing: -.6px; color: var(--text); }
+.stat-value.sm { font-size: 20px; padding-top: 4px; }
+
+/* Streak progress bar — theme gradient */
+.streak-prog { margin-top: 10px; }
+.streak-track {
+  height: 4px; border-radius: 99px;
+  background: rgba(112,137,147,0.15); overflow: hidden;
+}
+.streak-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-mid));
+  transition: width .6s ease;
+}
+.streak-meta {
+  font-size: 10.5px; color: var(--text-xs);
+  margin-top: 4px; display: flex; justify-content: space-between;
+}
+
+.dash-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+
+/* Schema list */
+.schema-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 0; border-bottom: 1px solid var(--border); transition: opacity .15s;
+}
+.schema-row:last-child { border-bottom: none; }
+.schema-row:hover { opacity: .8; }
+.schema-thumb {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary-xlight), rgba(161,194,189,0.3));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0; border: 1px solid var(--border);
+}
+.schema-row-name { font-size: 14px; font-weight: 600; }
+.schema-row-meta { font-size: 11.5px; color: var(--text-soft); margin-top: 2px; font-family: var(--mono); }
+
+/* Query row */
+.query-row { padding: 13px 0; border-bottom: 1px solid var(--border); }
+.query-row:last-child { border-bottom: none; }
+.query-row-text { font-size: 13.5px; color: var(--text); margin-bottom: 6px; line-height: 1.4; font-weight: 500; }
+.query-row-sql {
+  font-family: var(--mono); font-size: 11px; color: var(--primary-light);
+  background: var(--primary); border-radius: 7px;
+  padding: 6px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* API key banner */
+.api-banner {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);
+  border-radius: var(--radius); padding: 22px 26px;
+  color: #fff; display: flex; align-items: center; gap: 18px; margin-bottom: 22px;
+  box-shadow: var(--shadow-lg);
+}
+.api-banner-icon { font-size: 30px; opacity: .7; flex-shrink: 0; }
+.api-banner h4 { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.api-banner p  { font-size: 13px; opacity: .75; }
+.api-banner-btn {
+  margin-left: auto; flex-shrink: 0;
+  background: rgba(255,255,255,0.15); color: #fff;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: var(--radius-sm); padding: 9px 20px;
+  font-family: var(--font); font-size: 13.5px; font-weight: 600;
+  text-decoration: none; transition: background .15s; white-space: nowrap;
+}
+.api-banner-btn:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+/* AI promo panel */
+.ai-panel {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);
+  border-radius: var(--radius); padding: 28px 30px;
+  color: var(--primary-xlight); margin-top: 22px;
+  position: relative; overflow: hidden; box-shadow: var(--shadow-lg);
+}
+.ai-panel::before {
+  content: ''; position: absolute; top: -60px; right: -60px;
+  width: 200px; height: 200px; border-radius: 50%;
+  background: rgba(161,194,189,0.1);
+}
+.ai-panel::after {
+  content: ''; position: absolute; bottom: -40px; left: -30px;
+  width: 140px; height: 140px; border-radius: 50%;
+  background: rgba(231,242,239,0.07);
+}
+.ai-panel h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; position: relative; }
+.ai-panel p  { font-size: 13.5px; opacity: .8; margin-bottom: 18px; max-width: 320px; line-height: 1.6; position: relative; }
+.ai-panel-btn {
+  background: rgba(255,255,255,0.15); color: var(--primary-xlight);
+  border: 1.5px solid rgba(255,255,255,0.25);
+  border-radius: var(--radius-sm); padding: 10px 22px;
+  font-family: var(--font); font-size: 13.5px; font-weight: 600;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 7px;
+  transition: all .2s; position: relative;
+}
+.ai-panel-btn:hover { background: rgba(255,255,255,0.25); color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="dash-header fade-in">
+  <h1>
+    Welcome back, {{ current_user.name.split()[0] }}
+    <!-- Illustrated wave hand — no emoji -->
+    <svg class="wave-icon" viewBox="0 0 40 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Palm body -->
+      <path d="M8 28 C7 23 7.5 18 9.5 15 L11 11 C11.8 9.2 13.8 8.7 15 9.8
+               L15 7.5 C15 5.8 16.3 4.5 18 4.5 C19.7 4.5 21 5.8 21 7.5
+               L21 6 C21 4.3 22.3 3 24 3 C25.7 3 27 4.3 27 6
+               L27 7.5 C27 5.8 28.3 4.5 30 4.5 C31.7 4.5 33 5.8 33 7.5
+               L33 16 C34 14.8 35.5 14.6 36.5 15.6 C37.7 16.8 37.3 18.8 36 20.5
+               L30.5 30 C28.5 33.8 24.5 36 20 36 L17 36
+               C12 36 8.8 33 8 28 Z"
+            fill="#FBBF24"/>
+      <!-- Finger shading lines -->
+      <line x1="21" y1="7.5" x2="21" y2="21" stroke="#F59E0B" stroke-width="1.1" stroke-linecap="round" opacity="0.5"/>
+      <line x1="27" y1="7.5" x2="27" y2="20" stroke="#F59E0B" stroke-width="1.1" stroke-linecap="round" opacity="0.5"/>
+      <line x1="15" y1="9.8" x2="15" y2="21" stroke="#F59E0B" stroke-width="1.1" stroke-linecap="round" opacity="0.5"/>
+      <!-- Knuckle highlight -->
+      <path d="M13 23 C16 22 20.5 22 25 22 C28 22 31 22.5 33 23.5"
+            stroke="#FDE68A" stroke-width="1.4" stroke-linecap="round" opacity="0.55"/>
+      <!-- Palm highlight -->
+      <ellipse cx="22" cy="29" rx="7" ry="4" fill="#FDE68A" opacity="0.25"/>
+    </svg>
+  </h1>
+  <p>Here's what's happening with your SQL workspace.</p>
+</div>
+
+{% if not current_user.gemini_key %}
+<div class="api-banner fade-in">
+  <i class="bi bi-key-fill api-banner-icon"></i>
+  <div>
+    <h4>Add Your Gemini API Key</h4>
+    <p>Unlock AI-powered schema parsing and intelligent SQL generation.</p>
+  </div>
+  <a href="{{ url_for('settings') }}" class="api-banner-btn">Add API Key →</a>
+</div>
+{% endif %}
+
+<!-- ── 5-card stats grid ── -->
+{% set streak = current_user.streak_days | default(0) or 0 %}
+<div class="stats-grid fade-in fade-in-1">
+
+  <!-- Total Queries — original design -->
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <div class="stat-card-icon dark"><i class="bi bi-terminal"></i></div>
+      <span class="stat-change"><i class="bi bi-arrow-up-short"></i> Active</span>
+    </div>
+    <div class="stat-label">Total Queries</div>
+    <div class="stat-value">{{ total_queries }}</div>
+  </div>
+
+  <!-- Schemas Uploaded — original design -->
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <div class="stat-card-icon mid"><i class="bi bi-layers"></i></div>
+      <span class="stat-change"><i class="bi bi-arrow-up-short"></i> Stored</span>
+    </div>
+    <div class="stat-label">Schemas Uploaded</div>
+    <div class="stat-value">{{ schemas|length }}</div>
+  </div>
+
+  <!-- AI Status — original design -->
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <div class="stat-card-icon {% if current_user.gemini_key %}teal{% else %}light{% endif %}">
+        <i class="bi bi-cpu"></i>
+      </div>
+      <span class="stat-change {% if current_user.gemini_key %}on{% endif %}">
+        {% if current_user.gemini_key %}<i class="bi bi-check-circle-fill"></i> ON{% else %}No Key{% endif %}
+      </span>
+    </div>
+    <div class="stat-label">AI Status</div>
+    <div class="stat-value sm">
+      {% if current_user.gemini_key %}Gemini Active{% else %}No Key Set{% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Activity — original design -->
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <div class="stat-card-icon light"><i class="bi bi-clock-history"></i></div>
+      <span class="stat-change">Recent</span>
+    </div>
+    <div class="stat-label">Recent Activity</div>
+    <div class="stat-value">{{ recent_queries|length }}</div>
+  </div>
+
+  <!-- Day Streak — same card format, theme colors, fire icon -->
+  <div class="stat-card">
+    <div class="stat-card-top">
+      <div class="stat-card-icon streak">
+        <!-- Custom fire SVG — no emoji -->
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C12 2 7 7 7 13C7 16.3 9.2 19 12 19C14.8 19 17 16.3 17 13
+                   C17 10.5 15.5 8.5 14 7C14 7 14 9 13 10C13 10 11 8 12 2Z"
+                fill="currentColor" opacity="0.9"/>
+          <path d="M12 8C12 8 10 11 10 13.5C10 15.4 10.9 17 12 17
+                   C13.1 17 14 15.4 14 13.5C14 12 13.2 10.5 12.5 9.5
+                   C12.5 9.5 12.5 11 12 11.5C12 11.5 11 10 12 8Z"
+                fill="white" opacity="0.35"/>
+          <ellipse cx="12" cy="19.5" rx="3.5" ry="1.5" fill="currentColor" opacity="0.25"/>
+        </svg>
+      </div>
+      <span class="stat-change str">
+        {% if streak >= 3 %}<i class="bi bi-arrow-up-short"></i> On Fire
+        {% else %}Keep Going{% endif %}
+      </span>
+    </div>
+    <div class="stat-label">Day Streak</div>
+    <div class="stat-value">{{ streak }}</div>
+    {% if streak < 3 %}
+    <div class="streak-prog">
+      <div class="streak-track">
+        <div class="streak-fill" style="width:{{ ((streak / 3) * 100) | round }}%"></div>
+      </div>
+      <div class="streak-meta">
+        <span>{{ streak }}/3 days to badge</span>
+        <span>{{ 3 - streak }} left</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="dash-grid">
+
+  <!-- Your Schemas -->
+  <div class="card fade-in fade-in-2">
+    <div class="card-header">
+      <div class="card-title">
+        <i class="bi bi-layers" style="color:var(--primary-mid);margin-right:8px;"></i>Your Schemas
+      </div>
+      <a href="{{ url_for('schemas') }}" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    <div class="card-body">
+      {% if schemas %}
+        {% for s in schemas[:5] %}
+        <a href="{{ url_for('schema_detail', schema_id=s.id) }}" style="text-decoration:none;color:inherit;display:block;">
+          <div class="schema-row">
+            <div class="schema-thumb"><i class="bi bi-database" style="color:var(--primary-mid);"></i></div>
+            <div class="flex-1">
+              <div class="schema-row-name">{{ s.schema_name or s.original_name }}</div>
+              <div class="schema-row-meta">{{ s.uploaded_at.strftime('%b %d, %Y') }} · {{ s.queries|length }} queries</div>
+            </div>
+            <i class="bi bi-chevron-right" style="color:var(--border);font-size:11px;"></i>
+          </div>
+        </a>
+        {% endfor %}
+        {% if schemas|length > 5 %}
+        <div style="text-align:center;padding:12px 0 0;">
+          <a href="{{ url_for('schemas') }}" style="font-size:13px;color:var(--primary-mid);font-weight:600;text-decoration:none;">
+            +{{ schemas|length - 5 }} more →
+          </a>
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="empty" style="padding:36px 0;">
+          <i class="bi bi-layers"></i>
+          <h4>No schemas yet</h4>
+          <p>Upload a database schema image to get started.</p>
+          <a href="{{ url_for('schemas') }}" class="btn btn-primary mt-3" style="display:inline-flex;">Upload Schema</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Queries -->
+  <div class="card fade-in fade-in-3">
+    <div class="card-header">
+      <div class="card-title">
+        <i class="bi bi-clock-history" style="color:var(--primary-mid);margin-right:8px;"></i>Recent Queries
+      </div>
+      <a href="{{ url_for('history') }}" class="btn btn-outline btn-sm">Full History</a>
+    </div>
+    <div class="card-body">
+      {% if recent_queries %}
+        {% for q in recent_queries %}
+        <div class="query-row">
+          <div class="query-row-text">{{ q.natural_query[:80] }}{% if q.natural_query|length > 80 %}…{% endif %}</div>
+          <div class="query-row-sql">{{ q.generated_sql[:80] }}…</div>
+          <div style="margin-top:7px;display:flex;gap:6px;align-items:center;">
+            <span class="badge {{ 'badge-dark' if q.model_used != 'heuristic' else 'badge-amber' }}">{{ q.model_used }}</span>
+            <span style="font-size:11px;color:var(--text-xs);font-family:var(--mono);">{{ q.created_at.strftime('%b %d · %H:%M') }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty" style="padding:36px 0;">
+          <i class="bi bi-terminal"></i>
+          <h4>No queries yet</h4>
+          <a href="{{ url_for('query_page') }}" class="btn btn-primary mt-3" style="display:inline-flex;">Generate SQL</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<div class="ai-panel fade-in fade-in-4">
+  <h3>Schema Analysis Assistant</h3>
+  <p>Upload your database schema images and let AI analyze the structure to generate intelligent SQL queries from natural language.</p>
+  <a href="{{ url_for('schemas') }}" class="ai-panel-btn"><i class="bi bi-upload"></i> Upload Schema</a>
+</div>
+
+{% endblock %}

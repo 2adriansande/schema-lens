@@ -1,0 +1,704 @@
+{% extends "base.html" %}
+{% block title %}Badges — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+/* ══════════════════════════════════════════════
+   BADGES PAGE — SchemaLens theme
+══════════════════════════════════════════════ */
+.bdg-page { max-width: 1020px; }
+
+/* ── Page header ── */
+.bdg-head { margin-bottom: 24px; }
+.bdg-head h1 {
+  font-size: 22px; font-weight: 700; color: var(--text);
+  letter-spacing: -.4px; display: flex; align-items: center; gap: 10px;
+  margin-bottom: 4px;
+}
+.bdg-head h1 .h-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.bdg-head h1 .h-icon svg { width: 17px; height: 17px; color: #fff; }
+.bdg-head p { font-size: 13.5px; color: var(--text-soft); }
+
+/* ── XP Level bar ── */
+.xp-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 22px;
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 16px;
+}
+.lvl-badge {
+  padding: 5px 14px; border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  color: var(--primary-xlight); font-size: 12px; font-weight: 700;
+  letter-spacing: .04em; flex-shrink: 0;
+}
+.xp-mid { flex: 1; min-width: 0; }
+.xp-labels { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.xp-labels .xl { font-size: 13px; font-weight: 600; color: var(--text); }
+.xp-labels .xr { font-size: 12px; color: var(--text-soft); }
+.xp-track { background: rgba(112,137,147,0.15); border-radius: 99px; height: 9px; overflow: hidden; }
+.xp-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-mid) 60%, rgba(161,194,189,0.9) 100%);
+  transition: width .8s cubic-bezier(.4,0,.2,1);
+  opacity: 1;
+}
+.xp-total { font-size: 13px; color: var(--text-soft); flex-shrink: 0; text-align: right; }
+.xp-total strong { font-size: 18px; font-weight: 800; color: var(--text); display: block; line-height: 1; }
+
+/* ── Stats strip ── */
+.stat-strip {
+  display: grid; grid-template-columns: repeat(6,1fr);
+  gap: 10px; margin-bottom: 16px;
+}
+@media(max-width:860px){ .stat-strip { grid-template-columns: repeat(3,1fr); } }
+@media(max-width:500px){ .stat-strip { grid-template-columns: repeat(2,1fr); } }
+.stat-tile {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow); padding: 14px 14px 12px;
+}
+.st-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.st-ico {
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.st-ico svg { width: 13px; height: 13px; }
+.st-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-soft); }
+.st-val { font-size: 20px; font-weight: 800; color: var(--text); line-height: 1; }
+.st-sub { font-size: 11px; color: #556b73; font-weight: 500; }
+
+/* ── Progress card ── */
+.prog-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px 22px; margin-bottom: 16px;
+}
+.prog-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.prog-row .pl { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.prog-row .pr { font-size: 12px; color: var(--text-soft); }
+.prog-track { background: rgba(112,137,147,0.15); border-radius: 99px; height: 9px; overflow: hidden; }
+.prog-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-mid) 60%, rgba(161,194,189,0.9) 100%);
+  transition: width .8s;
+}
+
+/* ── Next badge spotlight — always uses the app theme, not badge color ── */
+.next-card {
+  background: linear-gradient(135deg, rgba(161,194,189,0.18), rgba(112,137,147,0.08));
+  border: 1.5px solid var(--primary-light);
+  border-radius: var(--radius);
+  padding: 18px 22px; display: flex; align-items: center; gap: 18px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+.next-icon {
+  width: 50px; height: 50px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  color: var(--primary-xlight);
+  box-shadow: 0 3px 12px rgba(112,137,147,0.35);
+}
+.next-icon svg { width: 24px; height: 24px; }
+.next-body { flex: 1; min-width: 0; }
+.next-eyebrow {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--primary-mid); margin-bottom: 4px;
+}
+.next-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.next-desc { font-size: 12.5px; color: var(--text-soft); }
+.next-right { flex-shrink: 0; text-align: right; min-width: 120px; }
+.next-pct {
+  font-size: 22px; font-weight: 800; line-height: 1;
+  color: var(--primary-mid); margin-bottom: 7px;
+}
+.next-mini-track {
+  width: 120px; height: 7px;
+  background: rgba(112,137,147,0.15);
+  border-radius: 99px; overflow: hidden; margin-left: auto;
+}
+.next-mini-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-mid));
+}
+.next-frac { font-size: 11px; color: var(--text-soft); margin-top: 4px; }
+
+/* ── Section headers ── */
+.sec-hd {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--text-soft);
+  margin-bottom: 12px;
+}
+.sec-hd svg { width: 13px; height: 13px; flex-shrink: 0; }
+.sec-cnt {
+  background: rgba(255,255,255,0.6); border: 1px solid var(--border);
+  color: var(--text-soft); font-size: 10px;
+  padding: 1px 8px; border-radius: 99px;
+}
+
+/* ── Badge grid ── */
+.bdg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px; margin-bottom: 28px;
+  /* Make all rows equal height so cards in the same row stretch together */
+  align-items: stretch;
+}
+
+/* ══════════════════════════════════════════
+   BADGE CARD — flex column so progress bar
+   always sticks to the bottom
+══════════════════════════════════════════ */
+.bdg-card {
+  border-radius: var(--radius);
+  padding: 22px 16px 16px;
+  text-align: center; position: relative;
+  cursor: pointer;
+  transition: transform .2s, box-shadow .2s;
+  border: 1px solid transparent;
+
+  /* KEY FIX: flex column so .card-prog can use margin-top:auto */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Earned */
+.bdg-card.earned {
+  background: linear-gradient(145deg,
+    color-mix(in srgb, var(--bc, #708993) 18%, white),
+    color-mix(in srgb, var(--bc, #708993) 8%, white));
+  border-color: color-mix(in srgb, var(--bc, #708993) 30%, transparent);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--bc, #708993) 20%, transparent);
+}
+.bdg-card.earned:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 32px color-mix(in srgb, var(--bc, #708993) 30%, transparent);
+}
+
+/* Locked */
+.bdg-card.locked {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+  opacity: .7;
+}
+.bdg-card.locked:hover { transform: translateY(-2px); opacity: .9; }
+
+/* Badge icon ring */
+.bdg-ring {
+  width: 60px; height: 60px; border-radius: 50%;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .2s; flex-shrink: 0;
+}
+.bdg-ring svg { width: 26px; height: 26px; }
+.bdg-card:hover .bdg-ring { transform: scale(1.08); }
+/* Earned: solid tinted circle using the badge color */
+.bdg-card.earned .bdg-ring {
+  background: color-mix(in srgb, var(--bc, #708993) 20%, white);
+  border: 2px solid color-mix(in srgb, var(--bc, #708993) 35%, transparent);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--bc, #708993) 28%, transparent);
+}
+/* Locked: same but slightly more muted */
+.bdg-card.locked .bdg-ring {
+  background: color-mix(in srgb, var(--bc, #708993) 14%, white);
+  border: 2px solid color-mix(in srgb, var(--bc, #708993) 22%, transparent);
+}
+
+.bdg-name {
+  font-size: 13.5px; font-weight: 700; margin-bottom: 5px; width: 100%;
+}
+.bdg-card.earned .bdg-name { color: var(--text); }
+.bdg-card.locked .bdg-name { color: var(--text-soft); }
+
+.bdg-desc { font-size: 12px; line-height: 1.5; width: 100%; }
+.bdg-card.earned .bdg-desc { color: var(--text-soft); }
+.bdg-card.locked .bdg-desc { color: var(--text-xs); }
+
+/* Earned pill top-right */
+.earned-pill {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; padding: 2px 8px; border-radius: 99px;
+  color: #fff; opacity: .9;
+  display: flex; align-items: center; gap: 4px;
+}
+.earned-pill svg { width: 9px; height: 9px; }
+
+/* Lock icon top-right */
+.lock-ic {
+  position: absolute; top: 10px; right: 10px;
+  color: var(--text-xs);
+}
+.lock-ic svg { width: 12px; height: 12px; }
+
+/* Award date */
+.bdg-date {
+  font-size: 11px; color: var(--text-soft); margin-top: 5px;
+  opacity: .75; width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.bdg-date svg { width: 10px; height: 10px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════
+   CRITICAL FIX: progress bar always at bottom
+   margin-top: auto pushes it down regardless of
+   how many lines the description wraps to
+═══════════════════════════════════════════════ */
+.card-prog {
+  margin-top: auto;      /* ← pushes to bottom */
+  padding-top: 12px;     /* breathing room above bar */
+  width: 100%;
+}
+.card-prog-labels {
+  display: flex; justify-content: space-between;
+  font-size: 10.5px; margin-bottom: 4px;
+}
+.bdg-card.earned .card-prog-labels { color: var(--text-soft); }
+.bdg-card.locked .card-prog-labels { color: var(--text-xs); }
+.card-prog-track { height: 5px; border-radius: 99px; overflow: hidden; width: 100%; }
+.bdg-card.earned .card-prog-track { background: rgba(255,255,255,0.35); }
+.bdg-card.locked .card-prog-track { background: rgba(112,137,147,0.15); }
+.card-prog-fill {
+  height: 100%; border-radius: 99px;
+  background: var(--bc, var(--primary));
+  transition: width .6s;
+}
+.bdg-card.earned .card-prog-fill { background: rgba(255,255,255,0.7); }
+
+/* ── All-earned banner ── */
+.all-banner {
+  text-align: center; padding: 18px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(135deg, rgba(161,194,189,0.2), rgba(112,137,147,0.1));
+  border: 1px solid var(--primary-light); border-radius: var(--radius);
+  color: var(--primary-mid); font-weight: 600; font-size: 14px;
+}
+.all-banner svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* ── Modal ── */
+.modal-ov {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(25,24,59,0.5);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-ov.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--card-bg-solid);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 400px; position: relative;
+  transform: translateY(16px) scale(.97);
+  transition: transform .22s ease; overflow: hidden;
+}
+.modal-ov.open .modal-box { transform: none; }
+.modal-header-strip { height: 6px; }
+.modal-body-wrap { padding: 24px; }
+.modal-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(112,137,147,0.12); border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-soft);
+  transition: background .15s;
+}
+.modal-close:hover { background: rgba(212,24,61,0.1); color: var(--danger); }
+.modal-close svg { width: 15px; height: 15px; }
+.modal-icon {
+  width: 68px; height: 68px; border-radius: 50%;
+  margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-icon svg { width: 32px; height: 32px; }
+.modal-title { text-align: center; font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.modal-desc  { text-align: center; font-size: 13px; color: var(--text-soft); line-height: 1.6; margin-bottom: 18px; }
+.modal-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.modal-row:last-of-type { border-bottom: none; }
+.modal-row .ml { color: var(--text-soft); }
+.modal-row .mv { color: var(--text); font-weight: 600; }
+.modal-prog-wrap { margin: 16px 0 4px; }
+.modal-prog-track {
+  background: rgba(112,137,147,0.15); border-radius: 99px;
+  height: 8px; overflow: hidden; margin-bottom: 6px;
+}
+.modal-prog-fill { height: 100%; border-radius: 99px; transition: width .5s; }
+.modal-prog-meta { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-soft); }
+.modal-earned {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  background: rgba(14,124,90,0.08); border: 1px solid rgba(14,124,90,0.2);
+  color: var(--success); border-radius: var(--radius-sm);
+  padding: 10px; font-size: 13px; font-weight: 600; margin-top: 16px;
+}
+.modal-earned svg { width: 15px; height: 15px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ═══ BADGE DETAIL MODAL ═══ -->
+<div class="modal-ov" id="bdgModal" onclick="closeMOv(event)">
+  <div class="modal-box">
+    <div class="modal-header-strip" id="mStrip"></div>
+    <button class="modal-close" onclick="closeM()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="modal-body-wrap">
+      <div class="modal-icon" id="mIcon"></div>
+      <div class="modal-title" id="mTitle"></div>
+      <div class="modal-desc"  id="mDesc"></div>
+      <div id="mRows"></div>
+      <div class="modal-prog-wrap" id="mProgWrap">
+        <div class="modal-prog-track">
+          <div class="modal-prog-fill" id="mProgFill"></div>
+        </div>
+        <div class="modal-prog-meta">
+          <span id="mProgPct"></span>
+          <span id="mProgRem"></span>
+        </div>
+      </div>
+      <div id="mEarned"></div>
+    </div>
+  </div>
+</div>
+
+{# ── SVG icon helper ── #}
+{% macro svg(name, cls='') %}
+{% if name=='medal' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+{% elif name=='upload' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+{% elif name=='search' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+{% elif name=='zap' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+{% elif name=='trophy' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+{% elif name=='database' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+{% elif name=='flame' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+{% elif name=='sword' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/></svg>
+{% elif name=='gem' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><polyline points="2 9 12 14 22 9"/><line x1="12" y1="22" x2="12" y2="14"/><line x1="6" y1="3" x2="12" y2="14"/><line x1="18" y1="3" x2="12" y2="14"/></svg>
+{% elif name=='lock' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+{% elif name=='check' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+{% elif name=='check-circle' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+{% elif name=='star' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+{% elif name=='calendar' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+{% elif name=='layers' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+{% elif name=='lightning' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+{% elif name=='target' %}<svg class="{{cls}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+{% endif %}
+{% endmacro %}
+
+{# badge key → { icon name, color, ring-bg } #}
+{% set BM = {
+  'first_upload':      {'ico':'upload',   'color':'#4e90d3','ring':'rgba(78,144,211,.14)'},
+  'first_query':       {'ico':'search',   'color':'#14b8a6','ring':'rgba(20,184,166,.14)'},
+  'query_10':          {'ico':'zap',      'color':'#d97706','ring':'rgba(217,119,6,.14)'},
+  'query_50':          {'ico':'trophy',   'color':'#db2777','ring':'rgba(219,39,119,.14)'},
+  'schema_5':          {'ico':'database', 'color':'#9333ea','ring':'rgba(147,51,234,.14)'},
+  'streak_3':          {'ico':'flame',    'color':'#dc2626','ring':'rgba(220,38,38,.14)'},
+  'challenge_first':   {'ico':'sword',    'color':'#059669','ring':'rgba(5,150,105,.14)'},
+  'challenge_perfect': {'ico':'gem',      'color':'#0284c7','ring':'rgba(2,132,199,.14)'},
+} %}
+
+<div class="bdg-page">
+
+  <!-- Page header -->
+  <div class="bdg-head fade-in">
+    <h1>
+      <span class="h-icon">
+        {{ svg('medal') }}
+      </span>
+      Badges &amp; Achievements
+    </h1>
+    <p>Earn badges by uploading schemas, generating queries, completing challenges, and logging in daily.</p>
+  </div>
+
+  <!-- XP / Level bar -->
+  <div class="xp-card fade-in fade-in-1">
+    <div class="lvl-badge">LVL {{ level }}</div>
+    <div class="xp-mid">
+      <div class="xp-labels">
+        <span class="xl">Experience Points</span>
+        <span class="xr">{{ xp_in_level }} / {{ xp_to_next }} XP to Level {{ level + 1 }}</span>
+      </div>
+      <div class="xp-track">
+        <div class="xp-fill" style="width:{{ ((xp_in_level / xp_to_next) * 100) | round(1) }}%"></div>
+      </div>
+    </div>
+    <div class="xp-total">
+      <strong>{{ xp }}</strong>
+      Total XP
+    </div>
+  </div>
+
+  <!-- Stats strip -->
+  <div class="stat-strip fade-in fade-in-1">
+    <div class="stat-tile">
+      <div class="st-top">
+        <div class="st-ico" style="background:rgba(112,137,147,0.15);color:var(--primary-mid);">{{ svg('medal') }}</div>
+        <span class="st-lbl">Badges</span>
+      </div>
+      <div class="st-val">{{ earned_count }}<span class="st-sub"> / {{ total_count }}</span></div>
+    </div>
+    <div class="stat-tile">
+      <div class="st-top">
+        <div class="st-ico" style="background:rgba(14,124,90,0.12);color:var(--success);">{{ svg('search') }}</div>
+        <span class="st-lbl">Queries</span>
+      </div>
+      <div class="st-val">{{ query_count }}</div>
+    </div>
+    <div class="stat-tile">
+      <div class="st-top">
+        <div class="st-ico" style="background:rgba(180,83,9,0.1);color:var(--warning);">{{ svg('layers') }}</div>
+        <span class="st-lbl">Schemas</span>
+      </div>
+      <div class="st-val">{{ schema_count }}</div>
+    </div>
+    <div class="stat-tile">
+      <div class="st-top">
+        <div class="st-ico" style="background:rgba(212,24,61,0.1);color:var(--danger);">{{ svg('flame') }}</div>
+        <span class="st-lbl">Streak</span>
+      </div>
+      <div class="st-val">{{ streak }}<span class="st-sub"> {{ 'day' if streak == 1 else 'days' }}</span></div>
+    </div>
+    <div class="stat-tile">
+      <div class="st-top">
+        <div class="st-ico" style="background:rgba(2,132,199,0.1);color:#0284c7;">{{ svg('lightning') }}</div>
+        <span class="st-lbl">Challenges</span>
+      </div>
+      <div class="st-val">{{ challenge_count }}</div>
+    </div>
+    <div class="stat-tile">
+      <div class="st-top">
+        <div class="st-ico" style="background:rgba(139,92,246,0.1);color:#7c3aed;">{{ svg('trophy') }}</div>
+        <span class="st-lbl">Best Score</span>
+      </div>
+      <div class="st-val">{{ best_score }}<span class="st-sub">pts</span></div>
+    </div>
+  </div>
+
+  <!-- Overall progress -->
+  <div class="prog-card fade-in fade-in-2">
+    <div class="prog-row">
+      <span class="pl">Overall Progress</span>
+      <span class="pr">{{ earned_count }} of {{ total_count }} badges unlocked</span>
+    </div>
+    <div class="prog-track">
+      {% set opct = ((earned_count / total_count) * 100) | round(1) if total_count > 0 else 0 %}
+      <div class="prog-fill" style="width:{{ opct }}%"></div>
+    </div>
+  </div>
+
+  <!-- Next badge spotlight -->
+  {% if next_badge %}
+  {% set nm = BM.get(next_badge.key, {'ico':'star','color':'#708993','ring':'rgba(112,137,147,.14)'}) %}
+  <div class="next-card fade-in fade-in-2">
+    <div class="next-icon">
+      {{ svg(nm.ico) }}
+    </div>
+    <div class="next-body">
+      <div class="next-eyebrow">Next Badge to Unlock</div>
+      <div class="next-name">{{ next_badge.label }}</div>
+      <div class="next-desc">{{ next_badge.description }}</div>
+    </div>
+    <div class="next-right">
+      <div class="next-pct">{{ next_badge.progress }}%</div>
+      <div class="next-mini-track">
+        <div class="next-mini-fill" style="width:{{ next_badge.progress }}%;"></div>
+      </div>
+      <div class="next-frac">{{ next_badge.current }} / {{ next_badge.target }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── EARNED badges ── -->
+  {% set earned_list = badges | selectattr("earned") | list %}
+  {% set locked_list = badges | rejectattr("earned") | list %}
+
+  {% if earned_list %}
+  <div class="sec-hd fade-in">
+    {{ svg('check-circle') }}
+    Earned <span class="sec-cnt">{{ earned_list | length }}</span>
+  </div>
+  <div class="bdg-grid">
+    {% for b in earned_list %}
+    {% set m = BM.get(b.key, {'ico':'star','color':'#708993','ring':'rgba(112,137,147,.14)'}) %}
+    <div class="bdg-card earned"
+         style="--bc:{{ m.color }};"
+         onclick="openModal(this)"
+         data-ico="{{ m.ico }}"
+         data-label="{{ b.label }}"
+         data-desc="{{ b.description }}"
+         data-color="{{ m.color }}"
+         data-ring="{{ m.ring }}"
+         data-earned="1"
+         data-progress="{{ b.progress }}"
+         data-current="{{ b.current }}"
+         data-target="{{ b.target }}"
+         {% if badge_dates and badge_dates.get(b.key) %}
+         data-date="{{ badge_dates[b.key] | ph_time }}"
+         {% endif %}>
+      <span class="earned-pill" style="background:{{ m.color }};">
+        {{ svg('check') }} Earned
+      </span>
+      <div class="bdg-ring" style="color:{{ m.color }};">{{ svg(m.ico) }}</div>
+      <div class="bdg-name">{{ b.label }}</div>
+      <div class="bdg-desc">{{ b.description }}</div>
+      {% if badge_dates and badge_dates.get(b.key) %}
+      <div class="bdg-date">{{ svg('calendar') }} {{ badge_dates[b.key] | ph_time }}</div>
+      {% endif %}
+      <div class="card-prog">
+        <div class="card-prog-labels">
+          <span>Progress</span>
+          <span>{{ b.current }} / {{ b.target }}</span>
+        </div>
+        <div class="card-prog-track">
+          <div class="card-prog-fill" style="width:{{ b.progress }}%;"></div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── LOCKED badges ── -->
+  {% if locked_list %}
+  <div class="sec-hd fade-in">
+    {{ svg('lock') }}
+    Locked <span class="sec-cnt">{{ locked_list | length }}</span>
+  </div>
+  <div class="bdg-grid">
+    {% for b in locked_list %}
+    {% set m = BM.get(b.key, {'ico':'star','color':'#708993','ring':'rgba(112,137,147,.14)'}) %}
+    <div class="bdg-card locked"
+         style="--bc:{{ m.color }};"
+         onclick="openModal(this)"
+         data-ico="{{ m.ico }}"
+         data-label="{{ b.label }}"
+         data-desc="{{ b.description }}"
+         data-color="{{ m.color }}"
+         data-ring="{{ m.ring }}"
+         data-earned="0"
+         data-progress="{{ b.progress }}"
+         data-current="{{ b.current }}"
+         data-target="{{ b.target }}">
+      <span class="lock-ic">{{ svg('lock') }}</span>
+      <div class="bdg-ring" style="color:{{ m.color }};">{{ svg(m.ico) }}</div>
+      <div class="bdg-name">{{ b.label }}</div>
+      <div class="bdg-desc">{{ b.description }}</div>
+      <div class="card-prog">
+        <div class="card-prog-labels">
+          <span>Progress</span>
+          <span>{{ b.current }} / {{ b.target }}</span>
+        </div>
+        <div class="card-prog-track">
+          <div class="card-prog-fill" style="width:{{ b.progress }}%;background:{{ m.color }};"></div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if earned_count == total_count and total_count > 0 %}
+  <div class="all-banner fade-in">
+    {{ svg('star') }}
+    You've earned every badge — you're a SchemaLens master!
+  </div>
+  {% endif %}
+
+</div>
+
+{# Prerender SVGs for JS modal use #}
+<div id="svg-store" style="display:none">
+  {% for key, m in BM.items() %}
+  <span data-key="{{ key }}" data-ico="{{ m.ico }}">{{ svg(m.ico) }}</span>
+  {% endfor %}
+</div>
+
+<script>
+/* Build SVG lookup from server-rendered spans */
+const SVG_MAP = {};
+document.querySelectorAll('#svg-store span[data-ico]').forEach(el => {
+  SVG_MAP[el.dataset.ico] = el.innerHTML;
+});
+
+function openModal(el) {
+  const d       = el.dataset;
+  const earned  = d.earned === "1";
+  const color   = d.color;
+  const ring    = d.ring || 'rgba(112,137,147,0.12)';
+  const prog    = parseInt(d.progress) || 0;
+  const current = parseInt(d.current)  || 0;
+  const target  = parseInt(d.target)   || 1;
+  const remain  = Math.max(0, target - current);
+
+  /* Gradient header strip */
+  document.getElementById('mStrip').style.background =
+    `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color} 55%, white))`;
+
+  /* Icon */
+  const iconEl = document.getElementById('mIcon');
+  iconEl.style.background = ring;
+  iconEl.style.border = `2px solid color-mix(in srgb, ${color} 25%, transparent)`;
+  iconEl.style.color = color;
+  const svgContent = SVG_MAP[d.ico] || '';
+  /* Scale the SVG up for the modal */
+  iconEl.innerHTML = svgContent
+    .replace(/stroke-width="1\.8"/g, 'stroke-width="1.6"')
+    .replace(/<svg /, '<svg width="32" height="32" ');
+
+  document.getElementById('mTitle').textContent = d.label;
+  document.getElementById('mDesc').textContent  = d.desc;
+
+  /* Rows */
+  let rows = `
+    <div class="modal-row">
+      <span class="ml">Status</span>
+      <span class="mv" style="color:${earned ? 'var(--success)' : 'var(--text-soft)'}">
+        ${earned ? '&#10003; Earned' : 'Locked'}
+      </span>
+    </div>`;
+  if (earned && d.date) {
+    rows += `<div class="modal-row"><span class="ml">Earned on</span><span class="mv">${d.date}</span></div>`;
+  }
+  rows += `<div class="modal-row"><span class="ml">Progress</span><span class="mv">${current} / ${target}</span></div>`;
+  document.getElementById('mRows').innerHTML = rows;
+
+  /* Progress bar */
+  document.getElementById('mProgFill').style.width      = prog + '%';
+  document.getElementById('mProgFill').style.background = color;
+  document.getElementById('mProgPct').textContent       = prog + '% complete';
+  document.getElementById('mProgRem').textContent       = remain > 0 ? `${remain} remaining` : 'Complete!';
+
+  /* Earned footer */
+  document.getElementById('mEarned').innerHTML = earned
+    ? `<div class="modal-earned">
+         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+         Badge Earned
+       </div>`
+    : '';
+
+  document.getElementById('bdgModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeM()    { document.getElementById('bdgModal').classList.remove('open'); document.body.style.overflow = ''; }
+function closeMOv(e) { if (e.target.id === 'bdgModal') closeM(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeM(); });
+</script>
+{% endblock %}
