@@ -75,43 +75,98 @@
       padding: 0 24px;
       display: flex; align-items: center; gap: 12px;
       border-bottom: 1px solid var(--border);
-      transition: transform 1s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-
-    .sidebar-logo-link { text-decoration: none; }
-    .sidebar-logo-link:hover .logo-icon { transform: scale(1.08); }
-    
-
+    .sidebar-logo a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: inherit;
+      text-decoration: none;
+    }
     .logo-icon {
       width: 38px; height: 38px; border-radius: 10px;
       background: linear-gradient(135deg, var(--primary), var(--primary-mid));
       display: flex; align-items: center; justify-content: center;
       box-shadow: 0 4px 12px rgba(25,24,59,0.25);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .sidebar-logo a:hover .logo-icon {
+      transform: scale(1.08) rotate(3deg);
     }
     .logo-icon svg { width: 22px; height: 22px; }
     .logo-text { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -.4px; }
 
     .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    
+    /* ── ANIMATED NAV ITEMS ── */
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    
     .nav-item {
+      position: relative;
       display: flex; align-items: center; gap: 10px;
       padding: 10px 14px; border-radius: var(--radius-sm);
       color: var(--text-soft); text-decoration: none;
       font-size: 14px; font-weight: 500;
-      transition: all .2s; margin-bottom: 3px;
+      margin-bottom: 3px;
+      overflow: hidden;
+      z-index: 1;
+      transition: color .2s ease;
     }
-    .nav-item i { font-size: 17px; flex-shrink: 0; transition: transform .2s; }
-    .nav-item:hover {
-      background: rgba(255,255,255,0.8);
+    .nav-item i { font-size: 17px; flex-shrink: 0; transition: transform .2s, color .2s ease; position: relative; z-index: 2; }
+    .nav-item span { position: relative; z-index: 2; }
+    
+    /* Sliding Core Layer */
+    .nav-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+      border-radius: var(--radius-sm);
+      z-index: 1;
+      transform: translateX(-105%);
+    }
+
+    /* Soft hover background layer for inactive elements */
+    .nav-item:not(.active):hover {
       color: var(--text);
+    }
+    .nav-item:not(.active):not(.clicking):hover::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,0.8);
+      border-radius: var(--radius-sm);
+      z-index: 0;
       box-shadow: 0 2px 8px rgba(25,24,59,0.06);
     }
     .nav-item:hover i { transform: translateX(2px); }
+
+    /* Active Link (Runs immediately on new page load) */
     .nav-item.active {
-      background: linear-gradient(135deg, var(--primary), var(--primary-mid));
       color: var(--primary-xlight) !important;
       box-shadow: 0 4px 16px rgba(25,24,59,0.2);
     }
+    .nav-item.active::before {
+      animation: navSlideIn 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
     .nav-item.active i { color: var(--primary-xlight); transform: none; }
+
+    /* Interactive Click State (Triggers just before window reloads) */
+    .nav-item.clicking {
+      color: var(--primary-xlight) !important;
+      box-shadow: 0 4px 16px rgba(25,24,59,0.2);
+    }
+    .nav-item.clicking::before {
+      transform: translateX(0);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .nav-item.clicking i {
+      color: var(--primary-xlight);
+    }
+
+    @keyframes navSlideIn {
+      from { transform: translateX(-105%); }
+      to { transform: translateX(0); }
+    }
 
     .sidebar-footer {
       padding: 12px;
@@ -191,6 +246,7 @@
       background: rgba(255,255,255,0.6);
       border: 1px solid var(--border); border-radius: var(--radius-sm);
       cursor: pointer; transition: all .2s;
+      user-select: none;
     }
     .topbar-user:hover {
       background: rgba(255,255,255,0.9);
@@ -199,27 +255,16 @@
     .topbar-user .name { font-size: 13px; font-weight: 600; }
     .topbar-user .email { font-size: 11px; color: var(--text-xs); }
 
-    /* ── USER DROPDOWN MODIFICATIONS ── */
-    .topbar-user-wrapper {
+    /* ── USER DROPDOWN EXTRA STYLES ── */
+    .user-dropdown-wrapper {
       position: relative;
     }
-    .topbar-user .chevron-icon {
-      font-size: 10px; 
-      color: var(--text-xs); 
-      margin-left: 2px;
-      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .topbar-user-wrapper.active .chevron-icon {
-      transform: rotate(180deg);
-    }
-    .user-dropdown {
+    .user-dropdown-menu {
       position: absolute;
       top: calc(100% + 8px);
       right: 0;
-      width: 230px;
-      background: var(--card-bg);
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
+      width: 220px;
+      background: var(--card-bg-solid);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       box-shadow: var(--shadow-lg);
@@ -227,60 +272,76 @@
       display: none;
       flex-direction: column;
       z-index: 300;
-      animation: dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
     }
-    .topbar-user-wrapper.active .user-dropdown {
+    .user-dropdown-menu.show {
       display: flex;
-    }
-    @keyframes dropdownFadeIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .dropdown-header {
-      padding: 8px 12px 6px;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-soft);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      animation: dropdownFadeIn 0.2s ease forwards;
     }
     .dropdown-item {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 9px 12px;
+      padding: 10px 14px;
       border-radius: var(--radius-xs);
-      color: var(--text);
+      color: var(--text-soft);
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;
-      transition: all 0.15s ease;
+      transition: all 0.15s;
     }
-    .dropdown-item i {
-      font-size: 15px;
-      color: var(--text-soft);
-      transition: color 0.15s ease;
-    }
+    .dropdown-item i { font-size: 16px; }
     .dropdown-item:hover {
-      background: rgba(255, 255, 255, 0.85);
-      box-shadow: 0 2px 6px rgba(25,24,59,0.04);
+      background: rgba(25, 24, 59, 0.04);
+      color: var(--text);
     }
-    .dropdown-item:hover i {
-      color: var(--primary);
-    }
+    .dropdown-item.text-danger { color: var(--danger); }
+    .dropdown-item.text-danger:hover { background: rgba(212, 24, 61, 0.07); }
     .dropdown-divider {
-      height: 1px;
-      background: var(--border-soft);
+      border: none;
+      border-top: 1px solid var(--border-soft);
       margin: 6px 0;
     }
-    .dropdown-item.danger {
-      color: var(--danger);
+    @keyframes dropdownFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .dropdown-item.danger i {
-      color: var(--danger);
+
+    /* ── Ollama Status Badge ── */
+    .ollama-badge {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 13px; border-radius: var(--radius-sm);
+      font-size: 12px; font-weight: 600;
+      border: 1px solid; transition: all .3s; white-space: nowrap;
+      cursor: default; user-select: none;
     }
-    .dropdown-item.danger:hover {
-      background: rgba(212, 24, 61, 0.08);
+    .ollama-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      transition: background .3s;
+    }
+    .ollama-checking {
+      background: rgba(243,244,246,0.8);
+      border-color: rgba(209,213,219,0.6);
+      color: var(--text-xs);
+    }
+    .ollama-checking .ollama-dot {
+      background: #9ca3af;
+      animation: ollama-pulse 1.4s ease-in-out infinite;
+    }
+    .ollama-active {
+      background: rgba(209,250,229,0.7);
+      border-color: rgba(16,185,129,0.3);
+      color: #065f46;
+    }
+    .ollama-active .ollama-dot { background: #10b981; }
+    .ollama-inactive {
+      background: rgba(254,226,226,0.6);
+      border-color: rgba(220,38,38,0.2);
+      color: #991b1b;
+    }
+    .ollama-inactive .ollama-dot { background: #ef4444; }
+    @keyframes ollama-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .35; }
     }
 
     /* ── MAIN ── */
@@ -449,38 +510,38 @@
 
 {% if current_user.is_authenticated %}
 <aside class="sidebar">
-  <a href="{{ url_for('dashboard') }}" class="sidebar-logo-link">
   <div class="sidebar-logo">
-    <div class="logo-icon">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="50" cy="28" rx="26" ry="9" fill="#A1C2BD" opacity="0.6"/>
-        <rect x="24" y="28" width="52" height="38" fill="#A1C2BD" opacity="0.6"/>
-        <ellipse cx="50" cy="66" rx="26" ry="9" fill="#A1C2BD" opacity="0.6"/>
-        <ellipse cx="50" cy="28" rx="22" ry="7" fill="#E7F2EF" opacity="0.4"/>
-        <circle cx="50" cy="50" r="22" fill="none" stroke="#E7F2EF" stroke-width="1.5" opacity="0.7"/>
-        <line x1="28" y1="50" x2="42" y2="50" stroke="#E7F2EF" stroke-width="2" opacity="0.9"/>
-        <line x1="58" y1="50" x2="72" y2="50" stroke="#E7F2EF" stroke-width="2" opacity="0.9"/>
-        <circle cx="50" cy="50" r="5" fill="#E7F2EF"/>
-      </svg>
-    </div>
-    <span class="logo-text">SchemaLens</span>
+    <a href="{{ url_for('dashboard') }}">
+      <div class="logo-icon">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="50" cy="28" rx="26" ry="9" fill="#A1C2BD" opacity="0.6"/>
+          <rect x="24" y="28" width="52" height="38" fill="#A1C2BD" opacity="0.6"/>
+          <ellipse cx="50" cy="66" rx="26" ry="9" fill="#A1C2BD" opacity="0.6"/>
+          <ellipse cx="50" cy="28" rx="22" ry="7" fill="#E7F2EF" opacity="0.4"/>
+          <circle cx="50" cy="50" r="22" fill="none" stroke="#E7F2EF" stroke-width="1.5" opacity="0.7"/>
+          <line x1="28" y1="50" x2="42" y2="50" stroke="#E7F2EF" stroke-width="2" opacity="0.9"/>
+          <line x1="58" y1="50" x2="72" y2="50" stroke="#E7F2EF" stroke-width="2" opacity="0.9"/>
+          <circle cx="50" cy="50" r="5" fill="#E7F2EF"/>
+        </svg>
+      </div>
+      <span class="logo-text">SchemaLens</span>
+    </a>
   </div>
-  </a>
   <nav class="sidebar-nav">
     <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}">
-      <i class="bi bi-grid-1x2"></i> Dashboard
+      <i class="bi bi-grid-1x2"></i> <span>Dashboard</span>
     </a>
     <a href="{{ url_for('query_page') }}" class="nav-item {% if request.endpoint=='query_page' %}active{% endif %}">
-      <i class="bi bi-stars"></i> Query Generator
+      <i class="bi bi-stars"></i> <span>Query Generator</span>
     </a>
     <a href="{{ url_for('schemas') }}" class="nav-item {% if request.endpoint in ['schemas','schema_detail'] %}active{% endif %}">
-      <i class="bi bi-layers"></i> Database Tables
+      <i class="bi bi-layers"></i> <span>Database Tables</span>
     </a>
     <a href="{{ url_for('history') }}" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
-      <i class="bi bi-clock-history"></i> Query History
+      <i class="bi bi-clock-history"></i> <span>Query History</span>
     </a>
     <a href="{{ url_for('settings') }}" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
-      <i class="bi bi-sliders"></i> Settings
+      <i class="bi bi-sliders"></i> <span>Settings</span>
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -505,29 +566,25 @@
   <div class="topbar-right">
     <a href="{{ url_for('schemas') }}" class="icon-btn" title="Upload Schema"><i class="bi bi-upload"></i></a>
     
-    <div class="topbar-user-wrapper" id="topbarUserWrapper">
-      <div class="topbar-user">
+    <div class="user-dropdown-wrapper">
+      <div class="topbar-user" id="topbarUserBtn">
         <div class="user-avatar" style="width:30px;height:30px;font-size:11px;">{{ current_user.name[0].upper() }}</div>
         <div>
           <div class="name">{{ current_user.name }}</div>
           <div class="email">{{ current_user.email[:22] }}{% if current_user.email|length>22 %}…{% endif %}</div>
         </div>
-        <i class="bi bi-chevron-down chevron-icon"></i>
+        <i class="bi bi-chevron-down" style="font-size:10px;color:var(--text-xs);margin-left:2px;"></i>
       </div>
-      
-      <div class="user-dropdown">
-        <div class="dropdown-header">User Options</div>
+
+      <div class="user-dropdown-menu" id="userDropdownMenu">
         <a href="{{ url_for('settings') }}" class="dropdown-item">
-          <i class="bi bi-person-gear"></i> Account Settings
+          <i class="bi bi-sliders"></i> Settings
         </a>
-        <a href="{{ url_for('settings') }}" class="dropdown-item">
-          <i class="bi bi-palette"></i> Appearance
+        <a href="{{ url_for('history') }}" class="dropdown-item">
+          <i class="bi bi-clock-history"></i> My History
         </a>
-        <a href="{{ url_for('settings') }}" class="dropdown-item">
-          <i class="bi bi-shield-lock"></i> Security & Tokens
-        </a>
-        <div class="dropdown-divider"></div>
-        <a href="{{ url_for('logout') }}" class="dropdown-item danger">
+        <hr class="dropdown-divider">
+        <a href="{{ url_for('logout') }}" class="dropdown-item text-danger">
           <i class="bi bi-box-arrow-left"></i> Logout
         </a>
       </div>
@@ -544,7 +601,7 @@
           <i class="bi bi-{% if cat=='success' %}check-circle-fill{% elif cat=='error' %}x-circle-fill{% elif cat=='warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %}"></i>
           {{ msg }}
         </div>
-       biographical{% endfor %}{% endif %}
+      {% endfor %}{% endif %}
     {% endwith %}
     {% block content %}{% endblock %}
   </div>
@@ -559,24 +616,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('code.language-sql').forEach(el => hljs.highlightElement(el));
-
-  // Handle Topbar Dropdown Interactions Securely
-  const userWrapper = document.getElementById('topbarUserWrapper');
-  if (userWrapper) {
-    userWrapper.addEventListener('click', (e) => {
-      e.stopPropagation();
-      userWrapper.classList.toggle('active');
-    });
-
-    // Close on outside window clicks
-    document.addEventListener('click', (e) => {
-      if (!userWrapper.contains(e.target)) {
-        userWrapper.classList.remove('active');
-      }
-    });
-  }
 });
-
 function copySql(btn) {
   const code = btn.closest('.sql-code').querySelector('pre, code');
   navigator.clipboard.writeText(code.innerText);
@@ -585,5 +625,75 @@ function copySql(btn) {
 }
 </script>
 {% block scripts %}{% endblock %}
+
+<script>
+// ── Ollama Status Indicator ─────────────────────────────────────────────────
+(function () {
+  const badges = document.querySelectorAll('.ollama-status-badge');
+  if (!badges.length) return;
+
+  function setStatus(active) {
+    badges.forEach(badge => {
+      badge.className = 'ollama-status-badge ollama-badge ' + (active ? 'ollama-active' : 'ollama-inactive');
+      badge.title = active
+        ? 'Ollama is running · llama3.2:3b · SQL generation active'
+        : 'Ollama is offline · SQL generation unavailable · Start Ollama to enable';
+      const label = badge.querySelector('.ollama-label');
+      if (label) {
+        label.textContent = active ? 'Ollama Active' : 'Ollama Offline';
+      }
+    });
+  }
+
+  async function pollOllama() {
+    try {
+      const resp = await fetch('/api/ollama-status');
+      if (resp.ok) {
+        const data = await resp.json();
+        setStatus(data.active);
+      } else {
+        setStatus(false);
+      }
+    } catch (e) {
+      setStatus(false);
+    }
+  }
+
+  setTimeout(pollOllama, 800);
+  setInterval(pollOllama, 30000);
+})();
+
+// ── User Profile Dropdown Menu Trigger Logic ─────────────────────────────────
+(function () {
+  const userBtn = document.getElementById('topbarUserBtn');
+  const dropdownMenu = document.getElementById('userDropdownMenu');
+
+  if (!userBtn || !dropdownMenu) return;
+
+  userBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdownMenu.classList.toggle('show');
+  });
+
+  window.addEventListener('click', (e) => {
+    if (!dropdownMenu.contains(e.target) && !userBtn.contains(e.target)) {
+      dropdownMenu.classList.remove('show');
+    }
+  });
+})();
+
+// ── Sidebar Click Transition Handler ─────────────────────────────────────────
+(function () {
+  const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+  navItems.forEach(item => {
+    item.addEventListener('click', function (e) {
+      // If clicking already active tab, skip transition animation rules
+      if (this.classList.contains('active')) return;
+      
+      this.classList.add('clicking');
+    });
+  });
+})();
+</script>
 </body>
 </html>

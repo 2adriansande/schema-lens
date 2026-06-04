@@ -12,6 +12,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from sqlalchemy import text
+import urllib.request
 
 # ── App Setup ──────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent
@@ -25,6 +26,9 @@ app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{BASE_DIR / 'schemalens.db'}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = str(UPLOAD_FOLDER)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
+
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL    = "llama3.2:3b"
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -714,32 +718,67 @@ def parse_schema_with_gemini(ocr_text: str, api_key: str, image_path: str = None
         raise RuntimeError(f"All Gemini parsing stages failed: {exc}")
 
 
-# ── SQL generation ─────────────────────────────────────────────────────────
+# ── Ollama helpers ─────────────────────────────────────────────────────────
 
-def generate_sql_with_gemini(natural_query: str, schema: dict, api_key: str) -> str:
-    """Generate SQL from natural language using Gemini, schema-aware."""
+def _call_ollama(prompt: str, system: str = "") -> str:
+    """Call the local Ollama API with llama3.2:3b and return the response text."""
+    import json as _json
+    payload = {
+        "model": OLLAMA_MODEL,
+        "prompt": prompt,
+        "stream": False,
+    }
+    if system:
+        payload["system"] = system
+    data = _json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        f"{OLLAMA_BASE_URL}/api/generate",
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        result = _json.loads(resp.read().decode("utf-8"))
+    return result.get("response", "").strip()
+
+
+def check_ollama_active() -> bool:
+    """Return True if the Ollama server is reachable and the model is available."""
+    try:
+        req = urllib.request.Request(
+            f"{OLLAMA_BASE_URL}/api/tags",
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        models = [m.get("name", "") for m in data.get("models", [])]
+        return any(OLLAMA_MODEL in m for m in models)
+    except Exception:
+        return False
+
+
+# ── SQL generation via Ollama ──────────────────────────────────────────────
+
+def generate_sql_with_ollama(natural_query: str, schema: dict) -> str:
+    """Generate SQL from natural language using local Ollama (llama3.2:3b)."""
     schema_desc = _build_schema_description(schema)
+    system = (
+        "You are an expert SQL assistant. "
+        "Generate only valid SQL queries. "
+        "Return ONLY the SQL statement — no markdown, no backticks, no explanation."
+    )
     prompt = f"""{schema_desc}
 
 User Request: {natural_query}
 
 Generate a single, correct SQL query that satisfies the user's request.
 Use standard SQL syntax. Use table aliases where appropriate.
-Return ONLY the SQL query. No explanation. No markdown fences."""
-
-    try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash", contents=prompt
-        )
-        return _clean_json_response(response.text).lstrip("sql").strip()
-    except Exception:
-        import google.generativeai as genai_legacy
-        genai_legacy.configure(api_key=api_key)
-        model = genai_legacy.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content(prompt)
-        return _clean_json_response(response.text).lstrip("sql").strip()
+Return ONLY the SQL query."""
+    raw = _call_ollama(prompt, system=system)
+    # Strip accidental markdown fences
+    raw = re.sub(r'^```(?:sql)?\s*', '', raw, flags=re.MULTILINE)
+    raw = re.sub(r'\s*```\s*$', '', raw, flags=re.MULTILINE)
+    return raw.strip()
 
 
 def _build_schema_description(schema: dict) -> str:
@@ -959,32 +998,28 @@ def _fallback_sql(query: str, schema: dict) -> str:
 
 
 # ══════════════════════════════════════════════════════════════════
-# FEATURE 2: Plain-English SQL Explanation
+# FEATURE 2: Plain-English SQL Explanation via Ollama
 # ══════════════════════════════════════════════════════════════════
-def explain_sql_with_gemini(sql: str, api_key: str) -> str:
-    """Convert SQL into a plain English explanation for non-technical users."""
-    prompt = f"""You are a helpful database assistant explaining SQL to a non-technical person.
-
-Given this SQL query:
+def explain_sql_with_ollama(sql: str) -> str:
+    """Convert SQL into a plain English explanation using local Ollama."""
+    system = (
+        "You are a helpful database assistant explaining SQL to a non-technical person. "
+        "Be clear, friendly, and avoid technical jargon."
+    )
+    prompt = f"""Given this SQL query:
 {sql}
 
-Write a clear, friendly explanation in 2-4 sentences that:
-- Describes what data will be retrieved/modified
+Write a clear explanation in 2-4 sentences that:
+- Describes what data will be retrieved or modified
 - Mentions any filters or conditions in plain English
 - Avoids technical jargon
 - Starts with "This query..."
 
-Return ONLY the explanation text, nothing else."""
+Return ONLY the explanation text."""
     try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-        return response.text.strip()
+        return _call_ollama(prompt, system=system)
     except Exception:
-        import google.generativeai as genai_legacy
-        genai_legacy.configure(api_key=api_key)
-        model = genai_legacy.GenerativeModel("gemini-2.0-flash")
-        return model.generate_content(prompt).text.strip()
+        return explain_sql_fallback(sql)
 
 
 def explain_sql_fallback(sql: str) -> str:
@@ -1112,11 +1147,10 @@ def evaluate_sql_accuracy(sql: str, natural_query: str, schema: dict, api_key: s
     }
 
 
-def _ai_evaluate_sql(sql: str, natural_query: str, schema: dict, api_key: str) -> dict:
+def _ai_evaluate_sql(sql: str, natural_query: str, schema: dict, api_key: str = None) -> dict:
     schema_desc = _build_schema_description(schema)
-    prompt = f"""You are a senior database developer reviewing a generated SQL query.
-
-{schema_desc}
+    system = "You are a senior database developer reviewing generated SQL. Return ONLY valid JSON."
+    prompt = f"""{schema_desc}
 
 User's original request: "{natural_query}"
 
@@ -1133,18 +1167,11 @@ Evaluate this SQL query for correctness. Return ONLY a JSON object with this str
 Be concise. If the query looks correct, return empty arrays.
 Return ONLY the JSON, no markdown."""
     try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-        raw = _clean_json_response(response.text)
+        raw = _call_ollama(prompt, system=system)
+        raw = _clean_json_response(raw)
         return json.loads(raw)
     except Exception:
-        import google.generativeai as genai_legacy
-        genai_legacy.configure(api_key=api_key)
-        model = genai_legacy.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content(prompt)
-        raw = _clean_json_response(response.text)
-        return json.loads(raw)
+        return {"confidence": 70, "additional_issues": [], "suggestions": []}
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1155,18 +1182,20 @@ def refine_sql_with_conversation(
     refinement_request: str,
     conversation_history: list,
     schema: dict,
-    api_key: str
+    api_key: str = None
 ) -> str:
-    """Refine an existing SQL query based on follow-up natural language instructions."""
+    """Refine an existing SQL query based on follow-up instructions using Ollama."""
     schema_desc = _build_schema_description(schema)
     history_str = ""
     for turn in conversation_history[-6:]:
         role = "User" if turn["role"] == "user" else "System"
         history_str += f"{role}: {turn['content']}\n"
 
-    prompt = f"""You are an intelligent SQL assistant helping refine queries through conversation.
-
-{schema_desc}
+    system = (
+        "You are an intelligent SQL assistant. "
+        "Return ONLY the updated SQL query — no markdown, no backticks, no explanation."
+    )
+    prompt = f"""{schema_desc}
 
 Conversation history:
 {history_str}
@@ -1178,19 +1207,11 @@ User's refinement request: "{refinement_request}"
 
 Modify the SQL query to incorporate the user's refinement.
 Keep all previous conditions unless the user explicitly asks to remove them.
-Return ONLY the updated SQL query, no explanation, no markdown fences."""
-
-    try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-        return _clean_json_response(response.text).lstrip("sql").strip()
-    except Exception:
-        import google.generativeai as genai_legacy
-        genai_legacy.configure(api_key=api_key)
-        model = genai_legacy.GenerativeModel("gemini-2.0-flash")
-        raw = model.generate_content(prompt).text.strip()
-        return raw.lstrip("```sql").lstrip("```").rstrip("```").strip()
+Return ONLY the updated SQL query."""
+    raw = _call_ollama(prompt, system=system)
+    raw = re.sub(r'^```(?:sql)?\s*', '', raw, flags=re.MULTILINE)
+    raw = re.sub(r'\s*```\s*$', '', raw, flags=re.MULTILINE)
+    return raw.strip()
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1500,28 +1521,32 @@ def generate_sql():
     sql = ""
     model_used = ""
 
-    if api_key and parsed.get("tables"):
+    ollama_ok = check_ollama_active()
+
+    if ollama_ok and parsed.get("tables"):
         try:
-            sql = generate_sql_with_gemini(natural_query, parsed, api_key)
-            model_used = "gemini-2.0-flash"
+            sql = generate_sql_with_ollama(natural_query, parsed)
+            model_used = f"ollama/{OLLAMA_MODEL}"
         except Exception as exc:
-            return jsonify({"error": f"Gemini error: {exc}"}), 500
+            # Ollama failed — fall back to heuristic
+            sql = _fallback_sql(natural_query, parsed)
+            model_used = "heuristic"
     else:
         sql = _fallback_sql(natural_query, parsed)
         model_used = "heuristic"
 
-    # Feature 2: Generate explanation
+    # Feature 2: Generate explanation via Ollama
     explanation = ""
-    if api_key:
+    if ollama_ok:
         try:
-            explanation = explain_sql_with_gemini(sql, api_key)
+            explanation = explain_sql_with_ollama(sql)
         except Exception:
             explanation = explain_sql_fallback(sql)
     else:
         explanation = explain_sql_fallback(sql)
 
-    # Feature 4: Evaluate accuracy
-    eval_result = evaluate_sql_accuracy(sql, natural_query, parsed, api_key if api_key else None)
+    # Feature 4: Evaluate accuracy (Ollama for AI eval if active)
+    eval_result = evaluate_sql_accuracy(sql, natural_query, parsed, None)
 
     # Feature 3: Initialize conversation context
     conversation = [
@@ -1548,7 +1573,8 @@ def generate_sql():
         "model": model_used,
         "query_id": history.id,
         "explanation": explanation,
-        "evaluation": eval_result
+        "evaluation": eval_result,
+        "ollama_active": ollama_ok
     })
 
 
@@ -1589,8 +1615,9 @@ def refine_sql():
                 parsed = json.loads(raw)
 
     api_key = current_user.gemini_key
-    if not api_key:
-        return jsonify({"error": "Gemini API key required for query refinement."}), 400
+
+    if not check_ollama_active():
+        return jsonify({"error": "Ollama is not running. Please start Ollama to use query refinement."}), 400
 
     # Load conversation history
     try:
@@ -1606,8 +1633,7 @@ def refine_sql():
             history_obj.generated_sql,
             refinement,
             conversation,
-            parsed,
-            api_key
+            parsed
         )
     except Exception as exc:
         return jsonify({"error": f"Refinement failed: {exc}"}), 500
@@ -1615,14 +1641,14 @@ def refine_sql():
     # Update conversation
     conversation.append({"role": "assistant", "content": new_sql})
 
-    # Feature 2: New explanation
+    # Feature 2: New explanation via Ollama
     try:
-        explanation = explain_sql_with_gemini(new_sql, api_key)
+        explanation = explain_sql_with_ollama(new_sql)
     except Exception:
         explanation = explain_sql_fallback(new_sql)
 
     # Feature 4: Re-evaluate
-    eval_result = evaluate_sql_accuracy(new_sql, refinement, parsed, api_key)
+    eval_result = evaluate_sql_accuracy(new_sql, refinement, parsed, None)
 
     # Save refined query as new history entry
     new_history = QueryHistory(
@@ -1630,7 +1656,7 @@ def refine_sql():
         schema_id=schema_obj.id if schema_obj else history_obj.schema_id,
         natural_query=f"[Refined] {refinement}",
         generated_sql=new_sql,
-        model_used="gemini-2.0-flash",
+        model_used=f"ollama/{OLLAMA_MODEL}",
         sql_explanation=explanation,
         accuracy_score=eval_result["score"],
         accuracy_notes=json.dumps(eval_result),
@@ -1656,15 +1682,22 @@ def explain_sql_endpoint():
     sql = (data.get("sql") or "").strip()
     if not sql:
         return jsonify({"error": "SQL cannot be empty."}), 400
-    api_key = current_user.gemini_key
-    if api_key:
+    if check_ollama_active():
         try:
-            explanation = explain_sql_with_gemini(sql, api_key)
+            explanation = explain_sql_with_ollama(sql)
         except Exception:
             explanation = explain_sql_fallback(sql)
     else:
         explanation = explain_sql_fallback(sql)
     return jsonify({"explanation": explanation})
+
+
+# ── Ollama status endpoint ──
+@app.route("/api/ollama-status")
+@login_required
+def ollama_status():
+    active = check_ollama_active()
+    return jsonify({"active": active, "model": OLLAMA_MODEL, "url": OLLAMA_BASE_URL})
 
 
 # ── FEATURE 4: Standalone evaluation endpoint ──
@@ -1685,8 +1718,7 @@ def evaluate_sql_endpoint():
             raw = schema_obj.confirmed_schema or schema_obj.parsed_schema
             if raw:
                 parsed = json.loads(raw)
-    api_key = current_user.gemini_key
-    result = evaluate_sql_accuracy(sql, natural_query, parsed, api_key if api_key else None)
+    result = evaluate_sql_accuracy(sql, natural_query, parsed, None)
     return jsonify(result)
 
 

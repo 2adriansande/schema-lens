@@ -45,7 +45,7 @@
   transition: opacity .15s;
 }
 .schema-row:last-child { border-bottom: none; }
-.schema-row:hover { opacity: .8;border:solid .4px var(--border); border-width:1px 0; }
+.schema-row:hover { opacity: .8; }
 .schema-thumb {
   width: 40px; height: 40px; border-radius: 10px;
   background: linear-gradient(135deg, var(--primary-xlight), rgba(161,194,189,0.3));
@@ -157,11 +157,17 @@
     <div class="stat-value">{{ schemas|length }}</div>
   </div>
   <div class="stat-card">
-    <div class="stat-card-top">
+    <div class="stat-card-top" style="align-items:flex-start; gap:10px;">
       <div class="stat-card-icon {% if current_user.gemini_key %}teal{% else %}light{% endif %}"><i class="bi bi-cpu"></i></div>
-      <span class="stat-change{% if current_user.gemini_key %} active{% endif %}" {% if current_user.gemini_key %}style="background:rgba(14,124,90,0.12);color:#0e7c5a;"{% endif %}>
-        {% if current_user.gemini_key %}<i class="bi bi-check-circle-fill"></i> ON{% else %}No Key{% endif %}
-      </span>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="ollama-status-badge ollama-badge ollama-checking" title="Checking Ollama status…">
+          <span class="ollama-dot"></span>
+          <span class="ollama-label">Ollama</span>
+        </span>
+        <span class="stat-change" {% if current_user.gemini_key %}style="background:rgba(14,124,90,0.12);color:#0e7c5a;"{% endif %}>
+          {% if current_user.gemini_key %}<i class="bi bi-check-circle-fill"></i> ON{% else %}No Key{% endif %}
+        </span>
+      </div>
     </div>
     <div class="stat-label">AI Status</div>
     <div class="stat-value" style="font-size:20px;padding-top:4px;">
