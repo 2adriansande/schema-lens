@@ -6,7 +6,7 @@
 /* ══════════════════════════════════════════════
    BADGES PAGE — SchemaLens theme
 ══════════════════════════════════════════════ */
-.bdg-page { max-width: 1020px; }
+.bdg-page { width: 100%; }
 
 /* ── Page header ── */
 .bdg-head { margin-bottom: 24px; }
@@ -503,9 +503,11 @@
     </div>
   </div>
 
-  <!-- Next badge spotlight -->
-  {% if next_badge %}
+{% if next_badge %}
   {% set nm = BM.get(next_badge.key, {'ico':'star','color':'#708993','ring':'rgba(112,137,147,.14)'}) %}
+  {# Defensive bounds cap for next badge calculations #}
+  {% set next_display_current = next_badge.target if next_badge.current > next_badge.target else next_badge.current %}
+  {% set next_display_progress = 100 if next_badge.current >= next_badge.target else next_badge.progress %}
   <div class="next-card fade-in fade-in-2">
     <div class="next-icon">
       {{ svg(nm.ico) }}
@@ -516,11 +518,11 @@
       <div class="next-desc">{{ next_badge.description }}</div>
     </div>
     <div class="next-right">
-      <div class="next-pct">{{ next_badge.progress }}%</div>
+      <div class="next-pct">{{ next_display_progress }}%</div>
       <div class="next-mini-track">
-        <div class="next-mini-fill" style="width:{{ next_badge.progress }}%;"></div>
+        <div class="next-mini-fill" style="width:{{ next_display_progress }}%;"></div>
       </div>
-      <div class="next-frac">{{ next_badge.current }} / {{ next_badge.target }}</div>
+      <div class="next-frac">{{ next_display_current }} / {{ next_badge.target }}</div>
     </div>
   </div>
   {% endif %}
@@ -534,7 +536,7 @@
     {{ svg('check-circle') }}
     Earned <span class="sec-cnt">{{ earned_list | length }}</span>
   </div>
-  <div class="bdg-grid">
+ <div class="bdg-grid">
     {% for b in earned_list %}
     {% set m = BM.get(b.key, {'ico':'star','color':'#708993','ring':'rgba(112,137,147,.14)'}) %}
     <div class="bdg-card earned"
@@ -546,8 +548,8 @@
          data-color="{{ m.color }}"
          data-ring="{{ m.ring }}"
          data-earned="1"
-         data-progress="{{ b.progress }}"
-         data-current="{{ b.current }}"
+         data-progress="100"
+         data-current="{{ b.target }}"
          data-target="{{ b.target }}"
          {% if badge_dates and badge_dates.get(b.key) %}
          data-date="{{ badge_dates[b.key] | ph_time }}"
@@ -564,10 +566,10 @@
       <div class="card-prog">
         <div class="card-prog-labels">
           <span>Progress</span>
-          <span>{{ b.current }} / {{ b.target }}</span>
+          <span>{{ b.target }} / {{ b.target }}</span>
         </div>
         <div class="card-prog-track">
-          <div class="card-prog-fill" style="width:{{ b.progress }}%;"></div>
+          <div class="card-prog-fill" style="width:100%;"></div>
         </div>
       </div>
     </div>
@@ -584,6 +586,9 @@
   <div class="bdg-grid">
     {% for b in locked_list %}
     {% set m = BM.get(b.key, {'ico':'star','color':'#708993','ring':'rgba(112,137,147,.14)'}) %}
+    {# Enforce structural cap layout parameters dynamically via context #}
+    {% set display_current = b.target if b.current > b.target else b.current %}
+    {% set display_progress = 100 if b.current >= b.target else b.progress %}
     <div class="bdg-card locked"
          style="--bc:{{ m.color }};"
          onclick="openModal(this)"
@@ -593,8 +598,8 @@
          data-color="{{ m.color }}"
          data-ring="{{ m.ring }}"
          data-earned="0"
-         data-progress="{{ b.progress }}"
-         data-current="{{ b.current }}"
+         data-progress="{{ display_progress }}"
+         data-current="{{ display_current }}"
          data-target="{{ b.target }}">
       <span class="lock-ic">{{ svg('lock') }}</span>
       <div class="bdg-ring" style="color:{{ m.color }};">{{ svg(m.ico) }}</div>
@@ -603,10 +608,10 @@
       <div class="card-prog">
         <div class="card-prog-labels">
           <span>Progress</span>
-          <span>{{ b.current }} / {{ b.target }}</span>
+          <span>{{ display_current }} / {{ b.target }}</span>
         </div>
         <div class="card-prog-track">
-          <div class="card-prog-fill" style="width:{{ b.progress }}%;background:{{ m.color }};"></div>
+          <div class="card-prog-fill" style="width:{{ display_progress }}%;background:{{ m.color }};"></div>
         </div>
       </div>
     </div>
