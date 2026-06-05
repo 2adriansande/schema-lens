@@ -543,6 +543,7 @@
     <a href="{{ url_for('settings') }}" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
       <i class="bi bi-sliders"></i> <span>Settings</span>
     </a>
+  
   </nav>
   <div class="sidebar-footer">
     <div class="user-row">
@@ -551,10 +552,7 @@
         <div class="user-name">{{ current_user.name }}</div>
         <div class="user-email">{{ current_user.email[:26] }}{% if current_user.email|length > 26 %}…{% endif %}</div>
       </div>
-    </div>
-    <a href="{{ url_for('logout') }}" class="logout-link">
-      <i class="bi bi-box-arrow-left"></i> Logout
-    </a>
+    </div>  
   </div>
 </aside>
 

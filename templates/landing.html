@@ -440,7 +440,7 @@
         <div class="demo-footer">
           <div class="demo-dot" id="statusDot" style="background:#b45309;"></div>
           <span class="demo-status-text" id="statusLabel" style="color:#92400e;">Analyzing Schema</span>
-          <span style="margin-left:auto;font-size:12px;color:var(--text-soft);font-family:var(--mono);" id="modelLabel">gemini-2.0-flash · --</span>
+          <span style="margin-left:auto;font-size:12px;color:var(--text-soft);font-family:var(--mono);" id="modelLabel"> llama3.2-3b · --</span>
         </div>
       </div>
     </div>
@@ -798,7 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
     statusDot.style.background = "#b45309";
     statusLabel.style.color = "#92400e";
     statusLabel.textContent = "Awaiting input stream";
-    modelLabel.textContent = "gemini-2.0-flash · --";
+    modelLabel.textContent = "llama3.2-3b · --";
 
     // Step 1: Type Natural Language Prompt
     function typeNaturalQuery() {
@@ -840,7 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           // Finalize render, drop raw flashing cursor blocks, apply telemetry logs
           sqlTerminalCode.innerHTML = tokenHighlighter(currentLoop.sqlRaw);
-          modelLabel.textContent = `gemini-2.0-flash · ${currentLoop.metrics}`;
+          modelLabel.textContent = `llama3.2-3b · ${currentLoop.metrics}`;
           statusLabel.textContent = "Query generation optimization success";
           
           // Hold full screen query visibility before cycling to the next example

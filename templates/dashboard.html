@@ -140,13 +140,16 @@
 {% endif %}
 
 <div class="stats-grid fade-in fade-in-1">
-  <div class="stat-card">
+  <div class="stat-card"  id="total-queries">
+    <a href="{{ url_for('query_page') }}" style="text-decoration:none">
     <div class="stat-card-top">
       <div class="stat-card-icon dark"><i class="bi bi-terminal"></i></div>
       <span class="stat-change"><i class="bi bi-arrow-up-short"></i> Active</span>
     </div>
+    
     <div class="stat-label">Total Queries</div>
     <div class="stat-value">{{ total_queries }}</div>
+    </a>
   </div>
   <div class="stat-card">
     <div class="stat-card-top">
