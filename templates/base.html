@@ -97,10 +97,9 @@
     .logo-text { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -.4px; }
 
     .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-section { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-xs); letter-spacing: .05em; margin: 18px 0 8px 14px; }
     
     /* ── ANIMATED NAV ITEMS ── */
-    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
-    
     .nav-item {
       position: relative;
       display: flex; align-items: center; gap: 10px;
@@ -113,7 +112,7 @@
       transition: color .2s ease;
     }
     .nav-item i { font-size: 17px; flex-shrink: 0; transition: transform .2s, color .2s ease; position: relative; z-index: 2; }
-    .nav-item span { position: relative; z-index: 2; }
+    .nav-item span { position: relative; z-index: 2; display: inline-block; }
     
     /* Sliding Core Layer */
     .nav-item::before {
@@ -148,7 +147,7 @@
     .nav-item.active::before {
       animation: navSlideIn 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
-    .nav-item.active i { color: var(--primary-xlight); transform: none; }
+    .nav-item.active i { color: var(--primary-xlight) !important; transform: none; }
 
     /* Interactive Click State (Triggers just before window reloads) */
     .nav-item.clicking {
@@ -160,7 +159,7 @@
       transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .nav-item.clicking i {
-      color: var(--primary-xlight);
+      color: var(--primary-xlight) !important;
     }
 
     @keyframes navSlideIn {
@@ -540,6 +539,17 @@
     <a href="{{ url_for('history') }}" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
       <i class="bi bi-clock-history"></i> <span>Query History</span>
     </a>
+
+    <div class="nav-section">Engage</div>
+    <a href="{{ url_for('challenge_page') }}" class="nav-item {% if request.endpoint=='challenge_page' %}active{% endif %}">
+      <i class="bi bi-lightning-charge"></i> <span>SQL Challenge</span>
+    </a>
+    <a href="{{ url_for('badges_page') }}"    class="nav-item {% if request.endpoint=='badges_page' %}active{% endif %}">
+      <i class="bi bi-award"></i> <span>Badges</span>
+    </a>
+    <a href="{{ url_for('leaderboard') }}"    class="nav-item {% if request.endpoint=='leaderboard' %}active{% endif %}">
+      <i class="bi bi-bar-chart-line"></i> <span>Leaderboard</span>
+    </a>
     <a href="{{ url_for('settings') }}" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
       <i class="bi bi-sliders"></i> <span>Settings</span>
     </a>
@@ -685,9 +695,7 @@ function copySql(btn) {
   const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
   navItems.forEach(item => {
     item.addEventListener('click', function (e) {
-      // If clicking already active tab, skip transition animation rules
       if (this.classList.contains('active')) return;
-      
       this.classList.add('clicking');
     });
   });

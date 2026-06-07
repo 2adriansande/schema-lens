@@ -381,10 +381,17 @@
     flex: 1;
   }
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 {% endblock %}
 
 {% block content %}
+<div id="schema-data-store" 
+     data-schema-id="{{ schema.id if schema else '' }}" 
+     data-parsed-json='{{ parsed | tojson | safe if parsed else "{}" }}' 
+     style="display: none;">
+</div>
+
 <div class="confirm-header fade-in">
   <h1><i class="bi bi-patch-check" style="color:var(--primary-mid);margin-right:10px;"></i>Confirm Detected Schema</h1>
   <p>Review and correct the AI-detected tables, columns, and relationships before using for query generation.</p>
@@ -462,7 +469,9 @@
             <span style="font-size:13.5px;color:var(--text-soft);">Columns Extracted</span>
             <span id="colCount" class="badge badge-light">
               {% set total_cols = namespace(n=0) %}
-              {% for t in parsed.tables %}{% set total_cols.n = total_cols.n + t.columns|length %}{% endfor %}
+              {% if parsed.tables %}
+                {% for t in parsed.tables %}{% set total_cols.n = total_cols.n + t.columns|length %}{% endfor %}
+              {% endif %}
               {{ total_cols.n }}
             </span>
           </div>
@@ -470,12 +479,12 @@
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
               <span style="font-size:13px;color:var(--text-soft);font-weight: 500;">Overall Precision</span>
               <span id="confPct" style="font-size:13px;font-weight:700;color:var(--primary);">
-                {% if parsed.tables|length > 0 %}{{ [75 + (parsed.tables|length * 5), 98]|min }}%{% else %}0%{% endif %}
+                {% if parsed.tables and parsed.tables|length > 0 %}{{ [75 + (parsed.tables|length * 5), 98]|min }}%{% else %}0%{% endif %}
               </span>
             </div>
             <div class="confidence-bar-bg">
-              <div class="confidence-bar-fill" id="confBar"
-                   style="width:{% if parsed.tables|length > 0 %}{{ [75 + (parsed.tables|length * 5), 98]|min }}{% else %}0{% endif %}%;background:linear-gradient(90deg,var(--primary-mid),var(--primary-light));"></div>
+               {% set calculated_width = [75 + (parsed.tables|length * 5), 98]|min if (parsed.tables and parsed.tables|length > 0) else 0 %}
+               <div class="confidence-bar-fill" id="confBar" style="--calculated-width: {{ calculated_width }}%; width: var(--calculated-width); background: linear-gradient(90deg, var(--primary-mid), var(--primary-light));"></div>
             </div>
           </div>
         </div>
@@ -591,9 +600,11 @@
 <div class="action-bar-spacer"></div>
 <div class="action-bar">
   <div class="action-bar-left">
+    {% if schema and schema.id %}
     <a href="{{ url_for('schema_detail', schema_id=schema.id) }}" class="btn btn-ghost">
       <i class="bi bi-skip-forward"></i> Skip Confirmation
     </a>
+    {% endif %}
     <span style="font-size:13px;font-weight:500;" id="saveStatus"></span>
   </div>
   <div class="action-bar-right">
@@ -609,8 +620,10 @@
 
 {% block scripts %}
 <script>
-const schemaId = {{ schema.id }};
-const originalParsed = {{ parsed | tojson }};
+// Extract server configurations from the DOM abstraction layer safely
+const dataBridge = document.getElementById('schema-data-store');
+const schemaId = dataBridge ? dataBridge.dataset.schemaId : '';
+const originalParsed = dataBridge ? JSON.parse(dataBridge.dataset.parsedJson) : {};
 
 function toggleOcr() {
   const el = document.getElementById('ocrText');
@@ -778,6 +791,10 @@ async function confirmAndSave() {
     alert('Please add at least one table before confirming.');
     return;
   }
+  if (!schemaId) {
+    alert('Invalid schema identification target pipeline index context.');
+    return;
+  }
 
   const btn = document.getElementById('confirmBtn');
   btn.disabled = true;
@@ -803,9 +820,7 @@ async function confirmAndSave() {
   }
 }
 
+// Initial status setup parsing call context loop execution bound
 updateStats();
 </script>
-<style>
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
 {% endblock %}

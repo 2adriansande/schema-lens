@@ -1,0 +1,986 @@
+{% extends "base.html" %}
+{% block title %}SQL Challenge — SchemaLens{% endblock %}
+{% block head %}
+<style>
+/* ══════════════════════════════════════════════
+   SQL CHALLENGE — SchemaLens theme
+══════════════════════════════════════════════ */
+.ch-layout {
+  display: grid;
+  grid-template-columns: 1fr 288px;
+  gap: 20px; align-items: start;
+}
+
+/* Page header */
+.pg-head { margin-bottom: 22px; }
+.pg-head h1 {
+  font-size: 22px; font-weight: 700; color: var(--text);
+  letter-spacing: -.4px; display: flex; align-items: center; gap: 10px;
+  margin-bottom: 4px;
+}
+.pg-head-row { display: flex; align-items: center; gap: 12px; }
+.pg-head p   { font-size: 13.5px; color: var(--text-soft); }
+
+/* How to play button */
+.btn-how {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.6); color: var(--text-soft);
+  border: 1px solid var(--border);
+  font-family: var(--font); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.btn-how:hover {
+  background: rgba(255,255,255,0.9); color: var(--primary);
+  border-color: var(--primary-light);
+}
+
+/* ── Modal overlay ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9999;
+  background: rgba(25,24,59,0.45);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: #fff; border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 520px; margin: 20px;
+  animation: fadeIn .25s ease both;
+}
+.modal-head {
+  padding: 18px 22px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-head h3 { font-size: 16px; font-weight: 700; color: var(--text); }
+.modal-close {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(112,137,147,0.12); border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-soft); font-size: 16px;
+  transition: background .15s;
+}
+.modal-close:hover { background: rgba(212,24,61,0.1); color: var(--danger); }
+.modal-body { padding: 22px; }
+
+/* How to play content */
+.htp-step {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 12px 0; border-bottom: 1px solid var(--border-soft);
+}
+.htp-step:last-child { border-bottom: none; }
+.htp-icon {
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(25,24,59,0.15);
+}
+.htp-text h4 { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.htp-text p  { font-size: 12.5px; color: var(--text-soft); line-height: 1.5; margin: 0; }
+
+.diff-legend { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.dl-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600; border: 1px solid var(--border);
+  background: rgba(255,255,255,0.6);
+}
+.dl-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ── Step cards ── */
+.sc {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden;
+}
+.sc-head {
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 11px;
+}
+.sc-num {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  color: var(--primary-xlight); font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.sc-num.done { background: linear-gradient(135deg, var(--success), #16a570); }
+.sc-title { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.sc-body { padding: 20px; }
+
+/* ── Schema + generate row ── */
+.s1-grid { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: flex-end; }
+
+/* ── Difficulty selector ── */
+.diff-row { display: flex; gap: 8px; margin-top: 14px; }
+.diff-btn {
+  flex: 1; padding: 9px 10px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: rgba(255,255,255,0.5);
+  font-family: var(--font); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: all .2s; text-align: center; color: var(--text-soft);
+}
+.diff-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.85);
+  border-color: var(--primary-light); color: var(--text);
+}
+.diff-btn:disabled {
+  opacity: .45; cursor: not-allowed;
+}
+.diff-btn.active-easy   { background: rgba(14,124,90,0.1);  border-color: var(--success); color: var(--success); }
+.diff-btn.active-medium { background: rgba(180,83,9,0.08);  border-color: var(--warning); color: var(--warning); }
+.diff-btn.active-hard   { background: rgba(212,24,61,0.08); border-color: var(--danger);  color: var(--danger);  }
+.diff-btn:disabled.active-easy,
+.diff-btn:disabled.active-medium,
+.diff-btn:disabled.active-hard { opacity: .7; }
+.diff-tag  { font-size: 10px; font-weight: 700; display: block; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 1px; }
+.diff-time { font-size: 11px; opacity: .7; font-weight: 500; }
+
+/* ── Locked overlay hint ── */
+.diff-locked-note {
+  display: none; margin-top: 8px;
+  font-size: 11.5px; color: var(--text-xs);
+  display: flex; align-items: center; gap: 5px;
+}
+.diff-locked-note i { font-size: 12px; }
+
+/* ── Prompt box ── */
+.prompt-box {
+  background: linear-gradient(135deg, rgba(161,194,189,0.15), rgba(112,137,147,0.08));
+  border: 1.5px solid var(--primary-light);
+  border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 16px;
+}
+.prompt-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--primary-mid);
+  margin-bottom: 7px; display: flex; align-items: center; gap: 6px;
+}
+.prompt-eyebrow::after { content:''; flex:1; height:1px; background:var(--border); }
+.prompt-text { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.55; }
+
+/* ── Timer ── */
+.timer-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; background: rgba(255,255,255,0.5);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+}
+.t-icon { font-size: 14px; color: var(--text-soft); flex-shrink: 0; }
+.t-track { flex: 1; height: 6px; background: rgba(161,194,189,0.25); border-radius: 99px; overflow: hidden; }
+.t-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, var(--success), #16a570);
+  border-radius: 99px; transition: width 1s linear;
+}
+.t-fill.warn { background: linear-gradient(90deg, var(--warning), #d97706); }
+.t-fill.crit { background: linear-gradient(90deg, var(--danger), #ef4444); }
+.t-label { font-size: 12.5px; font-weight: 700; color: var(--text); font-family: var(--mono); min-width: 38px; text-align: right; }
+.t-label.warn { color: var(--warning); }
+.t-label.crit { color: var(--danger); animation: blink .6s ease infinite alternate; }
+@keyframes blink { from{opacity:1}to{opacity:.4} }
+
+/* ── Tries ── */
+.tries-wrap { margin-left: auto; display: flex; align-items: center; gap: 7px; }
+.tries-lbl  { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-xs); }
+.tdot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border); background: transparent; transition: all .2s; }
+.tdot.used { background: var(--primary-mid); border-color: var(--primary-mid); }
+.tdot.fail { background: var(--danger); border-color: var(--danger); }
+
+/* ── Hint box ── */
+.hint-box {
+  display: none; margin-bottom: 14px; padding: 12px 15px;
+  background: rgba(254,243,199,0.65); border: 1px solid rgba(180,83,9,0.2);
+  border-radius: var(--radius-sm); font-size: 12.5px; color: var(--warning); line-height: 1.5;
+}
+.hint-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; display: block; }
+
+/* ── SQL editor ── */
+.editor {
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden; margin-bottom: 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.editor:focus-within { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(161,194,189,0.2); }
+.editor-bar { padding: 7px 13px; background: rgba(25,24,59,0.92); display: flex; align-items: center; justify-content: space-between; }
+.e-dots { display: flex; gap: 5px; }
+.e-dots span { width: 9px; height: 9px; border-radius: 50%; }
+.e-dots span:nth-child(1) { background: #ff5f57; }
+.e-dots span:nth-child(2) { background: #febc2e; }
+.e-dots span:nth-child(3) { background: #28c840; }
+.e-lang { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,0.22); font-family: var(--mono); }
+.sql-ta {
+  width: 100%; border: none; outline: none; resize: none;
+  background: var(--primary); color: var(--primary-light);
+  font-family: var(--mono); font-size: 13px; line-height: 1.7;
+  padding: 14px 16px; min-height: 150px;
+}
+.sql-ta::placeholder { color: rgba(161,194,189,0.28); }
+
+/* ── Action row ── */
+.act-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-submit {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 22px; border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--success), #16a570);
+  color: #fff; font-family: var(--font); font-size: 13.5px; font-weight: 600;
+  border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(14,124,90,0.2); transition: all .2s;
+}
+.btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(14,124,90,0.3); }
+.btn-submit:disabled { opacity: .5; pointer-events: none; }
+.btn-sec {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.6); color: var(--text-soft);
+  border: 1px solid var(--border); font-family: var(--font);
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s;
+}
+.btn-sec:hover { background: rgba(255,255,255,0.9); color: var(--text); border-color: var(--primary-light); }
+
+/* ── Results ── */
+.results-grid { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: start; margin-bottom: 18px; }
+.score-circle {
+  width: 88px; height: 88px; border-radius: 50%; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 3px solid currentColor;
+}
+.score-circle .sc-n { font-size: 28px; font-weight: 800; line-height: 1; font-family: var(--mono); }
+.score-circle .sc-d { font-size: 10px; font-weight: 600; opacity: .4; }
+.rc-exc { color: var(--success); background: rgba(14,124,90,0.08); }
+.rc-gd  { color: #0284c7;        background: rgba(2,132,199,0.08); }
+.rc-fr  { color: var(--warning);  background: rgba(180,83,9,0.08); }
+.rc-pr  { color: var(--danger);   background: rgba(212,24,61,0.08); }
+.res-grade { font-size: 16px; font-weight: 700; margin-bottom: 5px; }
+.res-fb    { font-size: 13px; color: var(--text-soft); line-height: 1.6; }
+
+/* chips */
+.chips-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 13px; border-radius: 100px;
+  font-size: 12px; font-weight: 600; font-family: var(--mono);
+  border: 1px solid var(--border); white-space: nowrap;
+  background: rgba(255,255,255,0.6); color: var(--text);
+}
+.chip-pen { background: rgba(212,24,61,0.07); color: var(--danger);   border-color: rgba(212,24,61,0.18); }
+.chip-bon { background: rgba(14,124,90,0.07);  color: var(--success); border-color: rgba(14,124,90,0.18); }
+.chip-neu { background: rgba(255,255,255,0.55); color: var(--text-soft); }
+
+/* reference SQL */
+.ref-wrap { margin-bottom: 18px; }
+.ref-lbl {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-soft);
+  display: flex; align-items: center; gap: 7px; margin-bottom: 9px;
+}
+.ref-code { position: relative; background: var(--primary); border-radius: var(--radius-sm); padding: 14px 60px 14px 16px; }
+.ref-code pre { margin: 0; font-family: var(--mono); font-size: 12.5px; color: var(--primary-light); line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.copy-btn {
+  position: absolute; top: 9px; right: 10px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 5px; padding: 3px 10px; color: rgba(255,255,255,0.4);
+  font-size: 10px; cursor: pointer; font-family: var(--font); transition: all .15s; white-space: nowrap;
+}
+.copy-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+
+/* badge toast */
+.badge-toast {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: var(--radius-sm);
+  background: rgba(254,243,199,0.8); border: 1px solid rgba(180,83,9,0.2);
+  margin-bottom: 12px; animation: fadeIn .35s ease both;
+}
+.badge-toast .bt-title { font-size: 13px; font-weight: 700; color: var(--warning); }
+.badge-toast .bt-desc  { font-size: 12px; color: var(--text-soft); }
+
+/* ── Sidebar ── */
+.side-card {
+  background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden;
+}
+.side-head {
+  padding: 13px 17px; border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-soft);
+  display: flex; align-items: center; gap: 7px;
+}
+.side-head .ml { margin-left: auto; }
+.side-body { padding: 14px 17px; }
+.btn-clear {
+  font-size: 11px; font-weight: 600; color: var(--danger);
+  background: none; border: none; cursor: pointer;
+  padding: 2px 6px; border-radius: 4px; transition: background .15s; font-family: var(--font);
+  display: flex; align-items: center; gap: 4px;
+}
+.btn-clear:hover { background: rgba(212,24,61,0.08); }
+
+/* attempts */
+.att-item { padding: 9px 0; border-bottom: 1px solid var(--border-soft); }
+.att-item:last-child { border-bottom: none; }
+.att-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 3px; }
+.att-txt { flex: 1; font-size: 12.5px; color: var(--text); line-height: 1.4; }
+.att-pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; flex-shrink: 0; font-family: var(--mono); }
+.ap-g { background: rgba(14,124,90,0.1);  color: var(--success); }
+.ap-w { background: rgba(180,83,9,0.1);   color: var(--warning); }
+.ap-r { background: rgba(212,24,61,0.1);  color: var(--danger); }
+.att-meta { font-size: 11px; color: var(--text-xs); display: flex; gap: 6px; align-items: center; }
+.diff-pip { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+.dp-easy   { background: var(--success); }
+.dp-medium { background: var(--warning); }
+.dp-hard   { background: var(--danger); }
+
+/* stats */
+.stats-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sbox { text-align: center; padding: 12px 8px; background: rgba(255,255,255,0.5); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); }
+.sbox .sv { font-size: 22px; font-weight: 800; color: var(--text); font-family: var(--mono); line-height: 1; }
+.sbox .sl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-xs); margin-top: 4px; }
+
+/* tips */
+.tip-ul { list-style: none; padding: 0; margin: 0; }
+.tip-ul li { font-size: 12.5px; color: var(--text-soft); padding: 5px 0; border-bottom: 1px solid var(--border-soft); display: flex; gap: 7px; line-height: 1.45; }
+.tip-ul li:last-child { border-bottom: none; }
+.tip-ul li strong { color: var(--text); }
+.tip-ul li::before { content:'›'; color: var(--primary-light); font-weight: 700; flex-shrink: 0; }
+
+/* generate btn */
+.btn-gen {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px; border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  color: var(--primary-xlight); white-space: nowrap;
+  font-family: var(--font); font-size: 13.5px; font-weight: 600;
+  border: none; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(25,24,59,0.2); transition: all .2s;
+}
+.btn-gen:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(25,24,59,0.28); }
+.btn-gen:disabled { opacity: .6; pointer-events: none; }
+
+.spin { width: 13px; height: 13px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; animation: spin .7s linear infinite; display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-att { text-align: center; padding: 20px 0; color: var(--text-xs); font-size: 13px; }
+.empty-att i { font-size: 22px; display: block; margin-bottom: 8px; opacity: .35; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── How to Play Modal ── -->
+<div class="modal-overlay" id="htpModal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>⚡ How to Play SQL Challenge</h3>
+      <button class="modal-close" onclick="closeHtp()"><i class="bi bi-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="htp-step">
+        <div class="htp-icon">🗄️</div>
+        <div class="htp-text">
+          <h4>1. Select a Schema</h4>
+          <p>Choose one of your uploaded ER diagram schemas. The challenge will be based on its tables and columns.</p>
+        </div>
+      </div>
+      <div class="htp-step">
+        <div class="htp-icon">🎯</div>
+        <div class="htp-text">
+          <h4>2. Pick a Difficulty</h4>
+          <p>Choose how hard your challenge will be. Once the challenge starts, difficulty is locked until you finish.</p>
+          <div class="diff-legend">
+            <span class="dl-pill"><span class="dl-dot" style="background:var(--success)"></span>Easy — 3 min, simple SELECT</span>
+            <span class="dl-pill"><span class="dl-dot" style="background:var(--warning)"></span>Medium — 2 min, JOINs &amp; GROUP BY</span>
+            <span class="dl-pill"><span class="dl-dot" style="background:var(--danger)"></span>Hard — 90 sec, subqueries &amp; aggregation</span>
+          </div>
+        </div>
+      </div>
+      <div class="htp-step">
+        <div class="htp-icon">⌨️</div>
+        <div class="htp-text">
+          <h4>3. Write Your SQL</h4>
+          <p>Read the prompt carefully and write a SQL query that answers it. Use exact table and column names from your schema.</p>
+        </div>
+      </div>
+      <div class="htp-step">
+        <div class="htp-icon">💡</div>
+        <div class="htp-text">
+          <h4>4. You Get 3 Tries</h4>
+          <p>If your first answer is wrong, you'll get a hint and can try again — but each hint costs <strong>−10 pts</strong> from your score.</p>
+        </div>
+      </div>
+      <div class="htp-step">
+        <div class="htp-icon">🏆</div>
+        <div class="htp-text">
+          <h4>5. Scoring</h4>
+          <p>
+            <strong>Base score</strong> is graded by AI (0–100).<br>
+            <strong>−10 pts</strong> per hint used (max 2 hints).<br>
+            <strong>−15 pts</strong> max if time runs out.<br>
+            <strong>+5 pts</strong> bonus for correct Hard answers.<br>
+            Total penalty is capped at <strong>25 pts</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Page Header ── -->
+<div class="pg-head fade-in">
+  <div class="pg-head-row" style="margin-bottom:4px;">
+    <h1 style="margin-bottom:0;">
+      <i class="bi bi-lightning-charge-fill" style="color:var(--primary-mid)"></i>
+      SQL Challenge Mode
+    </h1>
+    <button class="btn-how" onclick="openHtp()">
+      <i class="bi bi-question-circle"></i> How to Play
+    </button>
+  </div>
+  <p>Pick a difficulty, write your SQL — 3 tries, hints on each miss.</p>
+</div>
+
+<div class="ch-layout">
+
+  <!-- ══ LEFT COLUMN ══ -->
+  <div>
+
+    <!-- Step 1: Select Schema & Difficulty -->
+    <div class="sc fade-in fade-in-1">
+      <div class="sc-head">
+        <div class="sc-num">1</div>
+        <div class="sc-title">Select Schema &amp; Difficulty</div>
+      </div>
+      <div class="sc-body">
+        <div class="s1-grid">
+          <div>
+            <label class="label">Schema</label>
+            <select id="schemaSelect" class="select">
+              <option value="">— Choose a schema —</option>
+              {% for s in schemas %}
+              <option value="{{ s.id }}"
+                {% if selected_schema and selected_schema.id == s.id %}selected{% endif %}>
+                {{ s.schema_name or s.original_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button id="generateBtn" class="btn-gen" onclick="generateChallenge()">
+            <span class="spin" id="genSpin"></span>
+            <i class="bi bi-shuffle" id="genIcon"></i>
+            <span id="genLabel">Generate Challenge</span>
+          </button>
+        </div>
+
+        <!-- Difficulty -->
+        <div style="margin-top:14px;">
+          <label class="label">Difficulty</label>
+          <div class="diff-row" id="diffRow">
+            <button class="diff-btn active-easy" id="diff-easy"   onclick="setDiff('easy')">
+              <span class="diff-tag">🟢 Easy</span>
+              <span class="diff-time">3 min · Simple SELECT</span>
+            </button>
+            <button class="diff-btn" id="diff-medium" onclick="setDiff('medium')">
+              <span class="diff-tag">🟡 Medium</span>
+              <span class="diff-time">2 min · JOINs &amp; GROUP BY</span>
+            </button>
+            <button class="diff-btn" id="diff-hard" onclick="setDiff('hard')">
+              <span class="diff-tag">🔴 Hard</span>
+              <span class="diff-time">90 sec · Subqueries &amp; aggregation</span>
+            </button>
+          </div>
+          <div class="diff-locked-note" id="diffLockedNote" style="display:none;">
+            <i class="bi bi-lock-fill"></i> Difficulty locked while challenge is in progress
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Write SQL -->
+    <div class="sc fade-in fade-in-2" id="writeCard" style="display:none;">
+      <div class="sc-head">
+        <div class="sc-num" id="s2num">2</div>
+        <div class="sc-title">Write Your SQL Query</div>
+        <div class="tries-wrap">
+          <span class="tries-lbl">Tries</span>
+          <div class="tdot" id="dot0"></div>
+          <div class="tdot" id="dot1"></div>
+          <div class="tdot" id="dot2"></div>
+        </div>
+      </div>
+      <div class="sc-body">
+        <div class="prompt-box">
+          <div class="prompt-eyebrow"><i class="bi bi-card-text"></i> Your Challenge</div>
+          <div class="prompt-text" id="promptText"></div>
+        </div>
+
+        <div class="timer-row">
+          <i class="bi bi-stopwatch t-icon" id="tIcon"></i>
+          <div class="t-track"><div class="t-fill" id="tFill"></div></div>
+          <div class="t-label" id="tLabel">3:00</div>
+        </div>
+
+        <div class="hint-box" id="hintBox">
+          <span class="hint-lbl">💡 Hint</span>
+          <span id="hintText"></span>
+        </div>
+
+        <div class="editor">
+          <div class="editor-bar">
+            <div class="e-dots"><span></span><span></span><span></span></div>
+            <div class="e-lang">SQL</div>
+          </div>
+          <textarea id="userSql" class="sql-ta"
+            placeholder="SELECT ...&#10;FROM ...&#10;WHERE ..."></textarea>
+        </div>
+
+        <div class="act-row">
+          <button class="btn-submit" id="submitBtn" onclick="submitAttempt()">
+            <i class="bi bi-send-fill"></i>
+            <span id="submitLabel">Submit Answer</span>
+          </button>
+          <button class="btn-sec" onclick="generateChallenge()">
+            <i class="bi bi-arrow-clockwise"></i> New Challenge
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Results -->
+    <div class="sc fade-in" id="resultsCard" style="display:none;">
+      <div class="sc-head">
+        <div class="sc-num done">✓</div>
+        <div class="sc-title">Your Results</div>
+      </div>
+      <div class="sc-body">
+        <div class="results-grid">
+          <div class="score-circle rc-pr" id="scoreCircle">
+            <div class="sc-n" id="scoreVal">—</div>
+            <div class="sc-d">/ 100</div>
+          </div>
+          <div>
+            <div class="res-grade" id="gradeLabel"></div>
+            <div class="res-fb"    id="feedbackText"></div>
+          </div>
+        </div>
+
+        <div class="chips-row" id="chipsRow"></div>
+        <div id="badgeArea"></div>
+
+        <div class="ref-wrap">
+          <div class="ref-lbl"><i class="bi bi-check2-circle"></i> Reference Answer</div>
+          <div class="ref-code">
+            <pre id="refSqlPre"></pre>
+            <button class="copy-btn" onclick="copyRef(this)">Copy</button>
+          </div>
+        </div>
+
+        <button class="btn-sec" onclick="generateChallenge()">
+          <i class="bi bi-arrow-repeat"></i> Try Another Challenge
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ RIGHT SIDEBAR ══ -->
+  <div>
+
+    <!-- Recent Attempts -->
+    <div class="side-card fade-in fade-in-2">
+      <div class="side-head">
+        <i class="bi bi-clock-history"></i> Recent Attempts
+        <button class="btn-clear ml" onclick="clearHistory()">
+          <i class="bi bi-trash3"></i> Clear
+        </button>
+      </div>
+      <div class="side-body" id="recentAttemptsBody">
+        {% if recent_attempts %}
+          {% for a in recent_attempts %}
+          <div class="att-item">
+            <div class="att-row">
+              <div class="att-txt">{{ a.prompt[:52] }}{% if a.prompt|length > 52 %}…{% endif %}</div>
+              <span class="att-pill {% if a.score >= 80 %}ap-g{% elif a.score >= 50 %}ap-w{% else %}ap-r{% endif %}">{{ a.score }}</span>
+            </div>
+            <div class="att-meta">
+              {% set diff = a.difficulty if a.difficulty else 'easy' %}
+              <span class="diff-pip dp-{{ diff }}"></span>
+              <span style="text-transform:capitalize;">{{ diff }}</span>
+              <span>·</span>
+              {# Convert UTC → PH Time (UTC+8) #}
+              <span>{{ a.attempted_at | ph_time }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-att" id="noAttempts">
+            <i class="bi bi-journal-x"></i>No attempts yet
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Your Stats -->
+    <div class="side-card fade-in fade-in-3">
+      <div class="side-head"><i class="bi bi-bar-chart"></i> Your Stats</div>
+      <div class="side-body">
+        <div class="stats-2x2">
+          <div class="sbox"><div class="sv">{{ total_attempts }}</div><div class="sl">Total</div></div>
+          <div class="sbox"><div class="sv">{{ avg_score }}</div><div class="sl">Avg Score</div></div>
+          <div class="sbox"><div class="sv">{{ best_score }}</div><div class="sl">Best</div></div>
+          <div class="sbox"><div class="sv">{{ perfect_count }}<span style="font-size:13px"></span></div><div class="sl">Perfect</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scoring Guide -->
+    <div class="side-card fade-in fade-in-4">
+      <div class="side-head"><i class="bi bi-lightbulb"></i> Scoring Guide</div>
+      <div class="side-body">
+        <ul class="tip-ul">
+          <li>First try, full time = up to <strong>100 pts</strong></li>
+          <li>Each hint used deducts <strong>10 pts</strong></li>
+          <li>Running out of time deducts up to <strong>15 pts</strong></li>
+          <li>Max penalty capped at <strong>25 pts</strong></li>
+          <li>Hard mode correct = <strong>bonus +5 pts</strong></li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<input type="hidden" id="hRefSql"   value="">
+<input type="hidden" id="hSchemaId" value="">
+<input type="hidden" id="hPrompt"   value="">
+<input type="hidden" id="hDiff"     value="easy">
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ═══════════════════════════════
+   STATE
+═══════════════════════════════ */
+const MAX_TRIES  = 3;
+const DIFF_TIMES = { easy: 180, medium: 120, hard: 90 };
+
+let difficulty     = 'easy';
+let timerTotal     = 180;
+let timerSecs      = 180;
+let timerInterval  = null;
+let timerPenalty   = 0;
+let tryPenalty     = 0;
+let triesUsed      = 0;
+let challengeDone  = false;
+let challengeActive = false;   // true once a challenge has started
+
+/* ═══════════════════════════════
+   MODAL
+═══════════════════════════════ */
+function openHtp()  { document.getElementById('htpModal').classList.add('open'); }
+function closeHtp() { document.getElementById('htpModal').classList.remove('open'); }
+function closeModal(e) { if (e.target === document.getElementById('htpModal')) closeHtp(); }
+
+/* ═══════════════════════════════
+   DIFFICULTY — locked during active challenge
+═══════════════════════════════ */
+function setDiff(d) {
+  if (challengeActive) return;   // locked while in progress
+  difficulty = d;
+  document.getElementById('hDiff').value = d;
+  ['easy','medium','hard'].forEach(k => {
+    document.getElementById('diff-' + k).className =
+      'diff-btn' + (k === d ? ' active-' + k : '');
+  });
+}
+
+function lockDifficulty() {
+  challengeActive = true;
+  ['easy','medium','hard'].forEach(k =>
+    document.getElementById('diff-' + k).disabled = true
+  );
+  document.getElementById('diffLockedNote').style.display = 'flex';
+}
+
+function unlockDifficulty() {
+  challengeActive = false;
+  ['easy','medium','hard'].forEach(k => {
+    const btn = document.getElementById('diff-' + k);
+    btn.disabled = false;
+  });
+  document.getElementById('diffLockedNote').style.display = 'none';
+}
+
+/* ═══════════════════════════════
+   GENERATE
+═══════════════════════════════ */
+async function generateChallenge() {
+  const schemaId = document.getElementById('schemaSelect').value;
+  if (!schemaId) { showFlash('Please select a schema first.', 'warning'); return; }
+
+  setGenLoading(true);
+  resetState();
+
+  try {
+    const res  = await fetch('/api/challenge/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schema_id: schemaId, difficulty })
+    });
+    const data = await res.json();
+    if (data.error) { showFlash(data.error, 'error'); return; }
+
+    document.getElementById('promptText').textContent = data.prompt;
+    document.getElementById('hRefSql').value   = data.ref_sql;
+    document.getElementById('hSchemaId').value = data.schema_id;
+    document.getElementById('hPrompt').value   = data.prompt;
+
+    show('writeCard'); hide('resultsCard');
+    document.getElementById('userSql').value = '';
+    document.getElementById('hintBox').style.display = 'none';
+    updateDots();
+    lockDifficulty();
+    startTimer();
+
+  } catch(e) {
+    showFlash('Failed to generate. Please try again.', 'error');
+  } finally {
+    setGenLoading(false);
+  }
+}
+
+/* ═══════════════════════════════
+   TIMER
+═══════════════════════════════ */
+function startTimer() {
+  stopTimer();
+  timerTotal   = DIFF_TIMES[difficulty];
+  timerSecs    = timerTotal;
+  timerPenalty = 0;
+  renderTimer();
+  timerInterval = setInterval(() => {
+    timerSecs = Math.max(0, timerSecs - 1);
+    renderTimer();
+    if (timerSecs === 0) {
+      stopTimer();
+      timerPenalty = 15;
+      showFlash("⏰ Time's up! Max time penalty applied. You can still submit.", 'warning');
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function calcTimerPenalty() {
+  const pct = timerSecs / timerTotal;
+  if (pct > 0.5) return 0;
+  return Math.round((1 - pct * 2) * 15);
+}
+
+function renderTimer() {
+  const fill  = document.getElementById('tFill');
+  const label = document.getElementById('tLabel');
+  const icon  = document.getElementById('tIcon');
+  const pct   = (timerSecs / timerTotal) * 100;
+  const m     = Math.floor(timerSecs / 60);
+  const s     = timerSecs % 60;
+
+  fill.style.width  = pct + '%';
+  label.textContent = m + ':' + String(s).padStart(2, '0');
+
+  fill.classList.remove('warn','crit');
+  label.classList.remove('warn','crit');
+  icon.className    = 'bi bi-stopwatch t-icon';
+  icon.style.color  = 'var(--text-soft)';
+
+  if (timerSecs <= 15) {
+    fill.classList.add('crit'); label.classList.add('crit');
+    icon.className  = 'bi bi-alarm-fill t-icon';
+    icon.style.color = 'var(--danger)';
+  } else if (pct <= 40) {
+    fill.classList.add('warn'); label.classList.add('warn');
+    icon.style.color = 'var(--warning)';
+  }
+  timerPenalty = calcTimerPenalty();
+}
+
+/* ═══════════════════════════════
+   SUBMIT
+═══════════════════════════════ */
+async function submitAttempt() {
+  if (challengeDone) return;
+  const userSql  = document.getElementById('userSql').value.trim();
+  const refSql   = document.getElementById('hRefSql').value;
+  const schemaId = document.getElementById('hSchemaId').value;
+  const prompt   = document.getElementById('hPrompt').value;
+
+  if (!userSql) { showFlash('Write your SQL query first.', 'warning'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  document.getElementById('submitLabel').textContent = 'Grading…';
+
+  try {
+    const res  = await fetch('/api/challenge/submit', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        schema_id: schemaId, prompt, ref_sql: refSql, user_sql: userSql,
+        difficulty, try_number: triesUsed + 1,
+        timer_penalty: timerPenalty, try_penalty: tryPenalty,
+      })
+    });
+    const data = await res.json();
+    if (data.error) { showFlash(data.error, 'error'); return; }
+
+    triesUsed++;
+    updateDots();
+
+    const passing = data.score >= 70;
+    const lastTry = triesUsed >= MAX_TRIES;
+
+    if (passing || lastTry) {
+      stopTimer();
+      challengeDone = true;
+      unlockDifficulty();
+      renderResults(data);
+      hide('writeCard');
+      show('resultsCard');
+      document.getElementById('resultsCard').classList.add('fade-in');
+      document.getElementById('resultsCard').scrollIntoView({ behavior:'smooth', block:'nearest' });
+    } else {
+      tryPenalty += 10;
+      const hintText = (data.hints || [])[triesUsed - 1] || 'Check your clauses and column names.';
+      showHint(hintText);
+      const left = MAX_TRIES - triesUsed;
+      showFlash(`Score: ${data.score}/100 — ${left} tr${left===1?'y':'ies'} left. Hint revealed (−10 pts).`,
+        left === 1 ? 'warning' : 'info');
+      btn.disabled = false;
+      document.getElementById('submitLabel').textContent = 'Submit Answer';
+    }
+  } catch(e) {
+    showFlash('Submission failed. Try again.', 'error');
+    btn.disabled = false;
+    document.getElementById('submitLabel').textContent = 'Submit Answer';
+  }
+}
+
+/* ═══════════════════════════════
+   RENDER RESULTS
+═══════════════════════════════ */
+function renderResults(data) {
+  const final = data.final_score !== undefined ? data.final_score : data.score;
+  const base  = data.base_score  !== undefined ? data.base_score  : data.score;
+  const tpen  = data.timer_penalty   || 0;
+  const hpen  = data.try_penalty     || 0;
+  const bonus = data.difficulty_bonus || 0;
+
+  const ring = document.getElementById('scoreCircle');
+  ring.className = 'score-circle ' + ringClass(final);
+  document.getElementById('scoreVal').textContent     = final;
+  document.getElementById('gradeLabel').textContent   = gradeText(final);
+  document.getElementById('feedbackText').textContent = data.feedback;
+
+  const row = document.getElementById('chipsRow');
+  row.innerHTML = '';
+  const add = (lbl, cls) => row.innerHTML += `<span class="chip ${cls}">${lbl}</span>`;
+  add(`Base: ${base}`, 'chip-neu');
+  if (tpen  > 0) add(`⏱ Time −${tpen}`,  'chip-pen');
+  if (hpen  > 0) add(`💡 Hints −${hpen}`, 'chip-pen');
+  if (bonus > 0) add(`🔥 Hard +${bonus}`,  'chip-bon');
+  if (final === 100) add('🎯 Perfect!', 'chip-bon');
+
+  document.getElementById('refSqlPre').textContent = data.ref_sql;
+
+  const area = document.getElementById('badgeArea');
+  area.innerHTML = '';
+  (data.new_badges || []).forEach(b => {
+    area.innerHTML += `
+      <div class="badge-toast">
+        <span style="font-size:1.5rem;flex-shrink:0">${b.icon}</span>
+        <div>
+          <div class="bt-title">🎉 New Badge: ${b.label}</div>
+          <div class="bt-desc">${b.description}</div>
+        </div>
+      </div>`;
+  });
+}
+
+/* ═══════════════════════════════
+   CLEAR HISTORY
+═══════════════════════════════ */
+async function clearHistory() {
+  if (!confirm('Clear all your challenge history? This cannot be undone.')) return;
+  try {
+    const res  = await fetch('/api/challenge/clear-history', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('recentAttemptsBody').innerHTML =
+        `<div class="empty-att"><i class="bi bi-journal-x"></i>No attempts yet</div>`;
+      showFlash('History cleared.', 'success');
+    }
+  } catch(e) { showFlash('Failed to clear history.', 'error'); }
+}
+
+/* ═══════════════════════════════
+   HELPERS
+═══════════════════════════════ */
+function showHint(txt) {
+  document.getElementById('hintText').textContent = txt;
+  document.getElementById('hintBox').style.display = 'block';
+}
+function copyRef(btn) {
+  navigator.clipboard.writeText(document.getElementById('refSqlPre').textContent.trim());
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy', 2000);
+}
+function updateDots() {
+  for (let i = 0; i < MAX_TRIES; i++) {
+    document.getElementById('dot' + i).className = 'tdot' + (i < triesUsed ? ' used' : '');
+  }
+}
+function resetState() {
+  triesUsed = 0; timerPenalty = 0; tryPenalty = 0;
+  challengeDone = false;
+  stopTimer(); updateDots();
+  document.getElementById('hintBox').style.display = 'none';
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('submitLabel').textContent = 'Submit Answer';
+  document.getElementById('chipsRow').innerHTML = '';
+  document.getElementById('badgeArea').innerHTML = '';
+}
+function setGenLoading(on) {
+  document.getElementById('generateBtn').disabled    = on;
+  document.getElementById('genSpin').style.display   = on ? 'inline-block' : 'none';
+  document.getElementById('genIcon').style.display   = on ? 'none' : 'inline';
+  document.getElementById('genLabel').textContent    = on ? 'Generating…' : 'Generate Challenge';
+}
+function ringClass(s) {
+  if (s >= 85) return 'rc-exc'; if (s >= 70) return 'rc-gd';
+  if (s >= 50) return 'rc-fr';  return 'rc-pr';
+}
+function gradeText(s) {
+  if (s >= 90) return '🏆 Excellent!'; if (s >= 75) return '👍 Good Work';
+  if (s >= 50) return '🔶 Getting There'; return '🔁 Keep Practicing';
+}
+function show(id) { document.getElementById(id).style.display = 'block'; }
+function hide(id) { document.getElementById(id).style.display = 'none';  }
+function showFlash(msg, type) {
+  const icons = { error:'x-circle-fill', warning:'exclamation-triangle-fill', success:'check-circle-fill', info:'info-circle-fill' };
+  const el = document.createElement('div');
+  el.className = `flash flash-${type} fade-in`;
+  el.innerHTML = `<i class="bi bi-${icons[type]||icons.info}"></i> ${msg}`;
+  const page = document.querySelector('.page');
+  page.insertBefore(el, page.firstChild);
+  setTimeout(() => el.remove(), 5000);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const selectedId = '{{ selected_schema.id if selected_schema else "" }}';
+  if (selectedId) {
+    document.getElementById('schemaSelect').value = selectedId;
+  }
+});
+</script>
+{% endblock %}
