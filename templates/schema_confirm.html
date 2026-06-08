@@ -3,127 +3,400 @@
 
 {% block head %}
 <style>
-.confirm-header { margin-bottom: 28px; }
-.confirm-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 5px; }
-.confirm-header p  { font-size: 14px; color: var(--text-soft); }
+/* --- Layout Typography & Spacing Rhythm --- */
+.confirm-header { 
+  margin-bottom: 32px; 
+}
+.confirm-header h1 { 
+  font-size: 28px; 
+  font-weight: 700; 
+  letter-spacing: -0.02em; 
+  margin-bottom: 8px; 
+  display: flex;
+  align-items: center;
+}
+.confirm-header p { 
+  font-size: 15px; 
+  color: var(--text-soft); 
+  line-height: 1.5;
+}
 
-.confirm-grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+/* --- Fully Responsive Flexible Grid Layout --- */
+.confirm-grid { 
+  display: grid; 
+  grid-template-columns: 1fr; 
+  gap: 32px; 
+  align-items: start; 
+  margin-bottom: 100px; /* Accounts for floating Action Bar height */
+}
 
-/* Step indicator */
+@media (min-width: 1024px) {
+  .confirm-grid { 
+    grid-template-columns: 35% 65%; 
+  }
+}
+
+/* --- Modernized Step Indicator --- */
 .step-bar {
-  display: flex; align-items: center; gap: 0; margin-bottom: 28px;
-  background: var(--card-bg); backdrop-filter: blur(12px);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 16px 22px; box-shadow: var(--shadow);
+  display: flex; 
+  flex-wrap: wrap;
+  align-items: center; 
+  gap: 16px; 
+  margin-bottom: 32px;
+  background: var(--card-bg); 
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border); 
+  border-radius: var(--radius);
+  padding: 20px 24px; 
+  box-shadow: var(--shadow);
 }
 .step {
-  display: flex; align-items: center; gap: 9px; flex: 1;
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  flex: 1;
+  min-width: 160px;
 }
 .step-num {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700;
+  width: 32px; 
+  height: 32px; 
+  border-radius: 50%; 
+  flex-shrink: 0;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  font-size: 13px; 
+  font-weight: 700;
+  transition: all 0.2s ease;
 }
-.step-num.done  { background: #10b981; color: #fff; }
-.step-num.active { background: linear-gradient(135deg, var(--primary), var(--primary-mid)); color: var(--primary-xlight); }
+.step-num.done { background: #10b981; color: #fff; }
+.step-num.active { 
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid)); 
+  color: var(--primary-xlight); 
+  box-shadow: 0 0 0 4px rgba(var(--primary-rgb, 16, 185, 129), 0.15);
+}
 .step-num.pending { background: var(--border); color: var(--text-soft); }
-.step-label { font-size: 13px; font-weight: 600; color: var(--text); }
-.step-sub   { font-size: 11.5px; color: var(--text-soft); }
-.step-connector { width: 40px; height: 2px; background: var(--border); flex-shrink: 0; margin: 0 8px; }
+.step-label { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.2; }
+.step-sub { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+.step-connector { 
+  height: 2px; 
+  background: var(--border); 
+  flex: 0 0 32px;
+}
 .step-connector.done { background: #10b981; }
 
-/* Table editor */
-.table-editor {
-  background: var(--card-bg); backdrop-filter: blur(12px);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  overflow: hidden; margin-bottom: 14px;
-  box-shadow: var(--shadow);
-  transition: box-shadow .2s;
+@media (max-width: 768px) {
+  .step-connector { display: none; }
+  .step-bar { gap: 20px; }
 }
-.table-editor:hover { box-shadow: var(--shadow-lg); }
+
+/* --- Left Sidebar Cards Consistency --- */
+.sidebar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  color: var(--text);
+}
+.card-body {
+  padding: 20px;
+}
+
+/* Image Preview Adjustments */
+.image-preview-container {
+  padding: 20px;
+  background: rgba(0,0,0,0.02);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.image-preview-container img {
+  width: 100%;
+  height: auto;
+  max-height: 450px; /* Increased glance visibility */
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* OCR Box Improvements */
+.ocr-text-box {
+  font-family: var(--mono); 
+  font-size: 12.5px; 
+  color: var(--text); 
+  background: rgba(231,242,239,0.35); 
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm); 
+  padding: 16px;
+  min-height: 180px;
+  max-height: 320px; 
+  overflow-y: auto; 
+  line-height: 1.6;
+  white-space: pre-wrap; 
+  word-break: break-word;
+}
+
+/* Badge Layout Consistency */
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.stat-row:last-of-type { border-bottom: none; }
+.badge {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+/* Confidence Metrics Section */
+.confidence-bar-wrap { margin: 20px 0 4px; }
+.confidence-bar-bg { background: rgba(161,194,189,0.2); border-radius: 100px; height: 10px; overflow: hidden; }
+.confidence-bar-fill { height: 100%; border-radius: 100px; transition: width .6s ease; }
+
+/* --- Table Editor Modernization --- */
+.table-editor {
+  background: var(--card-bg); 
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border); 
+  border-radius: var(--radius);
+  overflow: hidden; 
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.table-editor:hover { 
+  box-shadow: var(--shadow-lg); 
+  transform: translateY(-1px);
+}
 .table-editor-head {
-  display: flex; align-items: center; gap: 10px;
-  padding: 13px 18px; border-bottom: 1px solid var(--border);
+  display: flex; 
+  align-items: center; 
+  gap: 12px;
+  padding: 16px 20px; 
   background: var(--primary);
 }
 .table-name-input {
-  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
-  border-radius: 6px; padding: 5px 10px;
-  font-family: var(--mono); font-size: 13px; font-weight: 700;
-  color: #fff; outline: none; flex: 1;
-  transition: background .2s;
+  background: rgba(255,255,255,0.12); 
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: var(--radius-sm); 
+  padding: 7px 12px;
+  font-family: var(--mono); 
+  font-size: 14px; 
+  font-weight: 600;
+  color: #fff; 
+  outline: none; 
+  flex: 1;
+  transition: all .2s;
 }
-.table-name-input:focus { background: rgba(255,255,255,0.25); }
-.table-name-input::placeholder { color: rgba(255,255,255,0.5); }
+.table-name-input:focus { 
+  background: rgba(255,255,255,0.22); 
+  border-color: rgba(255,255,255,0.5);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.1);
+}
+.table-name-input::placeholder { color: rgba(255,255,255,0.45); }
+
+/* Table Columns Sub-Grid Header */
+.table-columns-header {
+  display: grid;
+  grid-template-columns: 1fr 140px 60px 60px auto;
+  gap: 12px;
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid var(--border);
+}
+.table-columns-header span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* Rows Viewport Scroller Handling Overflow safely */
+.table-editor-rows {
+  overflow-x: auto;
+}
 
 .col-editor-row {
-  display: grid; grid-template-columns: 1fr 120px 60px 60px auto;
-  gap: 8px; padding: 9px 18px; border-bottom: 1px solid var(--border);
-  align-items: center; background: rgba(255,255,255,0.4);
-  transition: background .15s;
+  display: grid; 
+  grid-template-columns: 1fr 140px 60px 60px auto;
+  gap: 12px; 
+  padding: 12px 20px; 
+  border-bottom: 1px solid var(--border);
+  align-items: center; 
+  background: #fff;
+  transition: background .15s ease;
 }
-.col-editor-row:hover { background: rgba(255,255,255,0.7); }
+.col-editor-row:hover { background: rgba(var(--primary-rgb, 231,242,239), 0.15); }
 .col-editor-row:last-child { border-bottom: none; }
-.col-input {
-  border: 1px solid var(--border); border-radius: 6px;
-  padding: 6px 10px; font-family: var(--mono); font-size: 12.5px;
-  color: var(--text); background: rgba(255,255,255,0.8); outline: none;
-  width: 100%; transition: border-color .2s;
-}
-.col-input:focus { border-color: var(--primary-light); background: #fff; }
-.col-check-label {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  font-size: 10px; color: var(--text-soft); font-weight: 600;
-  text-transform: uppercase; letter-spacing: .04em; cursor: pointer;
-}
-.col-check-label input[type="checkbox"] { cursor: pointer; accent-color: var(--primary); }
 
-/* Relationships editor */
+.col-input {
+  border: 1px solid var(--border); 
+  border-radius: var(--radius-sm);
+  padding: 8px 12px; 
+  font-family: var(--mono); 
+  font-size: 13px;
+  color: var(--text); 
+  background: #fff; 
+  outline: none;
+  width: 100%; 
+  transition: all .2s ease;
+}
+.col-input:focus { 
+  border-color: var(--primary-mid); 
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 0,0,0), 0.08);
+}
+
+/* Alignment Optimization for PK/Null Boxes */
+.col-check-label {
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center;
+  gap: 4px;
+  font-size: 10px; 
+  color: var(--text-soft); 
+  font-weight: 700;
+  text-transform: uppercase; 
+  letter-spacing: .02em; 
+  cursor: pointer;
+  user-select: none;
+  height: 100%;
+}
+.col-check-label input[type="checkbox"] { 
+  width: 16px;
+  height: 16px;
+  cursor: pointer; 
+  accent-color: var(--primary); 
+  margin: 0;
+}
+
+/* --- Relationships Block Optimization --- */
 .rel-editor-row {
-  display: grid; grid-template-columns: 1fr 30px 1fr 120px auto;
-  gap: 8px; padding: 10px 18px; border-bottom: 1px solid var(--border);
+  display: grid; 
+  grid-template-columns: 1fr auto 1fr 160px auto;
+  gap: 16px; 
+  padding: 16px 20px; 
+  border-bottom: 1px solid var(--border);
   align-items: center;
 }
 .rel-editor-row:last-child { border-bottom: none; }
 .rel-input {
-  border: 1px solid var(--border); border-radius: 6px;
-  padding: 7px 10px; font-family: var(--mono); font-size: 12.5px;
-  color: var(--text); background: rgba(255,255,255,0.8); outline: none;
-  width: 100%; transition: border-color .2s;
+  border: 1px solid var(--border); 
+  border-radius: var(--radius-sm);
+  padding: 8px 12px; 
+  font-family: var(--mono); 
+  font-size: 13px;
+  color: var(--text); 
+  background: #fff; 
+  outline: none;
+  width: 100%; 
+  transition: all .2s;
 }
-.rel-input:focus { border-color: var(--primary-light); background: #fff; }
+.rel-input:focus { 
+  border-color: var(--primary-mid); 
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 0,0,0), 0.08);
+}
 
-/* Confidence badge */
-.confidence-bar-wrap { margin: 14px 0 0; }
-.confidence-bar-bg { background: rgba(161,194,189,0.2); border-radius: 100px; height: 8px; overflow: hidden; }
-.confidence-bar-fill { height: 100%; border-radius: 100px; transition: width .6s ease; }
+@media (max-width: 640px) {
+  .col-editor-row, .table-columns-header {
+    grid-template-columns: 1fr 100px 45px 45px auto;
+    gap: 6px;
+    padding: 10px;
+  }
+  .rel-editor-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+  .rel-editor-row .bi-arrow-right {
+    transform: rotate(90deg);
+    align-self: center;
+  }
+}
 
-/* Action bar */
+/* --- Fixed & Cleansed Sticky Action Bar Footer --- */
+.action-bar-spacer {
+  height: 100px;
+}
 .action-bar {
-  position: sticky; bottom: 0; z-index: 50;
-  background: rgba(231,242,239,0.9); backdrop-filter: blur(16px);
-  border-top: 1px solid var(--border); padding: 16px 32px;
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  margin: 0 -32px -28px;
+  position: fixed; 
+  bottom: 0; 
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.85); 
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border); 
+  padding: 16px 40px;
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  gap: 20px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.04);
 }
 
-.ocr-text-box {
-  font-family: var(--mono); font-size: 11.5px; color: var(--text-soft);
-  background: rgba(231,242,239,0.4); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 14px;
-  max-height: 220px; overflow-y: auto; line-height: 1.7;
-  white-space: pre-wrap; word-break: break-word;
+.action-bar-left, .action-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
+
+@media (max-width: 768px) {
+  .action-bar {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    padding: 16px 20px;
+    gap: 12px;
+  }
+  .action-bar-left, .action-bar-right {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .action-bar-right .btn {
+    flex: 1;
+  }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 {% endblock %}
 
 {% block content %}
+<div id="schema-data-store" 
+     data-schema-id="{{ schema.id if schema else '' }}" 
+     data-parsed-json='{{ parsed | tojson | safe if parsed else "{}" }}' 
+     style="display: none;">
+</div>
+
 <div class="confirm-header fade-in">
-  <h1><i class="bi bi-patch-check" style="color:var(--primary-mid);margin-right:8px;"></i>Confirm Detected Schema</h1>
+  <h1><i class="bi bi-patch-check" style="color:var(--primary-mid);margin-right:10px;"></i>Confirm Detected Schema</h1>
   <p>Review and correct the AI-detected tables, columns, and relationships before using for query generation.</p>
 </div>
 
-<!-- Step indicator -->
 <div class="step-bar fade-in">
   <div class="step">
     <div class="step-num done"><i class="bi bi-check-lg"></i></div>
@@ -137,7 +410,6 @@
     <div class="step-num done"><i class="bi bi-check-lg"></i></div>
     <div>
       <div class="step-label">OCR Processing</div>
-      <div class="step-sub">Completed</div>
     </div>
   </div>
   <div class="step-connector done"></div>
@@ -159,67 +431,66 @@
 </div>
 
 <div class="confirm-grid">
-  <!-- LEFT: original image + OCR -->
-  <div>
-    <div class="card fade-in fade-in-1" style="margin-bottom:16px;">
+  <div class="sidebar-wrapper">
+    <div class="card fade-in fade-in-1">
       <div class="card-header">
         <div class="card-title"><i class="bi bi-image" style="color:var(--primary-mid);margin-right:8px;"></i>Original Image</div>
       </div>
-      <div style="padding:14px;">
-        <img src="{{ url_for('uploaded_file', filename=schema.filename) }}"
-             alt="Schema" style="width:100%;border-radius:var(--radius-sm);max-height:300px;object-fit:contain;">
+      <div class="image-preview-container">
+        <img src="{{ url_for('uploaded_file', filename=schema.filename) }}" alt="Schema">
       </div>
     </div>
 
-    <div class="card fade-in fade-in-2" style="margin-bottom:16px;">
+    <div class="card fade-in fade-in-2">
       <div class="card-header">
         <div class="card-title"><i class="bi bi-file-earmark-text" style="color:var(--primary-mid);margin-right:8px;"></i>Extracted OCR Text</div>
         <button class="btn btn-ghost btn-sm" onclick="toggleOcr()"><i class="bi bi-eye"></i></button>
       </div>
-      <div id="ocrText" style="display:none;padding:14px;">
+      <div id="ocrText" style="display:none; padding: 20px;">
         <div class="ocr-text-box">{{ schema.ocr_text or '(no OCR text extracted)' }}</div>
       </div>
     </div>
 
-    <!-- Detection confidence -->
     <div class="card fade-in fade-in-3">
       <div class="card-header">
         <div class="card-title"><i class="bi bi-speedometer2" style="color:var(--primary-mid);margin-right:8px;"></i>Detection Confidence</div>
       </div>
       <div class="card-body">
         <div id="detectionStats">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-size:13px;color:var(--text-soft);">Tables Detected</span>
+          <div class="stat-row">
+            <span style="font-size:13.5px;color:var(--text-soft);">Tables Detected</span>
             <span id="tableCount" class="badge badge-dark">{{ parsed.tables|length if parsed.tables else 0 }}</span>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-size:13px;color:var(--text-soft);">Relationships Found</span>
+          <div class="stat-row">
+            <span style="font-size:13.5px;color:var(--text-soft);">Relationships Found</span>
             <span id="relCount" class="badge badge-mid">{{ parsed.relationships|length if parsed.relationships else 0 }}</span>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <span style="font-size:13px;color:var(--text-soft);">Columns Extracted</span>
+          <div class="stat-row">
+            <span style="font-size:13.5px;color:var(--text-soft);">Columns Extracted</span>
             <span id="colCount" class="badge badge-light">
               {% set total_cols = namespace(n=0) %}
-              {% for t in parsed.tables %}{% set total_cols.n = total_cols.n + t.columns|length %}{% endfor %}
+              {% if parsed.tables %}
+                {% for t in parsed.tables %}{% set total_cols.n = total_cols.n + t.columns|length %}{% endfor %}
+              {% endif %}
               {{ total_cols.n }}
             </span>
           </div>
           <div class="confidence-bar-wrap">
-            <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-              <span style="font-size:12px;color:var(--text-soft);">Detection Confidence</span>
-              <span id="confPct" style="font-size:12px;font-weight:700;color:var(--primary);">
-                {% if parsed.tables|length > 0 %}{{ [75 + (parsed.tables|length * 5), 98]|min }}%{% else %}0%{% endif %}
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:13px;color:var(--text-soft);font-weight: 500;">Overall Precision</span>
+              <span id="confPct" style="font-size:13px;font-weight:700;color:var(--primary);">
+                {% if parsed.tables and parsed.tables|length > 0 %}{{ [75 + (parsed.tables|length * 5), 98]|min }}%{% else %}0%{% endif %}
               </span>
             </div>
             <div class="confidence-bar-bg">
-              <div class="confidence-bar-fill" id="confBar"
-                   style="width:{% if parsed.tables|length > 0 %}{{ [75 + (parsed.tables|length * 5), 98]|min }}{% else %}0{% endif %}%;background:linear-gradient(90deg,var(--primary-mid),var(--primary-light));"></div>
+               {% set calculated_width = [75 + (parsed.tables|length * 5), 98]|min if (parsed.tables and parsed.tables|length > 0) else 0 %}
+               <div class="confidence-bar-fill" id="confBar" style="--calculated-width: {{ calculated_width }}%; width: var(--calculated-width); background: linear-gradient(90deg, var(--primary-mid), var(--primary-light));"></div>
             </div>
           </div>
         </div>
-        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
-          <div class="flash flash-info" style="font-size:12.5px;margin-bottom:0;">
-            <i class="bi bi-info-circle-fill"></i>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+          <div class="flash flash-info" style="font-size:12.5px;margin-bottom:0;line-height:1.5;">
+            <i class="bi bi-info-circle-fill" style="margin-right: 4px;"></i>
             Review the detected schema carefully. Errors in table/column names will affect SQL generation accuracy.
           </div>
         </div>
@@ -227,16 +498,15 @@
     </div>
   </div>
 
-  <!-- RIGHT: editable schema -->
   <div>
-    <div class="card fade-in fade-in-2" style="margin-bottom:16px;">
+    <div class="card fade-in fade-in-2" style="margin-bottom:24px;">
       <div class="card-header">
         <div class="card-title"><i class="bi bi-pencil-square" style="color:var(--primary-mid);margin-right:8px;"></i>Edit Detected Tables</div>
         <button class="btn btn-primary btn-sm" onclick="addTable()">
           <i class="bi bi-plus-lg"></i> Add Table
         </button>
       </div>
-      <div class="card-body" id="tablesContainer">
+      <div class="card-body" id="tablesContainer" style="padding: 20px;">
         {% if parsed.tables %}
           {% for table in parsed.tables %}
           <div class="table-editor" data-index="{{ loop.index0 }}">
@@ -248,33 +518,50 @@
                 <i class="bi bi-trash"></i>
               </button>
             </div>
-            <!-- Column header -->
-            <div style="display:grid;grid-template-columns:1fr 120px 60px 60px auto;gap:8px;padding:7px 18px;background:rgba(25,24,59,0.04);border-bottom:1px solid var(--border);">
-              <span style="font-size:10.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.07em;">Column Name</span>
-              <span style="font-size:10.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.07em;">Data Type</span>
-              <span style="font-size:10.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.07em;text-align:center;">PK</span>
-              <span style="font-size:10.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.07em;text-align:center;">Null</span>
+            <div class="table-columns-header">
+              <span>Column Name</span>
+              <span>Data Type</span>
+              <span style="text-align:center;">PK</span>
+              <span style="text-align:center;">Null</span>
               <span></span>
             </div>
-            {% for col in table.columns %}
-            <div class="col-editor-row">
-              <input type="text" class="col-input col-name" value="{{ col.name }}" placeholder="column_name">
-              <input type="text" class="col-input col-type" value="{{ col.type }}" placeholder="VARCHAR(255)">
-              <label class="col-check-label">
-                <input type="checkbox" class="col-pk" {% if col.primary_key %}checked{% endif %}>
-                PK
-              </label>
-              <label class="col-check-label">
-                <input type="checkbox" class="col-nullable" {% if col.nullable %}checked{% endif %}>
-                NULL
-              </label>
-              <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);">
-                <i class="bi bi-dash-circle"></i>
-              </button>
+            <div class="table-editor-rows">
+              {% for col in table.columns %}
+              <div class="col-editor-row">
+                <input type="text" class="col-input col-name" value="{{ col.name }}" placeholder="column_name">
+                <div class="col-type-wrapper">
+                  <select class="col-input col-type" onchange="updateTypeReminder(this)">
+                    <option value="INT" {% if col.type == 'INT' %}selected{% endif %}>INT</option>
+                    <option value="VARCHAR(255)" {% if col.type == 'VARCHAR(255)' %}selected{% endif %}>VARCHAR(255)</option>
+                    <option value="TEXT" {% if col.type == 'TEXT' %}selected{% endif %}>TEXT</option>
+                    <option value="DATE" {% if col.type == 'DATE' %}selected{% endif %}>DATE</option>
+                    <option value="DATETIME" {% if col.type == 'DATETIME' %}selected{% endif %}>DATETIME</option>
+                    <option value="BOOLEAN" {% if col.type == 'BOOLEAN' %}selected{% endif %}>BOOLEAN</option>
+                    <option value="FLOAT" {% if col.type == 'FLOAT' %}selected{% endif %}>FLOAT</option>
+                    <option value="DECIMAL(10,2)" {% if col.type == 'DECIMAL(10,2)' %}selected{% endif %}>DECIMAL(10,2)</option>
+                    <option value="JSON" {% if col.type == 'JSON' %}selected{% endif %}>JSON</option>
+                    {% if col.type not in ['INT','VARCHAR(255)','TEXT','DATE','DATETIME','BOOLEAN','FLOAT','DECIMAL(10,2)','JSON'] and col.type %}
+                      <option value="{{ col.type }}" selected>{{ col.type }}</option>
+                    {% endif %}
+                  </select>
+                  <span class="col-type-note"></span>
+                </div>
+                <label class="col-check-label">
+                  <input type="checkbox" class="col-pk" {% if col.primary_key %}checked{% endif %}>
+                  PK
+                </label>
+                <label class="col-check-label">
+                  <input type="checkbox" class="col-nullable" {% if col.nullable %}checked{% endif %}>
+                  NULL
+                </label>
+                <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);">
+                  <i class="bi bi-dash-circle"></i>
+                </button>
+              </div>
+              {% endfor %}
             </div>
-            {% endfor %}
-            <div style="padding:10px 18px;border-top:1px solid var(--border);background:rgba(255,255,255,0.2);">
-              <button onclick="addColumn(this)" class="btn btn-outline btn-sm" style="font-size:12px;">
+            <div style="padding:14px 20px;border-top:1px solid var(--border);background:rgba(255,255,255,0.2);">
+              <button onclick="addColumn(this)" class="btn btn-outline btn-sm" style="font-size:12.5px;">
                 <i class="bi bi-plus"></i> Add Column
               </button>
             </div>
@@ -290,7 +577,6 @@
       </div>
     </div>
 
-    <!-- Relationships editor -->
     <div class="card fade-in fade-in-3">
       <div class="card-header">
         <div class="card-title"><i class="bi bi-diagram-3" style="color:var(--primary-mid);margin-right:8px;"></i>Relationships</div>
@@ -303,9 +589,9 @@
           {% for rel in parsed.relationships %}
           <div class="rel-editor-row">
             <input type="text" class="rel-input rel-from" value="{{ rel.from_table }}.{{ rel.from_col }}" placeholder="table.column">
-            <i class="bi bi-arrow-right" style="color:var(--primary-mid);text-align:center;"></i>
+            <i class="bi bi-arrow-right" style="color:var(--primary-mid);text-align:center; font-size: 16px;"></i>
             <input type="text" class="rel-input rel-to" value="{{ rel.to_table }}.{{ rel.to_col }}" placeholder="table.column">
-            <select class="col-input rel-type" style="padding:6px 8px;">
+            <select class="col-input rel-type" style="padding:8px 12px; height: auto;">
               <option value="one-to-many" {% if rel.type == 'one-to-many' %}selected{% endif %}>one-to-many</option>
               <option value="many-to-one" {% if rel.type == 'many-to-one' %}selected{% endif %}>many-to-one</option>
               <option value="one-to-one" {% if rel.type == 'one-to-one' %}selected{% endif %}>one-to-one</option>
@@ -317,8 +603,8 @@
           </div>
           {% endfor %}
         {% else %}
-          <div id="emptyRelMsg" style="padding:20px 22px;text-align:center;color:var(--text-soft);font-size:13.5px;">
-            <i class="bi bi-diagram-2" style="font-size:28px;opacity:.2;display:block;margin-bottom:8px;"></i>
+          <div id="emptyRelMsg" style="padding:32px;text-align:center;color:var(--text-soft);font-size:14px;">
+            <i class="bi bi-diagram-2" style="font-size:32px;opacity:.2;display:block;margin-bottom:12px;"></i>
             No relationships detected. Add them manually if needed.
           </div>
         {% endif %}
@@ -327,15 +613,17 @@
   </div>
 </div>
 
-<!-- Sticky action bar -->
+<div class="action-bar-spacer"></div>
 <div class="action-bar">
-  <div style="display:flex;align-items:center;gap:12px;">
+  <div class="action-bar-left">
+    {% if schema and schema.id %}
     <a href="{{ url_for('schema_detail', schema_id=schema.id) }}" class="btn btn-ghost">
       <i class="bi bi-skip-forward"></i> Skip Confirmation
     </a>
-    <span style="font-size:12.5px;color:var(--text-soft);" id="saveStatus"></span>
+    {% endif %}
+    <span style="font-size:13px;font-weight:500;" id="saveStatus"></span>
   </div>
-  <div style="display:flex;gap:10px;">
+  <div class="action-bar-right">
     <button onclick="resetToOriginal()" class="btn btn-outline">
       <i class="bi bi-arrow-counterclockwise"></i> Reset to OCR
     </button>
@@ -348,8 +636,37 @@
 
 {% block scripts %}
 <script>
-const schemaId = {{ schema.id }};
-const originalParsed = {{ parsed | tojson }};
+// Extract server configurations from the DOM abstraction layer safely
+const dataBridge = document.getElementById('schema-data-store');
+const schemaId = dataBridge ? dataBridge.dataset.schemaId : '';
+const originalParsed = dataBridge ? JSON.parse(dataBridge.dataset.parsedJson) : {};
+
+const TYPE_WARNINGS = {
+  'INT': 'Only whole numbers should use INT; non-numeric values will fail.',
+  'VARCHAR(255)': 'Short text values are fine. Increase length if values may exceed 255 characters.',
+  'TEXT': 'Best for long free-form text, but may be too permissive for structured data.',
+  'DATE': 'Use only valid calendar dates in YYYY-MM-DD format.',
+  'DATETIME': 'Use only valid date/time strings. Invalid formats can cause errors.',
+  'BOOLEAN': 'Only true/false or 1/0 values should use BOOLEAN.',
+  'FLOAT': 'Use for approximate numeric values; precision may vary.',
+  'DECIMAL(10,2)': 'Use for exact decimals. Avoid if precision or scale is unknown.',
+  'JSON': 'Must contain valid JSON text or parsing may fail.'
+};
+
+function getTypeWarning(type) {
+  return TYPE_WARNINGS[type] || 'Choose a type that best matches your column values to avoid import or query errors.';
+}
+
+function updateTypeReminder(select) {
+  if (!select) return;
+  const wrapper = select.closest('.col-type-wrapper');
+  if (!wrapper) return;
+  const note = wrapper.querySelector('.col-type-note');
+  if (!note) return;
+  const warning = getTypeWarning(select.value);
+  note.textContent = warning;
+  note.classList.toggle('warning', select.value !== 'TEXT');
+}
 
 function toggleOcr() {
   const el = document.getElementById('ocrText');
@@ -367,12 +684,10 @@ function updateStats() {
   document.getElementById('relCount').textContent = rels.length;
   document.getElementById('colCount').textContent = totalCols;
 
-  // Recalculate confidence
   const conf = Math.min(98, tables.length > 0 ? 75 + (tables.length * 5) : 0);
   document.getElementById('confPct').textContent = conf + '%';
   document.getElementById('confBar').style.width = conf + '%';
 
-  // Hide empty messages
   const emptyT = document.getElementById('emptyTablesMsg');
   if (emptyT) emptyT.style.display = tables.length > 0 ? 'none' : 'block';
   const emptyR = document.getElementById('emptyRelMsg');
@@ -394,22 +709,24 @@ function addTable() {
         <i class="bi bi-trash"></i>
       </button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 120px 60px 60px auto;gap:8px;padding:7px 18px;background:rgba(25,24,59,0.04);border-bottom:1px solid var(--border);">
-      <span style="font-size:10.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.07em;">Column Name</span>
-      <span style="font-size:10.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.07em;">Data Type</span>
-      <span style="font-size:10.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.07em;text-align:center;">PK</span>
-      <span style="font-size:10.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.07em;text-align:center;">Null</span>
+    <div class="table-columns-header">
+      <span>Column Name</span>
+      <span>Data Type</span>
+      <span style="text-align:center;">PK</span>
+      <span style="text-align:center;">Null</span>
       <span></span>
     </div>
-    <div class="col-editor-row">
-      <input type="text" class="col-input col-name" value="id" placeholder="column_name">
-      <input type="text" class="col-input col-type" value="INT" placeholder="VARCHAR(255)">
-      <label class="col-check-label"><input type="checkbox" class="col-pk" checked> PK</label>
-      <label class="col-check-label"><input type="checkbox" class="col-nullable"> NULL</label>
-      <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);"><i class="bi bi-dash-circle"></i></button>
+    <div class="table-editor-rows">
+      <div class="col-editor-row">
+        <input type="text" class="col-input col-name" value="id" placeholder="column_name">
+        <input type="text" class="col-input col-type" value="INT" placeholder="VARCHAR(255)">
+        <label class="col-check-label"><input type="checkbox" class="col-pk" checked> PK</label>
+        <label class="col-check-label"><input type="checkbox" class="col-nullable"> NULL</label>
+        <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);"><i class="bi bi-dash-circle"></i></button>
+      </div>
     </div>
-    <div style="padding:10px 18px;border-top:1px solid var(--border);background:rgba(255,255,255,0.2);">
-      <button onclick="addColumn(this)" class="btn btn-outline btn-sm" style="font-size:12px;">
+    <div style="padding:14px 20px;border-top:1px solid var(--border);background:rgba(255,255,255,0.2);">
+      <button onclick="addColumn(this)" class="btn btn-outline btn-sm" style="font-size:12.5px;">
         <i class="bi bi-plus"></i> Add Column
       </button>
     </div>`;
@@ -425,16 +742,30 @@ function removeTable(btn) {
 
 function addColumn(btn) {
   const tableEl = btn.closest('.table-editor');
-  const addBtn = btn.closest('div');
+  const rowsContainer = tableEl.querySelector('.table-editor-rows');
   const row = document.createElement('div');
   row.className = 'col-editor-row';
   row.innerHTML = `
     <input type="text" class="col-input col-name" value="" placeholder="column_name">
-    <input type="text" class="col-input col-type" value="VARCHAR(255)" placeholder="VARCHAR(255)">
+    <div class="col-type-wrapper">
+      <select class="col-input col-type" onchange="updateTypeReminder(this)">
+        <option value="INT">INT</option>
+        <option value="VARCHAR(255)" selected>VARCHAR(255)</option>
+        <option value="TEXT">TEXT</option>
+        <option value="DATE">DATE</option>
+        <option value="DATETIME">DATETIME</option>
+        <option value="BOOLEAN">BOOLEAN</option>
+        <option value="FLOAT">FLOAT</option>
+        <option value="DECIMAL(10,2)">DECIMAL(10,2)</option>
+        <option value="JSON">JSON</option>
+      </select>
+      <span class="col-type-note"></span>
+    </div>
     <label class="col-check-label"><input type="checkbox" class="col-pk"> PK</label>
     <label class="col-check-label"><input type="checkbox" class="col-nullable" checked> NULL</label>
     <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);"><i class="bi bi-dash-circle"></i></button>`;
-  tableEl.insertBefore(row, addBtn);
+  rowsContainer.appendChild(row);
+  updateTypeReminder(row.querySelector('.col-type'));
   updateStats();
   row.querySelector('.col-name').focus();
 }
@@ -457,9 +788,9 @@ function addRelationship() {
   row.className = 'rel-editor-row';
   row.innerHTML = `
     <input type="text" class="rel-input rel-from" value="" placeholder="table.column">
-    <i class="bi bi-arrow-right" style="color:var(--primary-mid);text-align:center;"></i>
+    <i class="bi bi-arrow-right" style="color:var(--primary-mid);text-align:center; font-size: 16px;"></i>
     <input type="text" class="rel-input rel-to" value="" placeholder="table.column">
-    <select class="col-input rel-type" style="padding:6px 8px;">
+    <select class="col-input rel-type" style="padding:8px 12px; height: auto;">
       <option value="one-to-many">one-to-many</option>
       <option value="many-to-one">many-to-one</option>
       <option value="one-to-one">one-to-one</option>
@@ -474,7 +805,162 @@ function addRelationship() {
 
 function resetToOriginal() {
   if (!confirm('Reset all changes back to the original OCR detection?')) return;
-  location.reload();
+  restoreOriginalParsedData();
+}
+
+function htmlEscape(value) {
+  return String(value || '').replace(/[&<>"']/g, (chr) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[chr]);
+}
+
+function buildTableEditor(table) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'table-editor';
+  wrapper.innerHTML = `
+    <div class="table-editor-head">
+      <i class="bi bi-table" style="color:rgba(231,242,239,0.7);"></i>
+      <input type="text" class="table-name-input" value="${htmlEscape(table.name)}" placeholder="table_name" onchange="updateTableName(this)">
+      <button onclick="removeTable(this)" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);margin-left:auto;">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+    <div class="table-columns-header">
+      <span>Column Name</span>
+      <span>Data Type</span>
+      <span style="text-align:center;">PK</span>
+      <span style="text-align:center;">Null</span>
+      <span></span>
+    </div>
+    <div class="table-editor-rows">
+      ${table.columns.map(col => `
+        <div class="col-editor-row">
+          <input type="text" class="col-input col-name" value="${htmlEscape(col.name)}" placeholder="column_name">
+          <div class="col-type-wrapper">
+            <select class="col-input col-type" onchange="updateTypeReminder(this)">
+              <option value="INT" ${col.type === 'INT' ? 'selected' : ''}>INT</option>
+              <option value="VARCHAR(255)" ${col.type === 'VARCHAR(255)' ? 'selected' : ''}>VARCHAR(255)</option>
+              <option value="TEXT" ${col.type === 'TEXT' ? 'selected' : ''}>TEXT</option>
+              <option value="DATE" ${col.type === 'DATE' ? 'selected' : ''}>DATE</option>
+              <option value="DATETIME" ${col.type === 'DATETIME' ? 'selected' : ''}>DATETIME</option>
+              <option value="BOOLEAN" ${col.type === 'BOOLEAN' ? 'selected' : ''}>BOOLEAN</option>
+              <option value="FLOAT" ${col.type === 'FLOAT' ? 'selected' : ''}>FLOAT</option>
+              <option value="DECIMAL(10,2)" ${col.type === 'DECIMAL(10,2)' ? 'selected' : ''}>DECIMAL(10,2)</option>
+              <option value="JSON" ${col.type === 'JSON' ? 'selected' : ''}>JSON</option>
+              ${['INT','VARCHAR(255)','TEXT','DATE','DATETIME','BOOLEAN','FLOAT','DECIMAL(10,2)','JSON'].includes(col.type) ? '' : `<option value="${htmlEscape(col.type)}" selected>${htmlEscape(col.type)}</option>`}
+            </select>
+            <span class="col-type-note"></span>
+          </div>
+          <label class="col-check-label">
+            <input type="checkbox" class="col-pk" ${col.primary_key ? 'checked' : ''}> PK
+          </label>
+          <label class="col-check-label">
+            <input type="checkbox" class="col-nullable" ${col.nullable ? 'checked' : ''}> NULL
+          </label>
+          <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);"><i class="bi bi-dash-circle"></i></button>
+        </div>
+      `).join('')}
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);background:rgba(255,255,255,0.2);">
+      <button onclick="addColumn(this)" class="btn btn-outline btn-sm" style="font-size:12.5px;">
+        <i class="bi bi-plus"></i> Add Column
+      </button>
+    </div>
+  `;
+  return wrapper;
+}
+
+function buildRelationshipRow(rel) {
+  const row = document.createElement('div');
+  row.className = 'rel-editor-row';
+  row.innerHTML = `
+    <input type="text" class="rel-input rel-from" value="${htmlEscape(rel.from_table + '.' + rel.from_col)}" placeholder="table.column">
+    <i class="bi bi-arrow-right" style="color:var(--primary-mid);text-align:center; font-size: 16px;"></i>
+    <input type="text" class="rel-input rel-to" value="${htmlEscape(rel.to_table + '.' + rel.to_col)}" placeholder="table.column">
+    <select class="col-input rel-type" style="padding:8px 12px; height: auto;">
+      <option value="one-to-many" ${rel.type === 'one-to-many' ? 'selected' : ''}>one-to-many</option>
+      <option value="many-to-one" ${rel.type === 'many-to-one' ? 'selected' : ''}>many-to-one</option>
+      <option value="one-to-one" ${rel.type === 'one-to-one' ? 'selected' : ''}>one-to-one</option>
+      <option value="many-to-many" ${rel.type === 'many-to-many' ? 'selected' : ''}>many-to-many</option>
+    </select>
+    <button onclick="this.closest('.rel-editor-row').remove();updateStats();" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);">
+      <i class="bi bi-dash-circle"></i>
+    </button>
+  `;
+  return row;
+}
+
+function restoreOriginalParsedData() {
+  const tablesContainer = document.getElementById('tablesContainer');
+  const relContainer = document.getElementById('relContainer');
+  const emptyTablesMsg = document.getElementById('emptyTablesMsg');
+  const emptyRelMsg = document.getElementById('emptyRelMsg');
+
+  tablesContainer.innerHTML = '';
+  relContainer.innerHTML = '';
+
+  const tables = Array.isArray(originalParsed.tables) ? originalParsed.tables : [];
+  const relationships = Array.isArray(originalParsed.relationships) ? originalParsed.relationships : [];
+
+  if (tables.length === 0) {
+    if (emptyTablesMsg) emptyTablesMsg.style.display = 'block';
+  } else {
+    if (emptyTablesMsg) emptyTablesMsg.style.display = 'none';
+    tables.forEach(table => tablesContainer.appendChild(buildTableEditor(table)));
+  }
+
+  if (relationships.length === 0) {
+    if (emptyRelMsg) emptyRelMsg.style.display = 'block';
+  } else {
+    if (emptyRelMsg) emptyRelMsg.style.display = 'none';
+    relationships.forEach(rel => relContainer.appendChild(buildRelationshipRow(rel)));
+  }
+
+  normalizeColumnCheckboxStates();
+  document.querySelectorAll('.col-type').forEach(updateTypeReminder);
+  updateStats();
+}
+
+function normalizeColumnCheckboxStates() {
+  document.querySelectorAll('.col-editor-row').forEach(row => {
+    const pk = row.querySelector('.col-pk');
+    const nullable = row.querySelector('.col-nullable');
+    if (pk && nullable && pk.checked && nullable.checked) {
+      nullable.checked = false;
+    }
+  });
+}
+
+function attachCheckboxRules() {
+  document.addEventListener('change', (event) => {
+    const target = event.target;
+    if (!target.classList) return;
+    if (target.classList.contains('col-pk') || target.classList.contains('col-nullable') || target.classList.contains('col-type')) {
+      const row = target.closest('.col-editor-row');
+      if (!row) return;
+      if (target.classList.contains('col-pk') && target.checked) {
+        const nullable = row.querySelector('.col-nullable');
+        if (nullable) nullable.checked = false;
+      }
+      if (target.classList.contains('col-nullable') && target.checked) {
+        const pk = row.querySelector('.col-pk');
+        if (pk) pk.checked = false;
+      }
+      if (target.classList.contains('col-type')) {
+        updateTypeReminder(target);
+      }
+    }
+  });
+}
+
+function handlePageShow(event) {
+  if (event.persisted || (performance.getEntriesByType && performance.getEntriesByType('navigation').some(nav => nav.type === 'back_forward'))) {
+    restoreOriginalParsedData();
+  }
 }
 
 function collectSchemaData() {
@@ -517,6 +1003,10 @@ async function confirmAndSave() {
     alert('Please add at least one table before confirming.');
     return;
   }
+  if (!schemaId) {
+    alert('Invalid schema identification target pipeline index context.');
+    return;
+  }
 
   const btn = document.getElementById('confirmBtn');
   btn.disabled = true;
@@ -542,10 +1032,11 @@ async function confirmAndSave() {
   }
 }
 
-// Initialize stats on load
+// Initial status setup parsing call context loop execution bound
+attachCheckboxRules();
+normalizeColumnCheckboxStates();
+document.querySelectorAll('.col-type').forEach(updateTypeReminder);
 updateStats();
+window.addEventListener('pageshow', handlePageShow);
 </script>
-<style>
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
 {% endblock %}

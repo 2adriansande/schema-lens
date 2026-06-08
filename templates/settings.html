@@ -118,6 +118,7 @@
             <label class="label">
               <i class="bi bi-key-fill" style="color:var(--warning);"></i>
               Gemini API Key
+              <span style="font-size:10px;background:rgba(99,102,241,0.1);color:#4338ca;border-radius:4px;padding:1px 6px;margin-left:6px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Image Recognition Only</span>
               <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:11px;color:var(--primary-mid);margin-left:7px;font-weight:600;text-transform:none;letter-spacing:0;">Get free key →</a>
             </label>
             <div class="input-with-toggle">
@@ -128,7 +129,7 @@
               </button>
             </div>
             <div style="font-size:12px;color:var(--text-xs);margin-top:6px;">
-              Used for AI schema parsing and SQL generation. Stored in your account only.
+              Used for <strong>AI schema parsing from images</strong> and direct Gemini-powered website generation. SQL generation still uses local Ollama (llama3.2:3b).
             </div>
           </div>
           <div style="margin-top:22px;">
@@ -197,12 +198,15 @@
             <i class="bi bi-calendar3"></i>
             Member since {{ user.created_at.strftime('%B %Y') }}
           </div>
-          <div class="profile-meta-row" style="margin-top:7px;">
+          <div class="profile-meta-row" style="margin-top:7px;flex-direction:column;align-items:flex-start;gap:6px;">
             {% if user.gemini_key %}
-            <span class="badge badge-green"><i class="bi bi-check-circle-fill"></i> Gemini AI Active</span>
+            <span class="badge badge-green"><i class="bi bi-camera-fill"></i> Gemini Vision Active</span>
             {% else %}
-            <span class="badge badge-amber"><i class="bi bi-exclamation-triangle-fill"></i> No API Key</span>
+            <span class="badge badge-amber"><i class="bi bi-exclamation-triangle-fill"></i> No Gemini Key (Image parsing limited)</span>
             {% endif %}
+            <span id="settingsOllamaBadge" class="badge" style="background:rgba(156,163,175,0.2);color:var(--text-xs);">
+              <i class="bi bi-cpu"></i> Checking Ollama…
+            </span>
           </div>
         </div>
       </div>
@@ -229,5 +233,27 @@ function toggleKeyVis() {
   if (inp.type === 'password') { inp.type = 'text'; ico.className = 'bi bi-eye-slash'; }
   else { inp.type = 'password'; ico.className = 'bi bi-eye'; }
 }
+
+// Ollama status on settings page
+(async function() {
+  const badge = document.getElementById('settingsOllamaBadge');
+  if (!badge) return;
+  try {
+    const resp = await fetch('/api/ollama-status');
+    if (resp.ok) {
+      const d = await resp.json();
+      if (d.active) {
+        badge.className = 'badge badge-green';
+        badge.innerHTML = '<i class="bi bi-cpu-fill"></i> Ollama Active · llama3.2:3b';
+      } else {
+        badge.className = 'badge badge-red';
+        badge.innerHTML = '<i class="bi bi-cpu"></i> Ollama Offline';
+      }
+    }
+  } catch(e) {
+    badge.className = 'badge badge-red';
+    badge.innerHTML = '<i class="bi bi-cpu"></i> Ollama Offline';
+  }
+})();
 </script>
 {% endblock %}

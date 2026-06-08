@@ -1542,23 +1542,6 @@ def delete_schema(schema_id):
     return redirect(url_for("schemas"))
 
 
-@app.route("/schemas/delete-all", methods=["POST"])
-@login_required
-def delete_all_schemas():
-    schemas = SchemaUpload.query.filter_by(user_id=current_user.id).all()
-    for schema in schemas:
-        try:
-            filepath = os.path.join(app.config["UPLOAD_FOLDER"], schema.filename)
-            if os.path.exists(filepath):
-                os.remove(filepath)
-        except Exception:
-            pass
-        db.session.delete(schema)
-    db.session.commit()
-    flash(f"Deleted {len(schemas)} schema{'s' if len(schemas) != 1 else ''}.", "success")
-    return redirect(url_for("schemas"))
-
-
 # ── FEATURE 5: ER Diagram data endpoint ──
 @app.route("/schemas/<int:schema_id>/er-diagram")
 @login_required

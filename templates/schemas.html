@@ -211,16 +211,7 @@
       Your Schemas
       <span class="badge badge-mid" style="margin-left:9px;">{{ schemas|length }}</span>
     </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <a href="{{ url_for('query_page') }}" class="btn btn-primary btn-sm"><i class="bi bi-stars"></i> Generate SQL</a>
-      {% if schemas %}
-      <form method="POST" action="{{ url_for('delete_all_schemas') }}" style="margin:0;">
-        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete all uploaded schemas and their queries? This cannot be undone.');">
-          <i class="bi bi-trash"></i> Delete All
-        </button>
-      </form>
-      {% endif %}
-    </div>
+    <a href="{{ url_for('query_page') }}" class="btn btn-primary btn-sm"><i class="bi bi-stars"></i> Generate SQL</a>
   </div>
   {% if schemas %}
   <div class="table-responsive">

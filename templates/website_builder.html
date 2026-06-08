@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Website Builder — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.page-head { margin-bottom: 26px; }
+.page-head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 5px; }
+.page-head p  { font-size: 14px; color: var(--text-soft); }
+.builder-grid { display: grid; grid-template-columns: 1fr 320px; gap: 22px; align-items: start; }
+.builder-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.builder-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.builder-header i { color: var(--primary-mid); font-size: 16px; }
+.builder-body { padding: 20px; }
+.builder-textarea { width: 100%; min-height: 160px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; font-family: var(--font); font-size: 14px; color: var(--text); background: var(--bg); resize: vertical; }
+.builder-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.builder-output { width: 100%; min-height: 260px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card-bg); overflow: hidden; }
+.builder-output pre { margin: 0; padding: 16px; font-family: var(--mono); font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: var(--text); }
+.builder-note { font-size: 13px; color: var(--text-soft); margin-top: 10px; }
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.35); border-radius: 50%; border-top-color: #fff; animation: spin 0.75s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head fade-in">
+  <h1>Website Builder</h1>
+  <p>Generate a complete static HTML website directly from Gemini without leaving SchemaLens.</p>
+</div>
+
+<div class="builder-grid fade-in fade-in-1">
+  <div class="builder-card">
+    <div class="builder-header">
+      <i class="bi bi-rocket-fill"></i>
+      <div>
+        <div style="font-weight:700;color:var(--text);">Build your website</div>
+        <div style="font-size:13px;color:var(--text-soft);">Describe what you want and Gemini will generate the HTML for you.</div>
+      </div>
+    </div>
+    <div class="builder-body">
+      <label class="label" for="websiteDescription">Website Description</label>
+      <textarea id="websiteDescription" class="builder-textarea" placeholder="Example: A polished landing page for an AI-powered database query tool with schema automation and query history." rows="8"></textarea>
+      <div class="builder-actions">
+        <button class="btn btn-primary" id="generateWebsiteBtn" onclick="generateWebsite()"><i class="bi bi-lightning-charge-fill"></i> Generate Website</button>
+      <button class="btn btn-outline" id="copyWebsiteBtn" onclick="copyWebsiteHtml()" style="display:none;"><i class="bi bi-clipboard"></i> Copy HTML</button>
+      <button class="btn btn-ghost" id="downloadWebsiteBtn" onclick="downloadWebsiteHtml()" style="display:none;"><i class="bi bi-download"></i> Download HTML</button>
+      </div>
+      <div class="builder-note">If you do not provide a description, a polished AI tool landing page will be generated automatically.</div>
+      <div id="websiteStatus" class="builder-note" style="margin-top:14px;color:var(--danger);"></div>
+    </div>
+  </div>
+
+  <div class="builder-card">
+    <div class="builder-header">
+      <i class="bi bi-code-slash"></i>
+      <div>
+        <div style="font-weight:700;color:var(--text);">Generated HTML</div>
+        <div style="font-size:13px;color:var(--text-soft);">Preview the raw HTML code and download it as a file.</div>
+      </div>
+    </div>
+    <div class="builder-output" id="websiteOutputContainer">
+      <pre id="websiteOutput">Your generated website HTML will appear here.</pre>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generateWebsite() {
+  const btn = document.getElementById('generateWebsiteBtn');
+  const status = document.getElementById('websiteStatus');
+  const desc = document.getElementById('websiteDescription').value.trim();
+  const output = document.getElementById('websiteOutput');
+  const copyBtn = document.getElementById('copyWebsiteBtn');
+  const downloadBtn = document.getElementById('downloadWebsiteBtn');
+
+  status.textContent = '';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin" style="display:inline-block;border-top-color:#fff;margin-right:8px;"></span> Generating…';
+  output.textContent = 'Generating website HTML...';
+  copyBtn.style.display = 'none';
+  downloadBtn.style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/generate-website', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Failed to generate website');
+    output.textContent = data.html;
+    copyBtn.style.display = 'inline-flex';
+    downloadBtn.style.display = 'inline-flex';
+  } catch (err) {
+    status.textContent = err.message;
+    output.textContent = 'Unable to generate website. Check your Gemini API key in Settings.';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-lightning-charge-fill"></i> Generate Website';
+  }
+}
+
+function copyWebsiteHtml() {
+  const output = document.getElementById('websiteOutput').textContent;
+  navigator.clipboard.writeText(output);
+}
+
+function downloadWebsiteHtml() {
+  const output = document.getElementById('websiteOutput').textContent;
+  const blob = new Blob([output], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'schema-lens-website.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}
