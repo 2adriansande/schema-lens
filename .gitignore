@@ -1,0 +1,4 @@
+venv/
+schemalens.db
+__pycache__/
+*.pyc
