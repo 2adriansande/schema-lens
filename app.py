@@ -1419,6 +1419,23 @@ def schemas():
     return render_template("schemas.html", schemas=all_schemas)
 
 
+@app.route("/schemas/delete_all", methods=["POST"])
+@login_required
+def delete_all_schemas():
+    schemas = SchemaUpload.query.filter_by(user_id=current_user.id).all()
+    for schema in schemas:
+        try:
+            filepath = os.path.join(app.config["UPLOAD_FOLDER"], schema.filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        except Exception:
+            pass
+        db.session.delete(schema)
+    db.session.commit()
+    flash("All schemas deleted.", "success")
+    return redirect(url_for("schemas"))
+
+
 @app.route("/schemas/upload", methods=["POST"])
 @login_required
 def upload_schema():
