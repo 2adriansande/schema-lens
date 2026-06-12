@@ -487,6 +487,7 @@ async function generateSQL() {
   btn.disabled = true;
   btn.innerHTML = '<span style="width:14px;height:14px;border:2px solid rgba(231,242,239,.4);border-top-color:var(--primary-xlight);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span> Generating…';
   showState('loading');
+  if (typeof showSqlGenModal === 'function') showSqlGenModal();
 
   try {
     const resp = await fetch('/api/generate-sql', {
@@ -497,6 +498,7 @@ async function generateSQL() {
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || 'Unknown error');
 
+    if (typeof hideSqlGenModal === 'function') hideSqlGenModal();
     currentQueryId = data.query_id;
 
     // SQL
@@ -534,6 +536,7 @@ async function generateSQL() {
     showState('result');
 
   } catch (err) {
+    if (typeof hideSqlGenModal === 'function') hideSqlGenModal();
     document.getElementById('errorMsg').innerHTML = `<i class="bi bi-x-circle-fill"></i> ${err.message}`;
     showState('error');
   } finally {

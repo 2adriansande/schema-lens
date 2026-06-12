@@ -20,7 +20,7 @@
   border-radius: var(--radius);
   padding: 36px 22px; 
   text-align: center; 
-  cursor: pointer;w
+  cursor: pointer;
   background: rgba(231,242,239,0.25);
   transition: all .2s ease-in-out;
 }
@@ -220,10 +220,16 @@
 </div>
 
 <div class="processing-overlay" id="processingOverlay">
-  <div class="processing-box">
-    <div class="spinner"></div>
-    <h4>Processing Schema…</h4>
-    <p>Running OCR and AI analysis. This may take a moment.</p>
+  <div class="processing-box" style="min-width:320px;">
+    <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--primary-mid));display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 16px;">
+      <i class="bi bi-cpu" style="color:var(--primary-xlight);"></i>
+    </div>
+    <h4 id="scanStatus">Scanning Schema…</h4>
+    <p id="scanSubStatus">Running OCR and AI analysis. This may take a moment.</p>
+    <div style="margin-top:16px;background:rgba(161,194,189,0.2);border-radius:100px;height:6px;overflow:hidden;">
+      <div id="scanBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--primary),var(--primary-mid));border-radius:100px;transition:width .5s ease;"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-xs);margin-top:8px;" id="scanPct">0%</div>
   </div>
 </div>
 {% endblock %}
@@ -252,6 +258,27 @@ dz.addEventListener('drop', ev => {
 });
 document.getElementById('uploadForm').addEventListener('submit', () => {
   document.getElementById('processingOverlay').style.display = 'flex';
+  animateScanProgress();
 });
+function animateScanProgress() {
+  const stages = [
+    {pct:12, msg:'Scanning image…', sub:'Extracting text from ERD…'},
+    {pct:30, msg:'Running OCR…', sub:'Detecting boxes and text positions…'},
+    {pct:55, msg:'AI Analysis…', sub:'Sending to Gemini Vision for schema extraction…'},
+    {pct:75, msg:'Parsing Schema…', sub:'Identifying tables, columns, and relationships…'},
+    {pct:90, msg:'Finalizing…', sub:'Preparing schema confirmation page…'},
+  ];
+  let i=0;
+  const iv = setInterval(() => {
+    if (i < stages.length) {
+      const s = stages[i];
+      document.getElementById('scanBar').style.width = s.pct+'%';
+      document.getElementById('scanPct').textContent = s.pct+'%';
+      document.getElementById('scanStatus').textContent = s.msg;
+      document.getElementById('scanSubStatus').textContent = s.sub;
+      i++;
+    } else clearInterval(iv);
+  }, 1100);
+}
 </script>
 {% endblock %}

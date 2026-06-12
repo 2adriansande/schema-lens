@@ -103,7 +103,7 @@
 
 {% block scripts %}
 <script>
-const schemaData = {{ parsed_json | safe }};
+const schemaData = JSON.parse('{{ parsed_json | safe }}');
 
 // ── State ──
 let svgEl, svgG;

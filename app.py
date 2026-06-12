@@ -4,6 +4,7 @@ import re
 import datetime
 import random
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from flask import (Flask, render_template, request, redirect, url_for,
                    flash, jsonify, send_from_directory)
@@ -605,7 +606,7 @@ Return ONLY the JSON. No markdown fences. No explanation."""
 
 MODELS = [
     "gemini-2.5-flash",
-    "gemini-2.0-flash",
+    "gemini-3.0-flash"
 ]
 
 def _call_gemini(api_key: str, contents) -> str:
@@ -745,6 +746,45 @@ def parse_schema_with_gemini(ocr_text: str, api_key: str, image_path: str = None
         return result
     except Exception as exc:
         raise RuntimeError(f"All Gemini parsing stages failed: {exc}")
+
+
+# ── PARALLEL #3: Multi-model consensus ────────────────────────────────────
+
+def parse_schema_with_consensus(ocr_text: str, api_key: str, image_path: str = None) -> dict:
+    """
+    Fan out schema parsing to Gemini + Ollama simultaneously.
+    Returns whichever result has more tables; falls back gracefully if either fails.
+    This is a replicated parallel pattern — both models race and the best wins.
+    """
+    def _gemini_parse():
+        return parse_schema_with_gemini(ocr_text, api_key, image_path)
+
+    def _ollama_parse():
+        return parse_schema_fallback(ocr_text)
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = {
+            pool.submit(_gemini_parse): "gemini",
+            pool.submit(_ollama_parse): "ollama",
+        }
+        for future in as_completed(futures):
+            name = futures[future]
+            try:
+                results[name] = future.result()
+            except Exception:
+                results[name] = {"tables": [], "relationships": []}
+
+    gemini_tables = len(results.get("gemini", {}).get("tables", []))
+    ollama_tables  = len(results.get("ollama",  {}).get("tables", []))
+
+    # Pick the result with more tables; prefer Gemini on a tie
+    if gemini_tables >= ollama_tables and gemini_tables > 0:
+        return results["gemini"]
+    elif ollama_tables > 0:
+        return results["ollama"]
+    else:
+        raise RuntimeError("Both Gemini and Ollama returned no tables.")
 
 
 # ── Ollama helpers ─────────────────────────────────────────────────────────
@@ -1382,22 +1422,28 @@ def upload_schema():
     )
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(filepath)
-    ocr_text = run_ocr(filepath)
-    parsed = {}
     api_key = current_user.gemini_key
+
+    # ── PARALLEL #1: OCR + Gemini Vision fire simultaneously ──────────────
+    # Both are I/O-bound so they overlap cleanly; saves ~2-5s per upload.
+    ocr_text = ""
+    parsed   = {}
     if api_key:
-        try:
-            # Pass the actual image path — Gemini Vision gives far better results
-            parsed = parse_schema_with_gemini(ocr_text, api_key, image_path=filepath)
-            # Validate we got real tables, not type-keyword garbage
-            if not parsed.get("tables"):
-                raise ValueError("No tables extracted from image — trying OCR fallback")
-        except Exception as exc:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            f_ocr    = pool.submit(run_ocr, filepath)
+            f_vision = pool.submit(parse_schema_with_image, filepath, api_key)
+            ocr_text = f_ocr.result()
             try:
-                # Second attempt: text-only Gemini
-                parsed = parse_schema_with_gemini(ocr_text, api_key, image_path=None)
-                if not parsed.get("tables"):
-                    raise ValueError("Text-only parse also produced no tables")
+                vision_result = f_vision.result()
+                if vision_result.get("tables"):
+                    parsed = vision_result          # Vision succeeded — use it
+            except Exception:
+                parsed = {}                         # Vision failed — fall through
+
+        # If Vision didn't yield tables, run Gemini + Ollama in parallel (consensus)
+        if not parsed.get("tables"):
+            try:
+                parsed = parse_schema_with_consensus(ocr_text, api_key, image_path=None)
             except Exception as exc2:
                 parsed = parse_schema_fallback(ocr_text)
                 flash(
@@ -1406,7 +1452,8 @@ def upload_schema():
                     "warning"
                 )
     else:
-        parsed = parse_schema_fallback(ocr_text)
+        ocr_text = run_ocr(filepath)
+        parsed   = parse_schema_fallback(ocr_text)
         if parsed.get("tables"):
             flash(
                 "No Gemini API key — used heuristic parser. "
@@ -1564,18 +1611,24 @@ def generate_sql():
         sql = _fallback_sql(natural_query, parsed)
         model_used = "heuristic"
 
-    # Feature 2: Generate explanation via Ollama
-    explanation = ""
-    if ollama_ok:
-        try:
-            explanation = explain_sql_with_ollama(sql)
-        except Exception:
-            explanation = explain_sql_fallback(sql)
-    else:
-        explanation = explain_sql_fallback(sql)
+    # ── PARALLEL #2: Explain + Evaluate fire simultaneously (fork-join) ──────
+    # Neither depends on the other — pure parallelism, ~2x faster response.
+    def _explain():
+        if ollama_ok:
+            try:
+                return explain_sql_with_ollama(sql)
+            except Exception:
+                return explain_sql_fallback(sql)
+        return explain_sql_fallback(sql)
 
-    # Feature 4: Evaluate accuracy (Ollama for AI eval if active)
-    eval_result = evaluate_sql_accuracy(sql, natural_query, parsed, None)
+    def _evaluate():
+        return evaluate_sql_accuracy(sql, natural_query, parsed, None)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        f_explain  = pool.submit(_explain)
+        f_evaluate = pool.submit(_evaluate)
+        explanation = f_explain.result()
+        eval_result = f_evaluate.result()
 
     # Feature 3: Initialize conversation context
     conversation = [
@@ -2473,6 +2526,324 @@ def challenge_clear_history():
 def uploaded_file(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
+
+# ══════════════════════════════════════════════════════════════════
+# QUERY HISTORY — DELETE ALL
+# ══════════════════════════════════════════════════════════════════
+@app.route("/api/history/delete-all", methods=["POST"])
+@login_required
+def delete_all_history():
+    QueryHistory.query.filter_by(user_id=current_user.id).delete()
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+# ══════════════════════════════════════════════════════════════════
+# GLOBAL SEARCH API
+# ══════════════════════════════════════════════════════════════════
+@app.route("/api/search")
+@login_required
+def global_search():
+    q = request.args.get("q", "").strip().lower()
+    if not q or len(q) < 2:
+        return jsonify({"results": []})
+    results = []
+    # Search schemas
+    schemas = SchemaUpload.query.filter_by(user_id=current_user.id).all()
+    for s in schemas:
+        name = (s.schema_name or s.original_name or "").lower()
+        if q in name:
+            results.append({"type":"schema","icon":"bi-layers","title":s.schema_name or s.original_name,"subtitle":f"Schema · {s.uploaded_at.strftime('%b %d, %Y')}","url":f"/schemas/{s.id}"})
+    # Search queries
+    queries = QueryHistory.query.filter_by(user_id=current_user.id).order_by(QueryHistory.created_at.desc()).limit(200).all()
+    for qy in queries:
+        if q in qy.natural_query.lower() or q in (qy.generated_sql or "").lower():
+            results.append({"type":"query","icon":"bi-terminal","title":qy.natural_query[:80],"subtitle":f"Query · {qy.created_at.strftime('%b %d, %Y')}","url":"/history"})
+    # Search challenge attempts
+    attempts = ChallengeAttempt.query.filter_by(user_id=current_user.id).limit(100).all()
+    for a in attempts:
+        if q in a.prompt.lower():
+            results.append({"type":"challenge","icon":"bi-lightning-charge","title":a.prompt[:70],"subtitle":f"Challenge · Score: {a.score}","url":"/challenge"})
+    # Search learn topics
+    learn_topics = [("What is a Database?","/learn?section=beginner"),("What is SQL?","/learn?section=beginner&lesson=what-is-sql"),("SELECT Statement","/learn?section=basic_sql"),("WHERE Clause","/learn?section=basic_sql&lesson=where"),("JOIN Tables","/learn?section=joins"),("GROUP BY","/learn?section=intermediate"),("Subqueries","/learn?section=advanced"),("Indexes","/learn?section=advanced&lesson=indexes")]
+    for topic, url in learn_topics:
+        if q in topic.lower():
+            results.append({"type":"lesson","icon":"bi-book","title":topic,"subtitle":"SQL Learn · Lesson","url":url})
+    return jsonify({"results": results[:12]})
+
+
+# ══════════════════════════════════════════════════════════════════
+# SAMPLE DATA GENERATION
+# ══════════════════════════════════════════════════════════════════
+def _generate_sample_data_heuristic(schema: dict, row_count: int = 5) -> dict:
+    import random as _rand
+    NAMES = ["Alice","Bob","Charlie","Diana","Eve","Frank","Grace","Henry","Iris","Jake"]
+    EMAILS = ["gmail.com","yahoo.com","outlook.com","company.com","work.io"]
+    WORDS = ["alpha","beta","gamma","delta","epsilon","zeta","theta","kappa"]
+    COMPANIES = ["Acme Corp","TechStart","GlobalTech","NextGen","DataPro","CloudSys"]
+    CITIES = ["Manila","Cebu","Davao","Quezon City","Makati","Pasig","Taguig","Iloilo"]
+    result = {}
+    for table in schema.get("tables",[]):
+        tname = table["name"]
+        rows = []
+        for i in range(1, row_count + 1):
+            row = {}
+            for col in table.get("columns",[]):
+                cname = col["name"]
+                ctype = (col.get("type") or "TEXT").upper()
+                cl = cname.lower()
+                if col.get("primary_key"):
+                    row[cname] = i
+                elif cl in ("name","full_name","username","first_name","last_name"):
+                    row[cname] = _rand.choice(NAMES) + (f"_{i}" if cl != "first_name" else "")
+                elif "email" in cl:
+                    row[cname] = f"user{i}@{_rand.choice(EMAILS)}"
+                elif "phone" in cl:
+                    row[cname] = f"+63-9{_rand.randint(100,999)}-{_rand.randint(1000,9999)}"
+                elif "city" in cl or "location" in cl:
+                    row[cname] = _rand.choice(CITIES)
+                elif "company" in cl or "organization" in cl:
+                    row[cname] = _rand.choice(COMPANIES)
+                elif "price" in cl or "amount" in cl or "salary" in cl or "cost" in cl:
+                    row[cname] = round(_rand.uniform(100,10000),2)
+                elif "age" in cl:
+                    row[cname] = _rand.randint(18,65)
+                elif "quantity" in cl or "stock" in cl or "count" in cl:
+                    row[cname] = _rand.randint(1,100)
+                elif "score" in cl or "rating" in cl:
+                    row[cname] = _rand.randint(1,10)
+                elif cl.endswith("_id") and not col.get("primary_key"):
+                    row[cname] = _rand.randint(1,row_count)
+                elif "date" in cl or "created" in cl or "updated" in cl or "at" in cl:
+                    row[cname] = f"2024-{_rand.randint(1,12):02d}-{_rand.randint(1,28):02d}"
+                elif "status" in cl:
+                    row[cname] = _rand.choice(["active","inactive","pending","completed"])
+                elif ctype in ("INT","INTEGER","BIGINT","SMALLINT"):
+                    row[cname] = _rand.randint(1,1000)
+                elif ctype in ("FLOAT","DOUBLE","DECIMAL","NUMERIC","REAL"):
+                    row[cname] = round(_rand.uniform(1,1000),2)
+                elif ctype in ("BOOLEAN","BOOL"):
+                    row[cname] = _rand.choice([True,False])
+                else:
+                    row[cname] = f"{_rand.choice(WORDS)}_{i}"
+            rows.append(row)
+        result[tname] = rows
+    return result
+
+
+def _build_insert_statements(sample_data: dict) -> str:
+    statements = []
+    for table, rows in sample_data.items():
+        if not rows: continue
+        cols = list(rows[0].keys())
+        col_str = ", ".join(cols)
+        statements.append(f"-- Table: {table}")
+        for row in rows:
+            vals = []
+            for c in cols:
+                v = row.get(c)
+                if v is None: vals.append("NULL")
+                elif isinstance(v, bool): vals.append("1" if v else "0")
+                elif isinstance(v,(int,float)): vals.append(str(v))
+                else: vals.append(f"'{str(v).replace(chr(39), chr(39)*2)}'")
+            statements.append(f"INSERT INTO {table} ({col_str}) VALUES ({', '.join(vals)});")
+        statements.append("")
+    return "\n".join(statements)
+
+
+@app.route("/api/generate-sample-data", methods=["POST"])
+@login_required
+def generate_sample_data():
+    data = request.get_json()
+    schema_id = data.get("schema_id")
+    row_count = min(int(data.get("row_count",5)),20)
+    if not schema_id:
+        return jsonify({"error":"schema_id required"}),400
+    schema_obj = SchemaUpload.query.filter_by(id=schema_id,user_id=current_user.id).first_or_404()
+    raw = schema_obj.confirmed_schema or schema_obj.parsed_schema
+    parsed = json.loads(raw) if raw else {}
+    if not parsed.get("tables"):
+        return jsonify({"error":"No tables in schema"}),400
+    sample_data = _generate_sample_data_heuristic(parsed, row_count)
+    if check_ollama_active():
+        try:
+            sd = _build_schema_description(parsed)
+            prompt = f"{sd}\n\nGenerate {row_count} realistic rows per table. Return ONLY JSON: {{\"tablename\": [{{col: val}}]}}. No markdown."
+            raw_resp = _call_ollama(prompt,"You are a database test data expert. Return ONLY valid JSON.")
+            sample_data = json.loads(_clean_json_response(raw_resp))
+        except Exception:
+            pass
+    insert_sql = _build_insert_statements(sample_data)
+    return jsonify({"sample_data":sample_data,"insert_sql":insert_sql,"validation":{"valid":True,"message":f"Generated {sum(len(v) for v in sample_data.values())} rows"}})
+
+
+@app.route("/api/validate-sql-live", methods=["POST"])
+@login_required
+def validate_sql_live():
+    import sqlite3, tempfile, time
+    data = request.get_json()
+    sql = (data.get("sql") or "").strip()
+    schema_id = data.get("schema_id")
+    sample_data = data.get("sample_data", {})
+    if not sql:
+        return jsonify({"error":"SQL required"}),400
+    parsed = {}
+    if schema_id:
+        so = SchemaUpload.query.filter_by(id=schema_id,user_id=current_user.id).first()
+        if so:
+            raw = so.confirmed_schema or so.parsed_schema
+            if raw: parsed = json.loads(raw)
+    if not parsed.get("tables"):
+        return jsonify({"error":"No schema for validation"}),400
+    with tempfile.NamedTemporaryFile(suffix=".db",delete=False) as tmp:
+        tmp_path = tmp.name
+    try:
+        conn = sqlite3.connect(tmp_path)
+        cur = conn.cursor()
+        tmap = {"INT":"INTEGER","INTEGER":"INTEGER","BIGINT":"INTEGER","SMALLINT":"INTEGER","FLOAT":"REAL","DOUBLE":"REAL","DECIMAL":"REAL","BOOLEAN":"INTEGER","BOOL":"INTEGER","VARCHAR":"TEXT","CHAR":"TEXT","UUID":"TEXT","TIMESTAMP":"TEXT","DATETIME":"TEXT","DATE":"TEXT"}
+        for t in parsed.get("tables",[]):
+            cols = [f"{c['name']} {tmap.get((c.get('type') or 'TEXT').upper(),'TEXT')}{' PRIMARY KEY' if c.get('primary_key') else ''}" for c in t.get("columns",[])]
+            try: cur.execute(f"CREATE TABLE IF NOT EXISTS {t['name']} ({', '.join(cols)})")
+            except: pass
+        sd = sample_data or _generate_sample_data_heuristic(parsed, 3)
+        for tname,rows in sd.items():
+            for row in rows:
+                if not row: continue
+                cs = list(row.keys())
+                vs = [1 if v is True else (0 if v is False else v) for v in row.values()]
+                try: cur.execute(f"INSERT OR IGNORE INTO {tname} ({','.join(cs)}) VALUES ({','.join(['?']*len(cs))})",vs)
+                except: pass
+        conn.commit()
+        t0 = time.time()
+        try:
+            cur.execute(sql)
+            rows = cur.fetchmany(10)
+            elapsed = round((time.time()-t0)*1000,1)
+            col_names = [d[0] for d in cur.description] if cur.description else []
+            conn.close()
+            return jsonify({"valid":True,"columns":col_names,"rows":[list(r) for r in rows],"execution_time_ms":elapsed,"message":f"✓ Query valid ({elapsed}ms)"})
+        except Exception as e:
+            conn.close()
+            return jsonify({"valid":False,"error":str(e),"message":f"✗ {e}"})
+    finally:
+        try: os.unlink(tmp_path)
+        except: pass
+
+
+# ══════════════════════════════════════════════════════════════════
+# SQL LEARN MODULE
+# ══════════════════════════════════════════════════════════════════
+
+SQL_LEARN_LESSONS = {
+"beginner": {"title":"Beginner","icon":"bi-seedling","color":"#059669","lessons":[
+        {"id":"what-is-db","title":"What is a Database?","content":"A database is an organized collection of structured data stored electronically. Think of it as a highly organized digital filing cabinet.\n\nDatabases are managed by software called a DBMS (Database Management System) — MySQL, PostgreSQL, SQLite, and SQL Server are popular examples.\n\nWhy use databases?\n- Store large amounts of data efficiently\n- Retrieve specific data quickly\n- Ensure data integrity and security\n- Allow multiple users to access data simultaneously\n- Support relationships between different data","example_schema":None,"example_query":None,"result":None},
+
+        {"id":"what-is-sql","title":"What is SQL?","content":"SQL (Structured Query Language) is the standard language for managing relational databases.\n\nWith SQL you can:\n- Query data — retrieve information with SELECT\n- Insert new records with INSERT\n- Update existing data with UPDATE\n- Delete records with DELETE\n- Create database structures with CREATE\n\nSQL is case-insensitive but keywords are conventionally written in UPPERCASE for readability.","example_schema":"users (id INT PK, name TEXT, email TEXT)","example_query":"SELECT name, email FROM users;","result":[["Alice Smith","alice@example.com"],["Bob Jones","bob@example.com"]]},
+
+        {"id":"tables-rows","title":"Tables and Rows","content":"Data is organized into tables (relations). A table is like a spreadsheet:\n\n- A table represents one type of entity (users, products, orders)\n- A row (record) = one instance of that entity\n- A column (field) = one attribute of the entity\n\nFor example, a users table has one row per user, and columns for name, email, age, etc.","example_schema":"users (id INT PK, name TEXT, email TEXT, age INT)","example_query":"SELECT * FROM users;","result":[[1,"Alice","alice@ex.com",28],[2,"Bob","bob@ex.com",34]]},
+    ]},
+
+        "basic_sql": {"title":"Basic SQL","icon":"bi-code-square","color":"#2563eb","lessons":[
+
+        {"id":"select","title":"SELECT Statement","content":"The SELECT statement retrieves data from tables. It's the most fundamental SQL command.\n\n```sql\nSELECT column1, column2 FROM table_name;\n```\n\nUse SELECT * to get all columns. For specific columns, list them by name — this is more efficient and explicit.\n\nColumn aliases rename output columns:\n```sql\nSELECT name AS full_name, email AS contact FROM users;\n```","example_schema":"products (id INT PK, name TEXT, price DECIMAL, stock INT)","example_query":"SELECT name, price FROM products WHERE price < 100;","result":[["Widget A",49.99],["Gadget B",89.00]]},
+
+        {"id":"where","title":"WHERE Clause","content":"The WHERE clause filters rows based on conditions.\n\nCommon operators:\n- = equal, != or <> not equal\n- >, <, >=, <= comparison\n- LIKE pattern matching (% = any text)\n- IN (a, b, c) match a list\n- BETWEEN x AND y range\n- IS NULL / IS NOT NULL\n- AND, OR, NOT combine conditions","example_schema":"users (id, name, age, city)","example_query":"SELECT name, age FROM users WHERE age >= 25 AND city = 'Manila';","result":[["Grace",27],["Henry",31]]},
+
+        {"id":"order-by","title":"ORDER BY","content":"ORDER BY sorts results.\n\n- ASC = ascending (1→9, A→Z) — default\n- DESC = descending (9→1, Z→A)\n\nSort by multiple columns:\n```sql\nSELECT * FROM products ORDER BY category ASC, price DESC;\n```\n\nORDER BY always comes after WHERE.","example_schema":"employees (id, name, department, salary)","example_query":"SELECT name, salary FROM employees ORDER BY salary DESC LIMIT 3;","result":[["Diana",95000],["Frank",88000],["Alice",82000]]},
+
+        {"id":"limit","title":"LIMIT","content":"LIMIT restricts the number of rows returned. Essential for previewing data and pagination.\n\n```sql\nSELECT * FROM products LIMIT 10;\n```\n\nWith OFFSET for pagination:\n```sql\n-- Page 2 of 10 results per page\nSELECT * FROM products LIMIT 10 OFFSET 10;\n```","example_schema":"orders (id, customer, product, amount, created_at)","example_query":"SELECT customer, product, amount FROM orders ORDER BY amount DESC LIMIT 5;","result":[["Alice","Laptop",1200],["Bob","Monitor",350],["Charlie","Keyboard",89]]},
+    ]},
+
+        "intermediate": {"title":"Intermediate SQL","icon":"bi-graph-up","color":"#7c3aed","lessons":[
+
+        {"id":"group-by","title":"GROUP BY","content":"GROUP BY groups rows with the same values so you can run aggregate calculations per group.\n\nAggregate functions:\n- COUNT() — count rows\n- SUM() — total\n- AVG() — average\n- MIN() / MAX() — min/max value\n\nRule: Columns in SELECT not inside an aggregate must appear in GROUP BY.","example_schema":"orders (id, customer_id, product, amount, status)","example_query":"SELECT status, COUNT(*) as total, SUM(amount) as revenue FROM orders GROUP BY status;","result":[["completed",45,12500.00],["pending",12,3200.00],["cancelled",5,890.00]]},
+
+        {"id":"having","title":"HAVING","content":"HAVING filters the results of GROUP BY — like WHERE but for grouped data.\n\n- WHERE filters rows before grouping\n- HAVING filters groups after aggregation\n\n```sql\nSELECT department, COUNT(*) as emp_count\nFROM employees\nGROUP BY department\nHAVING COUNT(*) > 10;\n```","example_schema":"sales (id, rep_name, region, amount)","example_query":"SELECT region, AVG(amount) as avg_sale FROM sales GROUP BY region HAVING AVG(amount) > 5000;","result":[["North",7800.50],["South",6250.00]]},
+    ]},
+
+    "joins": {"title":"SQL Joins","icon":"bi-diagram-3","color":"#dc2626","lessons":[
+
+    {"id":"inner-join","title":"INNER JOIN","content":"An INNER JOIN returns rows matching in both tables. Non-matching rows are excluded.\n\n```sql\nSELECT t1.col, t2.col\nFROM table1 t1\nINNER JOIN table2 t2 ON t1.id = t2.table1_id;\n```\n\nThink of it as the intersection — only rows present in both tables appear.","example_schema":"users (id, name) + orders (id, user_id, product, amount)","example_query":"SELECT u.name, o.product, o.amount FROM users u INNER JOIN orders o ON u.id = o.user_id;","result":[["Alice","Laptop",1200],["Bob","Mouse",25],["Alice","Monitor",350]]},
+
+    {"id":"left-join","title":"LEFT JOIN","content":"A LEFT JOIN returns all rows from the left table and matched rows from the right. No match → right columns are NULL.\n\nUse it to include records even without related data.\n\n```sql\nSELECT u.name, o.product\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id;\n```","example_schema":"users (id, name) + orders (id, user_id, product)","example_query":"SELECT u.name, COALESCE(o.product, 'No orders') as product FROM users u LEFT JOIN orders o ON u.id = o.user_id;","result":[["Alice","Laptop"],["Bob","Mouse"],["Charlie","No orders"]]},
+    ]},
+
+        "advanced": {"title":"Advanced SQL","icon":"bi-cpu","color":"#0891b2","lessons":[
+
+        {"id":"subqueries","title":"Subqueries","content":"A subquery is a query nested inside another query.\n\nTypes:\n- Scalar — returns a single value\n- Column — returns a column\n- Table — returns a result set (used in FROM)\n\n```sql\nSELECT name, salary\nFROM employees\nWHERE salary > (SELECT AVG(salary) FROM employees);\n```","example_schema":"products (id, name, price, category_id)","example_query":"SELECT name, price FROM products WHERE price > (SELECT AVG(price) FROM products) ORDER BY price DESC;","result":[["Premium Widget",299.99],["Pro Tool",189.00]]},
+
+        {"id":"indexes","title":"Indexes","content":"An index speeds up data retrieval at the cost of storage and slower writes.\n\nWhen to index:\n- Columns in WHERE clauses\n- Columns used in JOINs\n- Columns in ORDER BY\n\n```sql\nCREATE INDEX idx_email ON users(email);\n\nCREATE UNIQUE INDEX idx_user_email ON users(email);\n```\n\n⚠️ Too many indexes slow INSERT/UPDATE/DELETE.","example_schema":"users (id, name, email, created_at)","example_query":"CREATE INDEX idx_users_email ON users(email);","result":None},
+    ]}
+}
+
+
+@app.route("/learn")
+@login_required
+def learn():
+    section = request.args.get("section","beginner")
+    lesson_id = request.args.get("lesson")
+    current_section = SQL_LEARN_LESSONS.get(section, SQL_LEARN_LESSONS["beginner"])
+    current_lesson = None
+    if lesson_id:
+        for l in current_section["lessons"]:
+            if l["id"] == lesson_id:
+                current_lesson = l
+                break
+    if not current_lesson and current_section["lessons"]:
+        current_lesson = current_section["lessons"][0]
+    # Compute progress per section (session-based simple tracking via query count heuristic)
+    return render_template("learn.html", sections=SQL_LEARN_LESSONS, current_section_key=section, current_section=current_section, current_lesson=current_lesson)
+
+
+@app.route("/api/learn/ask-tutor", methods=["POST"])
+@login_required
+def learn_ask_tutor():
+    data = request.get_json()
+    question = (data.get("question") or "").strip()
+
+    if not question:
+        return jsonify({"error": "Question required"}), 400
+
+    system = (
+        "You are a friendly SQL tutor for beginners. "
+        "Give clear, concise explanations with short SQL examples. "
+        "Keep responses under 250 words."
+    )
+
+    prompt = (
+        f"Student question: {question}\n\n"
+        "Explain this SQL concept clearly for a beginner, "
+        "with a short example if helpful."
+    )
+
+    answer = ""
+
+    # Try Ollama first
+    if check_ollama_active():
+        try:
+            answer = _call_ollama(prompt, system=system)
+        except Exception:
+            pass
+
+    # Fallback to Gemini if Ollama fails
+    if not answer and current_user.gemini_key:
+        try:
+            answer = _call_gemini(
+                current_user.gemini_key,
+                f"{system}\n\n{prompt}"
+            )
+        except Exception:
+            pass
+
+    # Final fallback message
+    if not answer:
+        answer = (
+            f"I'd love to explain '{question}'! "
+            "Please make sure Ollama is running or add a Gemini API key "
+            "in Settings for AI-powered explanations."
+        )
+
+    return jsonify({"answer": answer})
 
 # ── Init ───────────────────────────────────────────────────────────────────
 with app.app_context():

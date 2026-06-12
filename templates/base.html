@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}SchemaLens{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
@@ -36,6 +36,10 @@
       --topbar-h: 72px;
       --shadow: 0 4px 24px rgba(25,24,59,0.08);
       --shadow-lg: 0 8px 40px rgba(25,24,59,0.12);
+      
+      /* Dynamic Transition Speed Variables */
+      --sidebar-transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      --main-transition: margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1), left 0.35s cubic-bezier(0.4, 0, 0.2, 1), right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -46,6 +50,7 @@
       font-size: 14px;
       line-height: 1.6;
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     /* ── BACKDROP ── */
@@ -56,6 +61,20 @@
         radial-gradient(ellipse 60% 50% at 80% 10%, rgba(161,194,189,0.35) 0%, transparent 60%),
         radial-gradient(ellipse 40% 60% at 0% 80%, rgba(112,137,147,0.2) 0%, transparent 60%),
         #E7F2EF;
+    }
+
+    /* Mobile dark overlay mask */
+    .sidebar-overlay {
+      position: fixed; inset: 0;
+      background: rgba(25, 24, 59, 0.4);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 199;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    body[data-sidebar-mobile-open="true"] .sidebar-overlay {
+      opacity: 1; pointer-events: auto;
     }
 
     /* ── SIDEBAR ── */
@@ -69,11 +88,18 @@
       display: flex; flex-direction: column;
       z-index: 200;
       box-shadow: var(--shadow);
+      transition: var(--sidebar-transition);
     }
+    
+    /* Desktop Collapse Rules */
+    body[data-sidebar-collapsed="true"] .sidebar {
+      transform: translateX(calc(-1 * var(--sidebar-w)));
+    }
+
     .sidebar-logo {
       height: var(--topbar-h);
       padding: 0 24px;
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
       border-bottom: 1px solid var(--border);
     }
     .sidebar-logo a {
@@ -96,6 +122,21 @@
     .logo-icon svg { width: 22px; height: 22px; }
     .logo-text { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -.4px; }
 
+    /* Close Button (Hidden on Desktop, Visible on Mobile Close) */
+    .btn-close-sidebar {
+      display: none;
+      background: none; border: none;
+      font-size: 20px; color: var(--text-soft);
+      cursor: pointer; padding: 4px; border-radius: var(--radius-xs);
+      transition: all .2s;
+    }
+    .btn-close-sidebar:hover {
+      background: rgba(25,24,59,0.05); color: var(--text);
+    }
+    .btn-close-sidebar:focus-visible {
+      outline: 2px solid var(--primary-light);
+    }
+
     .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
     .nav-section { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-xs); letter-spacing: .05em; margin: 18px 0 8px 14px; }
     
@@ -113,6 +154,10 @@
     }
     .nav-item i { font-size: 17px; flex-shrink: 0; transition: transform .2s, color .2s ease; position: relative; z-index: 2; }
     .nav-item span { position: relative; z-index: 2; display: inline-block; }
+    .nav-item:focus-visible {
+      outline: 2px solid var(--primary-light);
+      outline-offset: -2px;
+    }
     
     /* Sliding Core Layer */
     .nav-item::before {
@@ -204,7 +249,12 @@
       border-bottom: 1px solid var(--border);
       display: flex; align-items: center;
       padding: 0 28px; gap: 16px; z-index: 100;
+      transition: var(--main-transition);
     }
+    body[data-sidebar-collapsed="true"] .topbar {
+      left: 0;
+    }
+
     .search-box {
       flex: 1; max-width: 420px;
       display: flex; align-items: center; gap: 10px;
@@ -226,6 +276,7 @@
     }
     .search-box input::placeholder { color: var(--text-xs); }
     .topbar-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+    
     .icon-btn {
       width: 38px; height: 38px; border-radius: var(--radius-sm);
       background: rgba(255,255,255,0.6);
@@ -239,6 +290,10 @@
       border-color: var(--primary-light);
       color: var(--primary);
     }
+    .icon-btn:focus-visible {
+      outline: 2px solid var(--primary-light);
+    }
+
     .topbar-user {
       display: flex; align-items: center; gap: 10px;
       padding: 6px 12px 6px 6px;
@@ -344,7 +399,15 @@
     }
 
     /* ── MAIN ── */
-    .main { margin-left: var(--sidebar-w); padding-top: var(--topbar-h); min-height: 100vh; }
+    .main { 
+      margin-left: var(--sidebar-w); 
+      padding-top: var(--topbar-h); 
+      min-height: 100vh; 
+      transition: var(--main-transition);
+    }
+    body[data-sidebar-collapsed="true"] .main {
+      margin-left: 0;
+    }
     .page { padding: 28px 32px; }
 
     /* ── CARDS ── */
@@ -502,17 +565,42 @@
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius: 10px; }
+
+    /* ── RESPONSIVE MEDIA QUERIES ── */
+    @media (max-width: 991.98px) {
+      .sidebar {
+        transform: translateX(calc(-1 * var(--sidebar-w)));
+      }
+      body[data-sidebar-mobile-open="true"] .sidebar {
+        transform: translateX(0);
+      }
+      .btn-close-sidebar {
+        display: inline-flex;
+      }
+      .topbar {
+        left: 0 !important;
+        padding: 0 16px;
+      }
+      .main {
+        margin-left: 0 !important;
+      }
+      .page {
+        padding: 20px 16px;
+      }
+    }
   </style>
   {% block head %}{% endblock %}
 </head>
 <body>
 
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar(false)"></div>
+
 {% if current_user.is_authenticated %}
-<aside class="sidebar">
+<aside class="sidebar" id="appSidebar" aria-label="Main Navigation">
   <div class="sidebar-logo">
     <a href="{{ url_for('dashboard') }}">
       <div class="logo-icon">
-        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <ellipse cx="50" cy="28" rx="26" ry="9" fill="#A1C2BD" opacity="0.6"/>
           <rect x="24" y="28" width="52" height="38" fill="#A1C2BD" opacity="0.6"/>
           <ellipse cx="50" cy="66" rx="26" ry="9" fill="#A1C2BD" opacity="0.6"/>
@@ -525,38 +613,46 @@
       </div>
       <span class="logo-text">SchemaLens</span>
     </a>
+    
+    <button class="btn-close-sidebar" id="closeSidebarBtn" onclick="toggleSidebar(false)" aria-label="Close Sidebar">
+      <i class="bi bi-x-lg"></i>
+    </button>
   </div>
   <nav class="sidebar-nav">
     <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}">
-      <i class="bi bi-grid-1x2"></i> <span>Dashboard</span>
+      <i class="bi bi-grid-1x2" aria-hidden="true"></i> <span>Dashboard</span>
     </a>
     <a href="{{ url_for('query_page') }}" class="nav-item {% if request.endpoint=='query_page' %}active{% endif %}">
-      <i class="bi bi-stars"></i> <span>Query Generator</span>
+      <i class="bi bi-stars" aria-hidden="true"></i> <span>Query Generator</span>
     </a>
     <a href="{{ url_for('schemas') }}" class="nav-item {% if request.endpoint in ['schemas','schema_detail'] %}active{% endif %}">
-      <i class="bi bi-layers"></i> <span>Database Tables</span>
+      <i class="bi bi-layers" aria-hidden="true"></i> <span>Database Tables</span>
     </a>
     <a href="{{ url_for('history') }}" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
-      <i class="bi bi-clock-history"></i> <span>Query History</span>
+      <i class="bi bi-clock-history" aria-hidden="true"></i> <span>Query History</span>
     </a>
 
     <div class="nav-section">Engage</div>
+       <a href="{{ url_for('learn') }}" class="nav-item {% if request.endpoint=='learn' %}active{% endif %}">
+      <i class="bi bi-book-half" aria-hidden="true"></i> <span>SQL Learn</span>
+    </a>
     <a href="{{ url_for('challenge_page') }}" class="nav-item {% if request.endpoint=='challenge_page' %}active{% endif %}">
-      <i class="bi bi-lightning-charge"></i> <span>SQL Challenge</span>
+      <i class="bi bi-lightning-charge" aria-hidden="true"></i> <span>SQL Challenge</span>
     </a>
     <a href="{{ url_for('badges_page') }}"    class="nav-item {% if request.endpoint=='badges_page' %}active{% endif %}">
-      <i class="bi bi-award"></i> <span>Badges</span>
+      <i class="bi bi-award" aria-hidden="true"></i> <span>Badges</span>
     </a>
     <a href="{{ url_for('leaderboard') }}"    class="nav-item {% if request.endpoint=='leaderboard' %}active{% endif %}">
-      <i class="bi bi-bar-chart-line"></i> <span>Leaderboard</span>
+      <i class="bi bi-bar-chart-line" aria-hidden="true"></i> <span>Leaderboard</span>
     </a>
+ 
     <a href="{{ url_for('settings') }}" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
-      <i class="bi bi-sliders"></i> <span>Settings</span>
+      <i class="bi bi-sliders" aria-hidden="true"></i> <span>Settings</span>
     </a>
   
   </nav>
   <div class="sidebar-footer">
-    <div class="user-row">
+    <div class="user-row" tabindex="0" aria-label="User Profile Summary">
       <div class="user-avatar">{{ current_user.name[0].upper() }}</div>
       <div>
         <div class="user-name">{{ current_user.name }}</div>
@@ -567,33 +663,38 @@
 </aside>
 
 <header class="topbar">
-  <div class="search-box">
-    <i class="bi bi-search"></i>
-    <input type="text" placeholder="Search queries, tables, or ask a question…">
+  <button class="icon-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="Toggle Sidebar" aria-controls="appSidebar">
+    <i class="bi bi-list" style="font-size: 20px;"></i>
+  </button>
+
+  <div class="search-box" style="position:relative;">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <input type="text" id="globalSearchInput" placeholder="Search queries, schemas, lessons…" autocomplete="off" oninput="globalSearch(this.value)" aria-label="Global Search">
+    <div id="searchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:400;margin-top:4px;overflow:hidden;"></div>
   </div>
   <div class="topbar-right">
-    <a href="{{ url_for('schemas') }}" class="icon-btn" title="Upload Schema"><i class="bi bi-upload"></i></a>
+    <a href="{{ url_for('schemas') }}" class="icon-btn" title="Upload Schema" aria-label="Upload Schema"><i class="bi bi-upload"></i></a>
     
     <div class="user-dropdown-wrapper">
-      <div class="topbar-user" id="topbarUserBtn">
+      <div class="topbar-user" id="topbarUserBtn" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="User Menu">
         <div class="user-avatar" style="width:30px;height:30px;font-size:11px;">{{ current_user.name[0].upper() }}</div>
         <div>
           <div class="name">{{ current_user.name }}</div>
           <div class="email">{{ current_user.email[:22] }}{% if current_user.email|length>22 %}…{% endif %}</div>
         </div>
-        <i class="bi bi-chevron-down" style="font-size:10px;color:var(--text-xs);margin-left:2px;"></i>
+        <i class="bi bi-chevron-down" style="font-size:10px;color:var(--text-xs);margin-left:2px;" aria-hidden="true"></i>
       </div>
 
-      <div class="user-dropdown-menu" id="userDropdownMenu">
-        <a href="{{ url_for('settings') }}" class="dropdown-item">
-          <i class="bi bi-sliders"></i> Settings
+      <div class="user-dropdown-menu" id="userDropdownMenu" role="menu">
+        <a href="{{ url_for('settings') }}" class="dropdown-item" role="menuitem">
+          <i class="bi bi-sliders" aria-hidden="true"></i> Settings
         </a>
-        <a href="{{ url_for('history') }}" class="dropdown-item">
-          <i class="bi bi-clock-history"></i> My History
+        <a href="{{ url_for('history') }}" class="dropdown-item" role="menuitem">
+          <i class="bi bi-clock-history" aria-hidden="true"></i> My History
         </a>
         <hr class="dropdown-divider">
-        <a href="{{ url_for('logout') }}" class="dropdown-item text-danger">
-          <i class="bi bi-box-arrow-left"></i> Logout
+        <a href="{{ url_for('logout') }}" class="dropdown-item text-danger" role="menuitem">
+          <i class="bi bi-box-arrow-left" aria-hidden="true"></i> Logout
         </a>
       </div>
     </div>
@@ -606,7 +707,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}{% for cat, msg in messages %}
         <div class="flash flash-{{ 'success' if cat=='success' else 'error' if cat=='error' else 'warning' if cat=='warning' else 'info' }}">
-          <i class="bi bi-{% if cat=='success' %}check-circle-fill{% elif cat=='error' %}x-circle-fill{% elif cat=='warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %}"></i>
+          <i class="bi bi-{% if cat=='success' %}check-circle-fill{% elif cat=='error' %}x-circle-fill{% elif cat=='warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %}" aria-hidden="true"></i>
           {{ msg }}
         </div>
       {% endfor %}{% endif %}
@@ -634,7 +735,160 @@ function copySql(btn) {
 </script>
 {% block scripts %}{% endblock %}
 
+<div id="sqlGenModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(25,24,59,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:40px 48px;text-align:center;box-shadow:0 20px 60px rgba(25,24,59,0.25);max-width:380px;width:90%;">
+    <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--primary),var(--primary-mid));display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px;">
+      <i class="bi bi-stars" style="color:var(--primary-xlight);"></i>
+    </div>
+    <h3 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;">Generating SQL…</h3>
+    <p style="font-size:13.5px;color:var(--text-soft);margin-bottom:24px;" id="sqlGenStatus">Analyzing your request…</p>
+    <div style="background:rgba(161,194,189,0.2);border-radius:100px;height:6px;overflow:hidden;margin-bottom:10px;">
+      <div id="sqlGenBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--primary),var(--primary-mid));border-radius:100px;transition:width .4s ease;"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-xs);" id="sqlGenPct">0%</div>
+  </div>
+</div>
+
+<div id="deleteAllModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(25,24,59,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:32px 36px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(25,24,59,0.25);">
+    <div style="width:52px;height:52px;border-radius:14px;background:rgba(212,24,61,0.1);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 16px;">
+      <i class="bi bi-trash" style="color:var(--danger);"></i>
+    </div>
+    <h3 style="font-size:17px;font-weight:700;color:var(--text);text-align:center;margin-bottom:8px;">Delete All History?</h3>
+    <p style="font-size:13.5px;color:var(--text-soft);text-align:center;margin-bottom:24px;">This will permanently delete all your query history. This action cannot be undone.</p>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeDeleteAllModal()" class="btn btn-outline" style="flex:1;">Cancel</button>
+      <button onclick="confirmDeleteAll()" class="btn btn-danger" style="flex:1;">Delete All</button>
+    </div>
+  </div>
+</div>
+
 <script>
+// ── Sidebar Logic & Initialization ──────────────────────────────────────────
+function initSidebar() {
+  const isMobile = window.innerWidth < 992;
+  if (!isMobile) {
+    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    document.body.setAttribute('data-sidebar-collapsed', isCollapsed);
+    document.getElementById('sidebarToggleBtn').setAttribute('aria-expanded', !isCollapsed);
+  } else {
+    document.body.setAttribute('data-sidebar-collapsed', 'false');
+    document.body.setAttribute('data-sidebar-mobile-open', 'false');
+    document.getElementById('sidebarToggleBtn').setAttribute('aria-expanded', 'false');
+  }
+}
+
+function toggleSidebar(forcedState) {
+  const isMobile = window.innerWidth < 992;
+  const toggleBtn = document.getElementById('sidebarToggleBtn');
+  
+  if (isMobile) {
+    const currentState = document.body.getAttribute('data-sidebar-mobile-open') === 'true';
+    const newState = (forcedState !== undefined) ? forcedState : !currentState;
+    document.body.setAttribute('data-sidebar-mobile-open', newState);
+    toggleBtn.setAttribute('aria-expanded', newState);
+  } else {
+    const currentState = document.body.getAttribute('data-sidebar-collapsed') === 'true';
+    const newState = (forcedState !== undefined) ? !forcedState : !currentState;
+    document.body.setAttribute('data-sidebar-collapsed', newState);
+    toggleBtn.setAttribute('aria-expanded', !newState);
+    localStorage.setItem('sidebarCollapsed', newState);
+  }
+}
+
+// Ensure execution on initialization and when resizing screens
+initSidebar();
+window.addEventListener('resize', initSidebar);
+
+// ── Global Search ────────────────────────────────────────────────────────────
+let searchTimeout;
+function globalSearch(val) {
+  const resultsEl = document.getElementById('searchResults');
+  if (!val || val.length < 2) { resultsEl.style.display='none'; return; }
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/search?q=' + encodeURIComponent(val));
+      const d = await r.json();
+      if (!d.results || !d.results.length) { resultsEl.style.display='none'; return; }
+      resultsEl.innerHTML = d.results.map(item => `
+        <a href="${item.url}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;text-decoration:none;color:var(--text);border-bottom:1px solid var(--border-soft);transition:background .1s;" onmouseover="this.style.background='rgba(231,242,239,0.5)'" onmouseout="this.style.background=''">
+          <i class="bi ${item.icon}" style="font-size:14px;color:var(--primary-mid);flex-shrink:0;"></i>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.title}</div>
+            <div style="font-size:11px;color:var(--text-xs);">${item.subtitle}</div>
+          </div>
+        </a>
+      `).join('');
+      resultsEl.style.display = 'block';
+    } catch(e) { resultsEl.style.display='none'; }
+  }, 280);
+}
+document.addEventListener('click', e => {
+  const sr = document.getElementById('searchResults');
+  if (sr && !sr.contains(e.target) && !document.getElementById('globalSearchInput').contains(e.target)) {
+    sr.style.display = 'none';
+  }
+});
+
+// ── SQL Gen Modal ─────────────────────────────────────────────────────────────
+function showSqlGenModal() {
+  const m = document.getElementById('sqlGenModal');
+  m.style.display = 'flex';
+  animateSqlProgress();
+}
+function hideSqlGenModal() {
+  document.getElementById('sqlGenModal').style.display = 'none';
+  document.getElementById('sqlGenBar').style.width = '0%';
+  document.getElementById('sqlGenPct').textContent = '0%';
+}
+function animateSqlProgress() {
+  const bar = document.getElementById('sqlGenBar');
+  const pct = document.getElementById('sqlGenPct');
+  const status = document.getElementById('sqlGenStatus');
+  const stages = [
+    {pct: 15, msg: 'Analyzing your request…'},
+    {pct: 35, msg: 'Reading schema structure…'},
+    {pct: 60, msg: 'Generating SQL query…'},
+    {pct: 82, msg: 'Validating output…'},
+    {pct: 95, msg: 'Almost ready…'},
+  ];
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i < stages.length) {
+      bar.style.width = stages[i].pct + '%';
+      pct.textContent = stages[i].pct + '%';
+      status.textContent = stages[i].msg;
+      i++;
+    }
+    if (!document.getElementById('sqlGenModal') || document.getElementById('sqlGenModal').style.display === 'none') {
+      clearInterval(interval);
+    }
+  }, 900);
+}
+
+// ── Delete All Modal ──────────────────────────────────────────────────────────
+function openDeleteAllModal() {
+  document.getElementById('deleteAllModal').style.display = 'flex';
+}
+function closeDeleteAllModal() {
+  document.getElementById('deleteAllModal').style.display = 'none';
+}
+async function confirmDeleteAll() {
+  try {
+    const r = await fetch('/api/history/delete-all', {method:'POST'});
+    if (r.ok) {
+      closeDeleteAllModal();
+      const list = document.getElementById('queryList');
+      if (list) {
+        list.innerHTML = `<div class="empty"><i class="bi bi-clock-history"></i><h4>No queries yet</h4><p>Your generated SQL queries will appear here.</p><a href="/query" class="btn btn-primary mt-3" style="display:inline-flex;">Generate First Query</a></div>`;
+      }
+      const statsFooter = document.querySelector('.stats-footer');
+      if (statsFooter) statsFooter.remove();
+    }
+  } catch(e) { alert('Failed to delete history.'); }
+}
+
 // ── Ollama Status Indicator ─────────────────────────────────────────────────
 (function () {
   const badges = document.querySelectorAll('.ollama-status-badge');
@@ -681,11 +935,22 @@ function copySql(btn) {
   userBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     dropdownMenu.classList.toggle('show');
+    const isExpanded = dropdownMenu.classList.contains('show');
+    userBtn.setAttribute('aria-expanded', isExpanded);
+  });
+
+  // Keyboard engagement for profile row activation
+  userBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      userBtn.click();
+    }
   });
 
   window.addEventListener('click', (e) => {
     if (!dropdownMenu.contains(e.target) && !userBtn.contains(e.target)) {
       dropdownMenu.classList.remove('show');
+      userBtn.setAttribute('aria-expanded', 'false');
     }
   });
 })();
@@ -697,6 +962,11 @@ function copySql(btn) {
     item.addEventListener('click', function (e) {
       if (this.classList.contains('active')) return;
       this.classList.add('clicking');
+      
+      // Auto-collapse sidebar layout on mobile screens upon choice execution
+      if (window.innerWidth < 992) {
+        toggleSidebar(false);
+      }
     });
   });
 })();

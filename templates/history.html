@@ -130,6 +130,9 @@
       <i class="bi bi-x-circle-fill"></i> Errors
     </button>
   </div>
+  {% if queries.items %}
+  <button class="btn btn-danger btn-sm" onclick="openDeleteAllModal()"><i class="bi bi-trash"></i> Delete All</button>
+  {% endif %}
 </div>
 
 <!-- Query List -->
@@ -200,32 +203,7 @@
 </div>
 {% endif %}
 
-<!-- Stats Footer -->
-{% if queries.items %}
-<div class="stats-footer fade-in" style="animation-delay:.28s;">
-  <div class="stat-box dark">
-    <div>
-      <div class="stat-box-label">Total Queries</div>
-      <div class="stat-box-value">{{ queries.total }}</div>
-    </div>
-    <i class="bi bi-terminal stat-box-icon"></i>
-  </div>
-  <div class="stat-box green">
-    <div>
-      <div class="stat-box-label">Successful</div>
-      <div class="stat-box-value">{{ queries.total }}</div>
-    </div>
-    <i class="bi bi-check-circle stat-box-icon"></i>
-  </div>
-  <div class="stat-box speed">
-    <div>
-      <div class="stat-box-label">Avg Response</div>
-      <div class="stat-box-value">~2s</div>
-    </div>
-    <i class="bi bi-lightning stat-box-icon"></i>
-  </div>
-</div>
-{% endif %}
+
 {% endblock %}
 
 {% block scripts %}

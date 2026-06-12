@@ -2,265 +2,106 @@
 {% block title %}Dashboard — SchemaLens{% endblock %}
 
 {% block head %}
-<style>
-.dash-header { margin-bottom: 28px; }
-.dash-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 5px; }
-.dash-header p  { font-size: 14px; color: var(--text-soft); }
-
-.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 26px; }
-.stat-card {
-  background: var(--card-bg);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 22px;
-  box-shadow: var(--shadow);
-  transition: transform .2s, box-shadow .2s;
-}
-.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-.stat-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
-.stat-card-icon {
-  width: 44px; height: 44px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center; font-size: 19px;
-}
-.stat-card-icon.dark  { background: var(--primary); color: var(--primary-xlight); }
-.stat-card-icon.mid   { background: rgba(112,137,147,0.15); color: var(--primary-mid); }
-.stat-card-icon.light { background: var(--primary-xlight); color: var(--primary-mid); }
-.stat-card-icon.teal  { background: rgba(161,194,189,0.25); color: var(--primary); }
-
-/* ── Enhanced AI Status Card Layout ── */
-.stat-card.ai-card-active {
-  background: linear-gradient(135deg, rgba(14, 124, 90, 0.08) 0%, rgba(161, 194, 189, 0.15) 100%);
-  border: 1.5px solid rgba(14, 124, 90, 0.4);
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-card.ai-card-active::after {
-  content: '';
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  width: 50px;
-  height: 50px;
-  background: var(--success);
-  filter: blur(25px);
-  opacity: 0.35;
-  pointer-events: none;
-  animation: pulseGlow 3s ease-in-out infinite alternate;
-}
-
-@keyframes pulseGlow {
-  0% { transform: scale(0.9); opacity: 0.2; }
-  100% { transform: scale(1.3); opacity: 0.45; }
-}
-
-/* Dynamic status indicator tag */
-.ai-status-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 100px;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-}
-.ai-status-indicator.active {
-  background: rgba(14, 124, 90, 0.15);
-  color: #0e7c5a;
-  border: 1px solid rgba(14, 124, 90, 0.25);
-}
-.ai-status-indicator.inactive {
-  background: rgba(112, 137, 147, 0.1);
-  color: var(--text-soft);
-  border: 1px solid var(--border);
-}
-
-/* Custom glowing badge styling for Ollama sync status */
-.ollama-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(25, 24, 59, 0.05);
-  border: 1px solid var(--border);
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-.stat-change {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11.5px; font-weight: 600;
-  padding: 3px 8px; border-radius: 100px;
-  background: rgba(161,194,189,0.2); color: var(--primary-mid);
-}
-.stat-label { font-size: 12px; color: var(--text-soft); margin-bottom: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
-.stat-value { font-size: 28px; font-weight: 700; letter-spacing: -.6px; color: var(--text); }
-
-.dash-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
-
-/* Schema list */
-.schema-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 13px 0; border-bottom: 1px solid var(--border);
-  transition: opacity .15s;
-}
-.schema-row:last-child { border-bottom: none; }
-.schema-row:hover { opacity: .8; }
-.schema-thumb {
-  width: 40px; height: 40px; border-radius: 10px;
-  background: linear-gradient(135deg, var(--primary-xlight), rgba(161,194,189,0.3));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 17px; flex-shrink: 0; border: 1px solid var(--border);
-}
-.schema-row-name { font-size: 14px; font-weight: 600; }
-.schema-row-meta { font-size: 11.5px; color: var(--text-soft); margin-top: 2px; font-family: var(--mono); }
-
-/* Query row */
-.query-row {
-  padding: 13px 0; border-bottom: 1px solid var(--border);
-}
-.query-row:last-child { border-bottom: none; }
-.query-row-text { font-size: 13.5px; color: var(--text); margin-bottom: 6px; line-height: 1.4; font-weight: 500; }
-.query-row-sql {
-  font-family: var(--mono); font-size: 11px; color: var(--primary-light);
-  background: var(--primary); border-radius: 7px;
-  padding: 6px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* API key banner */
-.api-banner {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);
-  border-radius: var(--radius); padding: 22px 26px;
-  color: #fff; display: flex; align-items: center; gap: 18px; margin-bottom: 22px;
-  box-shadow: var(--shadow-lg);
-}
-.api-banner-icon { font-size: 30px; opacity: .7; flex-shrink: 0; }
-.api-banner h4 { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
-.api-banner p  { font-size: 13px; opacity: .75; }
-.api-banner-btn {
-  margin-left: auto; flex-shrink: 0;
-  background: rgba(255,255,255,0.15); color: #fff;
-  border: 1.5px solid rgba(255,255,255,0.3);
-  border-radius: var(--radius-sm); padding: 9px 20px;
-  font-family: var(--font); font-size: 13.5px; font-weight: 600;
-  text-decoration: none; cursor: pointer;
-  transition: background .15s; white-space: nowrap;
-}
-.api-banner-btn:hover { background: rgba(255,255,255,0.25); color: #fff; }
-
-/* AI promo panel */
-.ai-panel {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);
-  border-radius: var(--radius); padding: 28px 30px;
-  color: var(--primary-xlight); margin-top: 22px;
-  position: relative; overflow: hidden;
-  box-shadow: var(--shadow-lg);
-}
-.ai-panel::before {
-  content: '';
-  position: absolute; top: -60px; right: -60px;
-  width: 200px; height: 200px; border-radius: 50%;
-  background: rgba(161,194,189,0.1);
-}
-.ai-panel::after {
-  content: '';
-  position: absolute; bottom: -40px; left: -30px;
-  width: 140px; height: 140px; border-radius: 50%;
-  background: rgba(231,242,239,0.07);
-}
-.ai-panel h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; position: relative; }
-.ai-panel p  { font-size: 13.5px; opacity: .8; margin-bottom: 18px; max-width: 320px; line-height: 1.6; position: relative; }
-.ai-panel-btn {
-  background: rgba(255,255,255,0.15); color: var(--primary-xlight);
-  border: 1.5px solid rgba(255,255,255,0.25);
-  border-radius: var(--radius-sm); padding: 10px 22px;
-  font-family: var(--font); font-size: 13.5px; font-weight: 600;
-  text-decoration: none; display: inline-flex; align-items: center; gap: 7px;
-  transition: all .2s; position: relative;
-}
-.ai-panel-btn:hover { background: rgba(255,255,255,0.25); color: #fff; }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 {% endblock %}
 
 {% block content %}
 <div class="dash-header fade-in">
-  <h1>Welcome back, {{ current_user.name.split()[0] }} 👋</h1>
-  <p>Here's what's happening with your SQL workspace.</p>
+  <h1>Welcome back, {{ current_user.name.split()[0] }} </h1>
+  <p>Track your stats, read tutorials, or take on structural schema challenges.</p>
 </div>
 
 {% if not current_user.gemini_key %}
 <div class="api-banner fade-in">
-  <i class="bi bi-key-fill api-banner-icon"></i>
+  <div class="api-banner-icon"><i class="bi bi-stars"></i></div>
   <div>
-    <h4>Add Your Gemini API Key</h4>
-    <p>Unlock AI-powered schema parsing and intelligent SQL generation.</p>
+    <h4>Unlock Intelligent Parsing</h4>
+    <p>Provide a Gemini API Key to let AI interpret complex relational image layouts automatically.</p>
   </div>
-  <a href="{{ url_for('settings') }}" class="api-banner-btn">Add API Key →</a>
+  <a href="{{ url_for('settings') }}" class="api-banner-btn">Configure →</a>
 </div>
 {% endif %}
 
-<div class="stats-grid fade-in fade-in-1">
-  <div class="stat-card"  id="total-queries">
-    <a href="{{ url_for('query_page') }}" style="text-decoration:none">
-    <div class="stat-card-top">
-      <div class="stat-card-icon dark"><i class="bi bi-terminal"></i></div>
-      <span class="stat-change"><i class="bi bi-arrow-up-short"></i> Active</span>
+<div class="feature-hub fade-in fade-in-1">
+  <a href="{{ url_for('learn') }}" class="hub-card learn-card">
+    <div class="hub-icon">
+      <i class="bi bi-journal-bookmark-fill"></i>
     </div>
-    
-    <div class="stat-label">Total Queries</div>
-    <div class="stat-value">{{ total_queries }}</div>
-    </a>
-  </div>
-  <div class="stat-card">
-    <a href="{{ url_for('schemas') }}" style="text-decoration:none">
-    <div class="stat-card-top">
-      <div class="stat-card-icon mid"><i class="bi bi-layers"></i></div>
-      <span class="stat-change"><i class="bi bi-arrow-up-short"></i> Stored</span>
+    <div class="hub-content">
+      <span class="hub-tag">Guided Path</span>
+      <div class="hub-title">SQL Learn</div>
+      <p class="hub-desc">Explore lessons, documentation, logical tutorials, and syntax examples to build your foundations.</p>
     </div>
-    <div class="stat-label">Schemas Uploaded</div>
-    <div class="stat-value">{{ schemas|length }}</div>
+    <div class="hub-arrow"><i class="bi bi-arrow-right"></i></div>
   </a>
-  </div>
-  <div class="stat-card">
-    <a href="{{ url_for('settings') }}" style="text-decoration:none">
-      <div class="stat-card-top" style="align-items:flex-start; gap:10px;">
-        <div class="stat-card-icon {% if current_user.gemini_key %}teal{% else %}light{% endif %}"><i class="bi bi-cpu"></i></div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span class="ollama-status-badge ollama-badge ollama-checking" title="Checking Ollama status…">
-            <span class="ollama-dot"></span>
-            <span class="ollama-label">Ollama</span>
-          </span>
-          <span class="stat-change" {% if current_user.gemini_key %}style="background:rgba(14,124,90,0.12);color:#0e7c5a;"{% endif %}>
-            {% if current_user.gemini_key %}<i class="bi bi-check-circle-fill"></i> ON{% else %}No Key{% endif %}
-          </span>
-        </div>
-      </div>
-    
-    <div class="stat-label">AI Status</div>
-    </a>
-    <div class="stat-value" style="font-size:20px;padding-top:4px;">
-      {% if current_user.gemini_key %}Gemini Active{% else %}No Key Set{% endif %}
-   
+
+  <a href="{{ url_for('challenge_page') }}" class="hub-card challenge-card">
+    <div class="hub-icon">
+      <i class="bi bi-trophy-fill"></i>
     </div>
-  </div>
-  <div class="stat-card">
-    <a href="{{ url_for('history')}}" style="text-decoration:none">
-    <div class="stat-card-top">
-      <div class="stat-card-icon light"><i class="bi bi-clock-history"></i></div>
-      <span class="stat-change">Recent</span>
+    <div class="hub-content">
+      <span class="hub-tag">Practice Arena</span>
+      <div class="hub-title">SQL Challenges</div>
+      <p class="hub-desc">Test your muscle memory against practical schema exercises, interactive quizzes, and data puzzles.</p>
     </div>
-    <div class="stat-label">Recent Activity</div>
-    <div class="stat-value">{{ recent_queries|length }}</div>
-  </div>
+    <div class="hub-arrow"><i class="bi bi-arrow-right"></i></div>
   </a>
 </div>
 
+<div class="stats-grid fade-in fade-in-1">
+  <div class="stat-card" id="total-queries">
+    <a href="{{ url_for('query_page') }}" style="text-decoration:none; color:inherit;">
+      <div class="stat-card-top">
+        <div class="stat-card-icon dark"><i class="bi bi-terminal"></i></div>
+        <span class="stat-change">Active</span>
+      </div>
+      <div class="stat-label">Total Queries</div>
+      <div class="stat-value">{{ total_queries }}</div>
+    </a>
+  </div>
+  
+  <div class="stat-card">
+    <a href="{{ url_for('schemas') }}" style="text-decoration:none; color:inherit;">
+      <div class="stat-card-top">
+        <div class="stat-card-icon mid"><i class="bi bi-layers"></i></div>
+        <span class="stat-change">Stored</span>
+      </div>
+      <div class="stat-label">Schemas Uploaded</div>
+      <div class="stat-value">{{ schemas|length }}</div>
+    </a>
+  </div>
+
+  <div class="stat-card">
+    <a href="{{ url_for('settings') }}" style="text-decoration:none; color:inherit;">
+      <div class="stat-card-top" style="gap:8px; flex-wrap:wrap;">
+        <div class="stat-card-icon {% if current_user.gemini_key %}teal{% else %}light{% endif %}"><i class="bi bi-cpu"></i></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="ollama-status-badge ollama-badge ollama-checking" title="Checking status…">
+            <span class="ollama-dot"></span>
+            <span class="ollama-label">Ollama</span>
+          </span>
+        </div>
+      </div>
+      <div class="stat-label">AI Engine Status</div>
+      <div class="stat-value" style="font-size:18px; padding-top:4px;">
+        {% if current_user.gemini_key %}<span style="color:#0e7c5a; font-weight:700;">Gemini Active</span>{% else %}<span style="color:var(--text-soft);">No Key Set</span>{% endif %}
+      </div>
+    </a>
+  </div>
+
+  <div class="stat-card">
+    <a href="{{ url_for('history')}}" style="text-decoration:none; color:inherit;">
+      <div class="stat-card-top">
+        <div class="stat-card-icon light"><i class="bi bi-clock-history"></i></div>
+        <span class="stat-change">Recent</span>
+      </div>
+      <div class="stat-label">Recent Activity</div>
+      <div class="stat-value">{{ recent_queries|length }}</div>
+    </a>
+  </div>
+</div>
+
 <div class="dash-grid">
-  <!-- Schemas -->
   <div class="card fade-in fade-in-2">
     <div class="card-header">
       <div class="card-title"><i class="bi bi-layers" style="color:var(--primary-mid);margin-right:8px;"></i>Your Schemas</div>
@@ -271,8 +112,8 @@
         {% for s in schemas[:5] %}
         <a href="{{ url_for('schema_detail', schema_id=s.id) }}" style="text-decoration:none;color:inherit;display:block;">
           <div class="schema-row">
-            <div class="schema-thumb"><i class="bi bi-database" style="color:var(--primary-mid);"></i></div>
-            <div class="flex-1">
+            <div class="schema-thumb"><i class="bi bi-database"></i></div>
+            <div style="flex:1; flex-grow:1;">
               <div class="schema-row-name">{{ s.schema_name or s.original_name }}</div>
               <div class="schema-row-meta">{{ s.uploaded_at.strftime('%b %d, %Y') }} · {{ s.queries|length }} queries</div>
             </div>
@@ -286,17 +127,16 @@
         </div>
         {% endif %}
       {% else %}
-        <div class="empty" style="padding:36px 0;">
+        <div class="empty">
           <i class="bi bi-layers"></i>
           <h4>No schemas yet</h4>
           <p>Upload a database schema image to get started.</p>
-          <a href="{{ url_for('schemas') }}" class="btn btn-primary mt-3" style="display:inline-flex;">Upload Schema</a>
+          <a href="{{ url_for('schemas') }}" class="btn btn-primary mt-2" style="display:inline-flex;">Upload Schema</a>
         </div>
       {% endif %}
     </div>
   </div>
 
-  <!-- Recent Queries -->
   <div class="card fade-in fade-in-3">
     <div class="card-header">
       <div class="card-title"><i class="bi bi-clock-history" style="color:var(--primary-mid);margin-right:8px;"></i>Recent Queries</div>
@@ -310,15 +150,15 @@
           <div class="query-row-sql">{{ q.generated_sql[:80] }}…</div>
           <div style="margin-top:7px;display:flex;gap:6px;align-items:center;">
             <span class="badge {{ 'badge-dark' if q.model_used != 'heuristic' else 'badge-amber' }}">{{ q.model_used }}</span>
-            <span style="font-size:11px;color:var(--text-xs);font-family:var(--mono);">{{ q.created_at.strftime('%b %d · %H:%M') }}</span>
+            <span style="font-size:11px;color:var(--text-soft);font-family:var(--mono);">{{ q.created_at.strftime('%b %d · %H:%M') }}</span>
           </div>
         </div>
         {% endfor %}
       {% else %}
-        <div class="empty" style="padding:36px 0;">
+        <div class="empty">
           <i class="bi bi-terminal"></i>
           <h4>No queries yet</h4>
-          <a href="{{ url_for('query_page') }}" class="btn btn-primary mt-3" style="display:inline-flex;">Generate SQL</a>
+          <a href="{{ url_for('query_page') }}" class="btn btn-primary mt-2" style="display:inline-flex;">Generate SQL</a>
         </div>
       {% endif %}
     </div>
@@ -326,8 +166,10 @@
 </div>
 
 <div class="ai-panel fade-in fade-in-4">
-  <h3>Schema Analysis Assistant</h3>
-  <p>Upload your database schema images and let AI analyze the structure to generate intelligent SQL queries from natural language.</p>
-  <a href="{{ url_for('schemas') }}" class="ai-panel-btn"><i class="bi bi-upload"></i> Upload Schema</a>
+  <div>
+    <h3>Schema Analysis Assistant</h3>
+    <p>Upload your relational database layouts and let AI analyze structures to generate interactive query files automatically.</p>
+  </div>
+  <a href="{{ url_for('schemas') }}" class="ai-panel-btn"><i class="bi bi-upload"></i> Upload Layout</a>
 </div>
 {% endblock %}
