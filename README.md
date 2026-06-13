@@ -1,49 +1,57 @@
 # SchemaLens
 
-> **AI-Powered Web-Based System for Intelligent SQL Query Generation Using Natural Language Processing and Automated Database Schema Image Recognition**
+**AI-Powered Web-Based System for Intelligent SQL Query Generation Using Natural Language Processing and Automated Database Schema Image Recognition**
 
-SchemaLens enables users to upload database schema images (ER diagrams), automatically extract and analyze their structure using OCR and AI, and generate SQL queries from natural language descriptions.
+SchemaLens enables users to upload database schema images (ER diagrams), automatically extract and analyze their structure using Optical Character Recognition (OCR) and Artificial Intelligence (AI), and generate SQL queries from natural language descriptions.
 
 ---
 
-## ✨ Key Features
+## Overview
 
-### 🔐 User Authentication
+SchemaLens is designed to bridge the gap between database schema interpretation and SQL query development. By combining OCR technology, machine learning, and natural language processing, the system simplifies database understanding and accelerates SQL query generation for students, developers, analysts, and researchers.
+
+---
+
+## Key Features
+
+### User Authentication
 
 * Secure user registration and login
-* Password hashing using Werkzeug
+* Password encryption using Werkzeug hashing
 * Session management with Flask-Login
+* Account management and profile settings
 
-### 🖼️ Database Schema Upload
+### Database Schema Upload
 
-* Upload ER diagrams and database schema images
-* Supported formats:
+* Upload Entity-Relationship Diagrams (ERDs) and database schema images
+* Supported file formats:
 
   * PNG
   * JPG / JPEG
   * BMP
   * WEBP
 
-### 🔍 OCR-Based Text Extraction
+### OCR-Based Schema Extraction
 
-* Extracts schema text using EasyOCR
-* Preprocessing powered by OpenCV for improved recognition
+* Automated text extraction using EasyOCR
+* Image preprocessing with OpenCV to improve recognition accuracy
+* Identification of schema elements from uploaded diagrams
 
-### 🤖 AI Schema Analysis
+### AI-Powered Schema Analysis
 
-* Uses Gemini 1.5 Flash to identify:
+Utilizes Google Gemini 1.5 Flash to analyze extracted schema information and identify:
 
-  * Tables
-  * Columns
-  * Primary Keys
-  * Foreign Keys
-  * Relationships
+* Tables
+* Columns
+* Primary Keys
+* Foreign Keys
+* Relationships between entities
 
-### 💬 Natural Language to SQL
+### Natural Language to SQL Generation
 
-Convert plain English requests into SQL queries.
+Converts plain English requests into SQL queries based on the detected database schema.
 
-**Example**
+#### Example
 
 Input:
 
@@ -51,7 +59,7 @@ Input:
 Show all customers who placed orders this month
 ```
 
-Output:
+Generated SQL:
 
 ```sql
 SELECT *
@@ -60,27 +68,29 @@ JOIN orders o ON c.customer_id = o.customer_id
 WHERE MONTH(o.order_date) = MONTH(CURRENT_DATE);
 ```
 
-### 📝 Query History
+### Query History Management
 
 * Stores generated SQL queries
-* Tracks generation timestamps
+* Tracks query generation timestamps
 * Records AI model information
+* Provides historical query access for users
 
-### ⚙️ User Settings
+### User Settings
 
 * Profile management
 * Account updates
+* Gemini API configuration
 * Account deletion
 
-### 🛡️ Safe by Design
+### Safe by Design
 
-Generated SQL is **never executed**.
+SchemaLens does not execute generated SQL statements.
 
-SchemaLens only generates and displays SQL queries for learning, analysis, and development purposes.
+The system is intended solely for SQL generation, learning, analysis, and development purposes, ensuring that uploaded databases remain unaffected.
 
 ---
 
-## 🏗️ Tech Stack
+## Technology Stack
 
 | Layer          | Technology                         |
 | -------------- | ---------------------------------- |
@@ -93,7 +103,7 @@ SchemaLens only generates and displays SQL queries for learning, analysis, and d
 
 ---
 
-## 🚀 Installation
+## Installation Guide
 
 ### 1. Clone the Repository
 
@@ -108,7 +118,7 @@ cd schemalens
 python -m venv venv
 ```
 
-Activate the environment:
+Activate the virtual environment:
 
 **Windows**
 
@@ -134,7 +144,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open your browser and navigate to:
+Access the application through:
 
 ```text
 http://localhost:5000
@@ -142,32 +152,30 @@ http://localhost:5000
 
 ---
 
-## 🔑 Gemini API Configuration
+## Gemini API Configuration
 
-1. Visit:
-   https://aistudio.google.com/apikey
+1. Generate a Gemini API key through Google AI Studio.
+2. Sign in to SchemaLens.
+3. Navigate to:
 
-2. Generate a free Gemini API key.
+```text
+Settings → Gemini API Key
+```
 
-3. Log in to SchemaLens.
-
-4. Navigate to:
-   **Settings → Gemini API Key**
-
-5. Paste and save your API key.
+4. Enter and save your API key.
 
 ### Fallback Mode
 
-If no Gemini API key is provided, SchemaLens automatically switches to:
+If a Gemini API key is not provided, SchemaLens automatically switches to:
 
 * OCR-based heuristic schema parsing
 * Rule-based SQL generation templates
 
-The application remains functional, though AI-generated results may be less accurate.
+The application remains operational, although AI-assisted query generation may have reduced accuracy.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 schemalens/
@@ -189,7 +197,7 @@ schemalens/
     └── settings.html
 ```
 
-### Directory Overview
+### Directory Description
 
 | Path             | Description                      |
 | ---------------- | -------------------------------- |
@@ -197,11 +205,11 @@ schemalens/
 | requirements.txt | Project dependencies             |
 | schemalens.db    | SQLite database (auto-generated) |
 | static/uploads   | Uploaded schema images           |
-| templates        | HTML templates and views         |
+| templates        | User interface templates         |
 
 ---
 
-## 🗄️ Database Models
+## Database Models
 
 ### User
 
@@ -218,8 +226,6 @@ Stores account and profile information.
 | gemini_key |
 | created_at |
 
----
-
 ### SchemaUpload
 
 Stores uploaded schema images and extracted metadata.
@@ -235,11 +241,9 @@ Stores uploaded schema images and extracted metadata.
 | parsed_schema (JSON) |
 | uploaded_at          |
 
----
-
 ### QueryHistory
 
-Stores generated SQL queries.
+Stores generated SQL queries and related information.
 
 | Field         |
 | ------------- |
@@ -253,7 +257,9 @@ Stores generated SQL queries.
 
 ---
 
-## 🎯 Intended Users
+## Intended Users
+
+SchemaLens is designed for:
 
 * Students learning SQL and database concepts
 * Database administrators
@@ -264,8 +270,7 @@ Stores generated SQL queries.
 
 ---
 
-## 📄 License
+## License
 
-This project is developed for academic and educational purposes.
+This project was developed for academic and educational purposes.
 
-Feel free to modify and extend it according to your needs.
