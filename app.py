@@ -1288,9 +1288,8 @@ Return ONLY the updated SQL query."""
 # ══════════════════════════════════════════════════════════════════
 
 @app.route("/agreement")
-@login_required
 def agreement_page():
-    """Show Terms & Privacy agreement screen."""
+    """Show Terms & Privacy agreement screen. Public — accessible before login."""
     return render_template("agreement.html")
 
 
@@ -1323,30 +1322,85 @@ def landing():
     return render_template("landing.html")
 
 
+def _validate_username(name: str) -> str | None:
+    """Return an error message if name is invalid, else None."""
+    if not name:
+        return "Full name is required."
+    if not re.fullmatch(r"[A-Za-z]+", name):
+        return ("Name must contain letters only — no numbers, spaces, "
+                "special characters, or symbols (e.g. JohnDoe).")
+    return None
+
+
+def _validate_password(password: str) -> str | None:
+    """Return an error message if password is invalid, else None."""
+    if len(password) < 8:
+        return "Password must be at least 8 characters."
+    if not re.search(r"[A-Z]", password):
+        return "Password must contain at least one uppercase letter."
+    if not re.search(r"[a-z]", password):
+        return "Password must contain at least one lowercase letter."
+    if not re.search(r"\d", password):
+        return "Password must contain at least one number."
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?`~]", password):
+        return "Password must contain at least one special character (e.g. !, @, #)."
+    return None
+
+
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard"))
     if request.method == "POST":
-        name     = request.form.get("name", "").strip()
-        email    = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
-        confirm  = request.form.get("confirm_password", "")
+        name      = request.form.get("name", "").strip()
+        email     = request.form.get("email", "").strip().lower()
+        password  = request.form.get("password", "")
+        confirm   = request.form.get("confirm_password", "")
+        agreement = request.form.get("agreement_accepted", "")
+
+        # 1. Agreement must be accepted before account is created
+        if not agreement:
+            flash("You must accept the Terms of Use and User Agreement to register.", "error")
+            return redirect(url_for("signup"))
+
+        # 2. Username validation — letters only
+        name_error = _validate_username(name)
+        if name_error:
+            flash(name_error, "error")
+            return redirect(url_for("signup"))
+
+        # 3. Password strength validation
+        password_error = _validate_password(password)
+        if password_error:
+            flash(password_error, "error")
+            return redirect(url_for("signup"))
+
+        # 4. Confirm password
         if password != confirm:
             flash("Passwords do not match.", "error")
             return redirect(url_for("signup"))
-        if len(password) < 6:
-            flash("Password must be at least 6 characters.", "error")
-            return redirect(url_for("signup"))
+
+        # 5. Unique email
         if User.query.filter_by(email=email).first():
             flash("Email already registered.", "error")
             return redirect(url_for("signup"))
-        user = User(name=name, email=email,
-                    password=generate_password_hash(password, method="scrypt"))
+
+        # Create account and record agreement acceptance
+        now = datetime.datetime.utcnow()
+        user = User(
+            name=name,
+            email=email,
+            password=generate_password_hash(password, method="scrypt"),
+            agreement_accepted=True,
+            agreement_accepted_at=now,
+        )
         db.session.add(user)
         db.session.commit()
-        flash("Account created! Please sign in.", "success")
-        return redirect(url_for("login"))
+
+        # Auto-login immediately after registration
+        login_user(user, remember=False)
+        flash("Welcome to SchemaLens! Your account has been created.", "success")
+        return redirect(url_for("dashboard"))
     return render_template("signup.html")
 
 
@@ -2541,35 +2595,176 @@ def delete_all_history():
 # ══════════════════════════════════════════════════════════════════
 # GLOBAL SEARCH API
 # ══════════════════════════════════════════════════════════════════
+
+LEARN_TOPICS = [
+    ("What is a Database?",    "/learn?section=beginner"),
+    ("What is SQL?",           "/learn?section=beginner&lesson=what-is-sql"),
+    ("SELECT Statement",       "/learn?section=basic_sql"),
+    ("WHERE Clause",           "/learn?section=basic_sql&lesson=where"),
+    ("JOIN Tables",            "/learn?section=joins"),
+    ("INNER JOIN",             "/learn?section=joins&lesson=inner"),
+    ("LEFT JOIN",              "/learn?section=joins&lesson=left"),
+    ("GROUP BY",               "/learn?section=intermediate"),
+    ("ORDER BY",               "/learn?section=basic_sql&lesson=order-by"),
+    ("HAVING Clause",          "/learn?section=intermediate&lesson=having"),
+    ("Subqueries",             "/learn?section=advanced"),
+    ("Indexes",                "/learn?section=advanced&lesson=indexes"),
+    ("Primary Keys",           "/learn?section=beginner&lesson=primary-keys"),
+    ("Foreign Keys",           "/learn?section=beginner&lesson=foreign-keys"),
+    ("Aggregate Functions",    "/learn?section=intermediate&lesson=aggregates"),
+    ("INSERT Statement",       "/learn?section=basic_sql&lesson=insert"),
+    ("UPDATE Statement",       "/learn?section=basic_sql&lesson=update"),
+    ("DELETE Statement",       "/learn?section=basic_sql&lesson=delete"),
+    ("CREATE TABLE",           "/learn?section=basic_sql&lesson=create-table"),
+    ("Transactions",           "/learn?section=advanced&lesson=transactions"),
+]
+
+STATIC_PAGES = [
+    ("Dashboard",   "/dashboard",   "bi-grid",             "Overview of your schemas and queries"),
+    ("Schemas",     "/schemas",     "bi-layers",           "Upload and manage ER diagram schemas"),
+    ("Query",       "/query",       "bi-terminal",         "Generate SQL from natural language"),
+    ("History",     "/history",     "bi-clock-history",    "View your past generated queries"),
+    ("Challenges",  "/challenge",   "bi-lightning-charge", "Practice SQL with AI challenges"),
+    ("Leaderboard", "/leaderboard", "bi-trophy",           "See how you rank against other users"),
+    ("Badges",      "/badges",      "bi-award",            "Your earned achievement badges"),
+    ("Learn",       "/learn",       "bi-book",             "Interactive SQL tutor and lessons"),
+    ("Settings",    "/settings",    "bi-sliders",          "Manage your account and API keys"),
+]
+
+
+def _build_search_results(q: str, uid: int, limit: int = 14) -> list:
+    """Return deduplicated, relevance-sorted search results for query q."""
+    results = []
+    seen_urls = set()
+    seen_titles = set()
+
+    def add(item):
+        key = (item["url"], item["title"][:40].lower())
+        if key not in seen_titles:
+            seen_titles.add(key)
+            results.append(item)
+
+    # 1. Static pages — exact or partial match on page name
+    for name, url, icon, desc in STATIC_PAGES:
+        if q in name.lower() or q in desc.lower():
+            add({"type": "page", "icon": icon, "title": name,
+                 "subtitle": desc, "url": url, "score": 10})
+
+    # 2. Schemas — search name and original filename
+    schemas = SchemaUpload.query.filter_by(user_id=uid).order_by(
+        SchemaUpload.uploaded_at.desc()).all()
+    for s in schemas:
+        name = (s.schema_name or s.original_name or "").strip()
+        if q in name.lower():
+            score = 9 if name.lower().startswith(q) else 7
+            add({"type": "schema", "icon": "bi-layers",
+                 "title": name or "Untitled Schema",
+                 "subtitle": f"Schema · {s.uploaded_at.strftime('%b %d, %Y')}",
+                 "url": f"/schemas/{s.id}", "score": score})
+
+    # 3. Query history — search natural language and SQL text, deduplicate by title
+    queries = QueryHistory.query.filter_by(user_id=uid).order_by(
+        QueryHistory.created_at.desc()).limit(300).all()
+    seen_q_titles = set()
+    for qy in queries:
+        nq = (qy.natural_query or "").strip()
+        sql = (qy.generated_sql or "")
+        nq_l = nq.lower()
+        if q in nq_l or q in sql.lower():
+            short = nq[:80]
+            if short.lower() not in seen_q_titles:
+                seen_q_titles.add(short.lower())
+                score = 8 if nq_l.startswith(q) else 5
+                add({"type": "query", "icon": "bi-terminal",
+                     "title": short or "(empty query)",
+                     "subtitle": f"Query · {qy.created_at.strftime('%b %d, %Y')}",
+                     "url": "/history", "score": score})
+
+    # 4. Challenge attempts — deduplicate by prompt prefix
+    attempts = ChallengeAttempt.query.filter_by(user_id=uid).order_by(
+        ChallengeAttempt.attempted_at.desc()).limit(150).all()
+    seen_ch = set()
+    for a in attempts:
+        prompt = (a.prompt or "").strip()
+        if q in prompt.lower():
+            key = prompt[:50].lower()
+            if key not in seen_ch:
+                seen_ch.add(key)
+                add({"type": "challenge", "icon": "bi-lightning-charge",
+                     "title": prompt[:70] or "(challenge)",
+                     "subtitle": f"Challenge · Score: {a.score or 0}/100",
+                     "url": "/challenge", "score": 4})
+
+    # 5. Learn topics — static list
+    for topic, url in LEARN_TOPICS:
+        if q in topic.lower():
+            score = 6 if topic.lower().startswith(q) else 4
+            add({"type": "lesson", "icon": "bi-book",
+                 "title": topic, "subtitle": "SQL Learn · Lesson",
+                 "url": url, "score": score})
+
+    # Sort by score descending, then return top N
+    results.sort(key=lambda x: x.get("score", 0), reverse=True)
+    return results[:limit]
+
+
 @app.route("/api/search")
 @login_required
 def global_search():
+    """Full search: returns rich result cards with icons, subtitles, and URLs."""
     q = request.args.get("q", "").strip().lower()
-    if not q or len(q) < 2:
+    if not q or len(q) < 1:
         return jsonify({"results": []})
-    results = []
-    # Search schemas
+    results = _build_search_results(q, current_user.id, limit=12)
+    # Strip internal score field before sending to client
+    for r in results:
+        r.pop("score", None)
+    return jsonify({"results": results})
+
+
+@app.route("/api/search/suggest")
+@login_required
+def search_suggest():
+    """Autocomplete: returns lightweight keyword suggestions for the dropdown."""
+    q = request.args.get("q", "").strip().lower()
+    if not q or len(q) < 1:
+        return jsonify({"suggestions": []})
+
+    suggestions = []
+    seen = set()
+
+    def add_sug(text, category):
+        key = text.lower()
+        if key not in seen and len(suggestions) < 8:
+            seen.add(key)
+            suggestions.append({"text": text, "category": category})
+
+    # Schema names
     schemas = SchemaUpload.query.filter_by(user_id=current_user.id).all()
     for s in schemas:
-        name = (s.schema_name or s.original_name or "").lower()
-        if q in name:
-            results.append({"type":"schema","icon":"bi-layers","title":s.schema_name or s.original_name,"subtitle":f"Schema · {s.uploaded_at.strftime('%b %d, %Y')}","url":f"/schemas/{s.id}"})
-    # Search queries
-    queries = QueryHistory.query.filter_by(user_id=current_user.id).order_by(QueryHistory.created_at.desc()).limit(200).all()
+        name = (s.schema_name or s.original_name or "").strip()
+        if name and q in name.lower():
+            add_sug(name, "Schema")
+
+    # Recent query natural language (unique)
+    queries = QueryHistory.query.filter_by(user_id=current_user.id).order_by(
+        QueryHistory.created_at.desc()).limit(200).all()
     for qy in queries:
-        if q in qy.natural_query.lower() or q in (qy.generated_sql or "").lower():
-            results.append({"type":"query","icon":"bi-terminal","title":qy.natural_query[:80],"subtitle":f"Query · {qy.created_at.strftime('%b %d, %Y')}","url":"/history"})
-    # Search challenge attempts
-    attempts = ChallengeAttempt.query.filter_by(user_id=current_user.id).limit(100).all()
-    for a in attempts:
-        if q in a.prompt.lower():
-            results.append({"type":"challenge","icon":"bi-lightning-charge","title":a.prompt[:70],"subtitle":f"Challenge · Score: {a.score}","url":"/challenge"})
-    # Search learn topics
-    learn_topics = [("What is a Database?","/learn?section=beginner"),("What is SQL?","/learn?section=beginner&lesson=what-is-sql"),("SELECT Statement","/learn?section=basic_sql"),("WHERE Clause","/learn?section=basic_sql&lesson=where"),("JOIN Tables","/learn?section=joins"),("GROUP BY","/learn?section=intermediate"),("Subqueries","/learn?section=advanced"),("Indexes","/learn?section=advanced&lesson=indexes")]
-    for topic, url in learn_topics:
+        nq = (qy.natural_query or "").strip()
+        if nq and q in nq.lower():
+            add_sug(nq[:60], "Query")
+
+    # Learn topic titles
+    for topic, _ in LEARN_TOPICS:
         if q in topic.lower():
-            results.append({"type":"lesson","icon":"bi-book","title":topic,"subtitle":"SQL Learn · Lesson","url":url})
-    return jsonify({"results": results[:12]})
+            add_sug(topic, "Lesson")
+
+    # Static page names
+    for name, _, _, _ in STATIC_PAGES:
+        if q in name.lower():
+            add_sug(name, "Page")
+
+    return jsonify({"suggestions": suggestions})
 
 
 # ══════════════════════════════════════════════════════════════════
