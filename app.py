@@ -3,8 +3,17 @@ import json
 import re
 import datetime
 import random
+import time
+import logging
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Load environment variables from .env file (if present)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from flask import (Flask, render_template, request, redirect, url_for,
                    flash, jsonify, send_from_directory)
@@ -31,6 +40,18 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL    = "llama3.2:3b"
+
+# ── Gemini Backend Configuration (server-side only) ────────────────────────
+# API key is NEVER sent to the frontend. It is loaded from environment only.
+GEMINI_API_KEY  = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODELS   = ["gemini-2.5-flash", "gemini-3.0-flash"]
+
+# ── Logging ────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("schemalens")
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -604,44 +625,74 @@ OCR TOKENS:
 Return ONLY the JSON. No markdown fences. No explanation."""
 
 
-MODELS = [
-    "gemini-2.5-flash",
-    "gemini-3.0-flash"
-]
+MODELS = GEMINI_MODELS
+
+# ── Rate limiting state for Gemini ────────────────────────────────────────
+_gemini_last_call: float = 0.0
+_GEMINI_MIN_INTERVAL: float = 1.0  # seconds between calls
+
+def _get_effective_gemini_key(per_user_key: str = "") -> str:
+    """
+    Return the best available Gemini API key.
+    Server-side env key is preferred; per-user key from DB is fallback.
+    NEVER expose this key to the frontend.
+    """
+    server_key = GEMINI_API_KEY.strip()
+    if server_key:
+        return server_key
+    return (per_user_key or "").strip()
+
 
 def _call_gemini(api_key: str, contents) -> str:
+    """
+    Call the Gemini API with rate limiting, logging, and error handling.
+    api_key: resolved by caller via _get_effective_gemini_key().
+    """
+    global _gemini_last_call
+
+    if not api_key:
+        raise ValueError("No Gemini API key configured. Set GEMINI_API_KEY in .env or server environment.")
+
+    # Enforce minimum interval between calls
+    elapsed = time.time() - _gemini_last_call
+    if elapsed < _GEMINI_MIN_INTERVAL:
+        time.sleep(_GEMINI_MIN_INTERVAL - elapsed)
+
+    logger.info("Calling Gemini API (model loop: %s)", GEMINI_MODELS)
+
     try:
         from google import genai
-
         client = genai.Client(api_key=api_key)
-
-        for model_name in MODELS:
+        for model_name in GEMINI_MODELS:
             try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=contents,
-                )
+                response = client.models.generate_content(model=model_name, contents=contents)
+                _gemini_last_call = time.time()
+                logger.info("Gemini API success via google-genai, model=%s", model_name)
                 return response.text
-            except Exception:
-                pass
-
-    except Exception:
+            except Exception as e:
+                logger.warning("Gemini model %s failed (google-genai): %s", model_name, e)
+    except ImportError:
         pass
+    except Exception as e:
+        logger.warning("google-genai client error: %s", e)
 
     # Legacy fallback
-    import google.generativeai as genai_legacy
+    try:
+        import google.generativeai as genai_legacy
+        genai_legacy.configure(api_key=api_key)
+        for model_name in GEMINI_MODELS:
+            try:
+                model = genai_legacy.GenerativeModel(model_name)
+                response = model.generate_content(contents)
+                _gemini_last_call = time.time()
+                logger.info("Gemini API success via google-generativeai, model=%s", model_name)
+                return response.text
+            except Exception as e:
+                logger.warning("Gemini model %s failed (legacy): %s", model_name, e)
+    except ImportError:
+        pass
 
-    genai_legacy.configure(api_key=api_key)
-
-    for model_name in MODELS:
-        try:
-            model = genai_legacy.GenerativeModel(model_name)
-            response = model.generate_content(contents)
-            return response.text
-        except Exception:
-            pass
-
-    raise RuntimeError("No working Gemini model found")
+    raise RuntimeError("No working Gemini model found. Check GEMINI_API_KEY and installed packages.")
 
 
 def _validate_schema_structure(data: dict) -> None:
@@ -1476,7 +1527,7 @@ def upload_schema():
     )
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(filepath)
-    api_key = current_user.gemini_key
+    api_key = _get_effective_gemini_key(current_user.gemini_key)
 
     # ── PARALLEL #1: OCR + Gemini Vision fire simultaneously ──────────────
     # Both are I/O-bound so they overlap cleanly; saves ~2-5s per upload.
@@ -1647,7 +1698,7 @@ def generate_sql():
             if raw:
                 parsed = json.loads(raw)
 
-    api_key = current_user.gemini_key
+    api_key = _get_effective_gemini_key(current_user.gemini_key)
     sql = ""
     model_used = ""
 
@@ -1750,7 +1801,7 @@ def refine_sql():
             if raw:
                 parsed = json.loads(raw)
 
-    api_key = current_user.gemini_key
+    api_key = _get_effective_gemini_key(current_user.gemini_key)
 
     if not check_ollama_active():
         return jsonify({"error": "Ollama is not running. Please start Ollama to use query refinement."}), 400
@@ -2292,7 +2343,7 @@ def challenge_generate():
     if not tables:
         return jsonify({"error": "Schema has no tables. Please upload and confirm a schema first."}), 400
 
-    api_key = current_user.gemini_key
+    api_key = _get_effective_gemini_key(current_user.gemini_key)
 
     if api_key:
         prompt_nl, ref_sql = _generate_challenge_with_gemini(parsed, api_key, difficulty)
@@ -2328,7 +2379,7 @@ def challenge_submit():
     raw = schema_obj.confirmed_schema or schema_obj.parsed_schema if schema_obj else ""
     parsed = json.loads(raw) if raw else {}
 
-    api_key = current_user.gemini_key
+    api_key = _get_effective_gemini_key(current_user.gemini_key)
 
     # Grade the raw submission
     if api_key:
@@ -3021,10 +3072,10 @@ def learn_ask_tutor():
             pass
 
     # Fallback to Gemini if Ollama fails
-    if not answer and current_user.gemini_key:
+    if not answer and _get_effective_gemini_key(current_user.gemini_key):
         try:
             answer = _call_gemini(
-                current_user.gemini_key,
+                _get_effective_gemini_key(current_user.gemini_key),
                 f"{system}\n\n{prompt}"
             )
         except Exception:
@@ -3039,6 +3090,300 @@ def learn_ask_tutor():
         )
 
     return jsonify({"answer": answer})
+
+
+# ══════════════════════════════════════════════════════════════════
+# SQL COMPILER — Isolated practice database
+# ══════════════════════════════════════════════════════════════════
+
+import sqlite3
+import tempfile
+import threading
+
+# Thread-local storage for practice DB connections
+_practice_db_lock = threading.Lock()
+
+# ── Sample database schema & seed data ────────────────────────────────────
+PRACTICE_DB_SCHEMA = """
+CREATE TABLE IF NOT EXISTS students (
+    student_id   INTEGER PRIMARY KEY,
+    first_name   TEXT NOT NULL,
+    last_name    TEXT NOT NULL,
+    course       TEXT NOT NULL,
+    year_level   INTEGER DEFAULT 1,
+    gpa          REAL DEFAULT 0.0,
+    email        TEXT UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS courses (
+    course_id    INTEGER PRIMARY KEY,
+    course_code  TEXT NOT NULL UNIQUE,
+    course_name  TEXT NOT NULL,
+    department   TEXT NOT NULL,
+    units        INTEGER DEFAULT 3,
+    professor    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS enrollments (
+    enrollment_id INTEGER PRIMARY KEY,
+    student_id    INTEGER NOT NULL,
+    course_id     INTEGER NOT NULL,
+    grade         REAL,
+    semester      TEXT DEFAULT '1st',
+    school_year   TEXT DEFAULT '2024-2025',
+    FOREIGN KEY (student_id) REFERENCES students(student_id),
+    FOREIGN KEY (course_id)  REFERENCES courses(course_id)
+);
+
+CREATE TABLE IF NOT EXISTS departments (
+    dept_id      INTEGER PRIMARY KEY,
+    dept_code    TEXT NOT NULL UNIQUE,
+    dept_name    TEXT NOT NULL,
+    dean         TEXT,
+    building     TEXT
+);
+
+CREATE TABLE IF NOT EXISTS professors (
+    prof_id      INTEGER PRIMARY KEY,
+    first_name   TEXT NOT NULL,
+    last_name    TEXT NOT NULL,
+    dept_id      INTEGER,
+    email        TEXT UNIQUE,
+    specialization TEXT,
+    FOREIGN KEY (dept_id) REFERENCES departments(dept_id)
+);
+"""
+
+PRACTICE_DB_SEED = """
+INSERT OR IGNORE INTO departments VALUES (1,'CS','Computer Science','Dr. Ana Reyes','Eng Building A');
+INSERT OR IGNORE INTO departments VALUES (2,'IT','Information Technology','Dr. Ramon Cruz','Eng Building B');
+INSERT OR IGNORE INTO departments VALUES (3,'IS','Information Systems','Dr. Lorna Santos','Eng Building C');
+
+INSERT OR IGNORE INTO professors VALUES (1,'Marco','Dela Cruz',1,'m.delacruz@tip.edu.ph','Database Systems');
+INSERT OR IGNORE INTO professors VALUES (2,'Liza','Gomez',2,'l.gomez@tip.edu.ph','Web Development');
+INSERT OR IGNORE INTO professors VALUES (3,'Jose','Hernandez',1,'j.hernandez@tip.edu.ph','Data Structures');
+INSERT OR IGNORE INTO professors VALUES (4,'Maria','Tan',3,'m.tan@tip.edu.ph','Systems Analysis');
+INSERT OR IGNORE INTO professors VALUES (5,'Kevin','Ramos',2,'k.ramos@tip.edu.ph','Network Security');
+
+INSERT OR IGNORE INTO students VALUES (1,'John','Cruz','BSCS',2,1.75,'john.cruz@student.tip.edu.ph');
+INSERT OR IGNORE INTO students VALUES (2,'Maria','Santos','BSIT',3,1.50,'maria.santos@student.tip.edu.ph');
+INSERT OR IGNORE INTO students VALUES (3,'Kevin','Reyes','BSCS',2,1.25,'kevin.reyes@student.tip.edu.ph');
+INSERT OR IGNORE INTO students VALUES (4,'Ana','Bautista','BSIS',1,0.00,'ana.bautista@student.tip.edu.ph');
+INSERT OR IGNORE INTO students VALUES (5,'Miguel','Lim','BSIT',4,1.50,'miguel.lim@student.tip.edu.ph');
+INSERT OR IGNORE INTO students VALUES (6,'Rosa','Aquino','BSCS',3,2.00,'rosa.aquino@student.tip.edu.ph');
+INSERT OR IGNORE INTO students VALUES (7,'Carlo','Villanueva','BSIS',2,1.75,'carlo.villanueva@student.tip.edu.ph');
+INSERT OR IGNORE INTO students VALUES (8,'Lea','Garcia','BSIT',1,0.00,'lea.garcia@student.tip.edu.ph');
+
+INSERT OR IGNORE INTO courses VALUES (101,'CCS309','Parallel and Distributed Computing','Computer Science',3,'Prof. Marco Dela Cruz');
+INSERT OR IGNORE INTO courses VALUES (102,'CCS202','Web Development','Information Technology',3,'Prof. Liza Gomez');
+INSERT OR IGNORE INTO courses VALUES (103,'CCS201','Data Structures and Algorithms','Computer Science',3,'Prof. Jose Hernandez');
+INSERT OR IGNORE INTO courses VALUES (104,'IS301','Systems Analysis and Design','Information Systems',3,'Prof. Maria Tan');
+INSERT OR IGNORE INTO courses VALUES (105,'CCS401','Database Systems','Computer Science',3,'Prof. Marco Dela Cruz');
+INSERT OR IGNORE INTO courses VALUES (106,'IT305','Network Security','Information Technology',3,'Prof. Kevin Ramos');
+
+INSERT OR IGNORE INTO enrollments VALUES (1,1,101,1.50,'1st','2024-2025');
+INSERT OR IGNORE INTO enrollments VALUES (2,2,102,1.75,'1st','2024-2025');
+INSERT OR IGNORE INTO enrollments VALUES (3,3,103,1.25,'1st','2024-2025');
+INSERT OR IGNORE INTO enrollments VALUES (4,1,105,1.25,'1st','2024-2025');
+INSERT OR IGNORE INTO enrollments VALUES (5,5,102,1.50,'2nd','2023-2024');
+INSERT OR IGNORE INTO enrollments VALUES (6,6,101,2.00,'1st','2024-2025');
+INSERT OR IGNORE INTO enrollments VALUES (7,2,104,1.75,'2nd','2023-2024');
+INSERT OR IGNORE INTO enrollments VALUES (8,3,105,1.25,'1st','2024-2025');
+INSERT OR IGNORE INTO enrollments VALUES (9,7,104,1.75,'1st','2024-2025');
+INSERT OR IGNORE INTO enrollments VALUES (10,5,106,1.50,'1st','2024-2025');
+"""
+
+# Restricted SQL keywords (DML that modifies schema)
+_SQL_FORBIDDEN = re.compile(
+    r'\b(DROP|TRUNCATE|ALTER|ATTACH|DETACH|PRAGMA|VACUUM)\b',
+    re.IGNORECASE
+)
+
+# Allowed write ops (only for the practice DB)
+_SQL_WRITE_OPS = re.compile(
+    r'^\s*(INSERT|UPDATE|DELETE|CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS)\b',
+    re.IGNORECASE
+)
+
+def _get_practice_db() -> sqlite3.Connection:
+    """Create an in-memory practice DB seeded with sample data."""
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
+    conn.executescript(PRACTICE_DB_SCHEMA)
+    conn.executescript(PRACTICE_DB_SEED)
+    conn.commit()
+    return conn
+
+# Session-scoped practice DB (per-request, fresh and isolated)
+def _execute_practice_sql(sql: str) -> dict:
+    """
+    Execute SQL in a fresh isolated in-memory SQLite practice database.
+    Returns columns, rows, rowcount, duration, and any error messages.
+    """
+    sql = sql.strip()
+    if not sql:
+        return {"error": "Empty query.", "columns": [], "rows": [], "rowcount": 0, "duration_ms": 0}
+
+    # Security: block forbidden keywords
+    if _SQL_FORBIDDEN.search(sql):
+        return {
+            "error": "⛔ Query blocked: DROP, TRUNCATE, ALTER, ATTACH, DETACH, PRAGMA, and VACUUM are not allowed in the practice environment.",
+            "columns": [], "rows": [], "rowcount": 0, "duration_ms": 0
+        }
+
+    conn = _get_practice_db()
+    try:
+        t0 = time.time()
+        cursor = conn.cursor()
+        # Split multiple statements
+        statements = [s.strip() for s in sql.split(";") if s.strip()]
+        results = []
+        last_desc = None
+        total_rowcount = 0
+
+        for stmt in statements:
+            try:
+                cursor.execute(stmt)
+                if cursor.description:
+                    last_desc = cursor.description
+                    rows = cursor.fetchall()
+                    results = [dict(r) for r in rows]
+                    total_rowcount = len(results)
+                else:
+                    conn.commit()
+                    total_rowcount = cursor.rowcount if cursor.rowcount >= 0 else 0
+                    results = []
+                    last_desc = None
+            except sqlite3.Error as e:
+                duration_ms = round((time.time() - t0) * 1000, 2)
+                return {"error": str(e), "columns": [], "rows": [], "rowcount": 0, "duration_ms": duration_ms}
+
+        duration_ms = round((time.time() - t0) * 1000, 2)
+        columns = [col[0] for col in last_desc] if last_desc else []
+        return {
+            "columns": columns,
+            "rows": results,
+            "rowcount": total_rowcount,
+            "duration_ms": duration_ms,
+            "error": None
+        }
+    except Exception as e:
+        logger.error("SQL Compiler execution error: %s", e)
+        return {"error": f"Execution error: {e}", "columns": [], "rows": [], "rowcount": 0, "duration_ms": 0}
+    finally:
+        conn.close()
+
+
+def _get_practice_schema_info() -> list[dict]:
+    """Return schema info for all practice tables (columns, types)."""
+    conn = _get_practice_db()
+    try:
+        tables_cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+        )
+        tables = [row[0] for row in tables_cursor.fetchall()]
+        schema_info = []
+        for table in tables:
+            cols_cursor = conn.execute(f"PRAGMA table_info({table})")
+            columns = [
+                {"name": col[1], "type": col[2], "pk": bool(col[5]), "notnull": bool(col[3])}
+                for col in cols_cursor.fetchall()
+            ]
+            # Row count
+            count_cur = conn.execute(f"SELECT COUNT(*) FROM {table}")
+            row_count = count_cur.fetchone()[0]
+            schema_info.append({"table": table, "columns": columns, "row_count": row_count})
+        return schema_info
+    finally:
+        conn.close()
+
+
+@app.route("/sql-compiler")
+@login_required
+def sql_compiler():
+    schema_info = _get_practice_schema_info()
+    sample_queries = [
+        {"label": "All Students", "sql": "SELECT * FROM students;"},
+        {"label": "All Courses", "sql": "SELECT * FROM courses;"},
+        {"label": "All Enrollments", "sql": "SELECT * FROM enrollments;"},
+        {"label": "Student with Enrollments (JOIN)", "sql": "SELECT s.first_name, s.last_name, c.course_name, e.grade\nFROM students s\nJOIN enrollments e ON s.student_id = e.student_id\nJOIN courses c ON e.course_id = c.course_id\nORDER BY s.last_name;"},
+        {"label": "Average Grade per Course", "sql": "SELECT c.course_name, ROUND(AVG(e.grade), 2) AS avg_grade, COUNT(*) AS enrolled\nFROM courses c\nJOIN enrollments e ON c.course_id = e.course_id\nGROUP BY c.course_id\nORDER BY avg_grade;"},
+        {"label": "Top Students (grade ≤ 1.5)", "sql": "SELECT first_name, last_name, course, gpa\nFROM students\nWHERE gpa > 0 AND gpa <= 1.5\nORDER BY gpa;"},
+        {"label": "Courses with no Enrollments", "sql": "SELECT c.course_name\nFROM courses c\nLEFT JOIN enrollments e ON c.course_id = e.course_id\nWHERE e.enrollment_id IS NULL;"},
+        {"label": "Students per Course (GROUP BY)", "sql": "SELECT c.course_name, COUNT(e.student_id) AS total_students\nFROM courses c\nLEFT JOIN enrollments e ON c.course_id = e.course_id\nGROUP BY c.course_id\nHAVING total_students > 0\nORDER BY total_students DESC;"},
+        {"label": "Subquery: Above-average GPA", "sql": "SELECT first_name, last_name, gpa\nFROM students\nWHERE gpa > (SELECT AVG(gpa) FROM students WHERE gpa > 0)\nORDER BY gpa;"},
+        {"label": "INSERT a Student", "sql": "INSERT INTO students (student_id, first_name, last_name, course, year_level, gpa, email)\nVALUES (9, 'Paolo', 'Mendoza', 'BSCS', 1, 0.0, 'p.mendoza@student.tip.edu.ph');"},
+        {"label": "UPDATE a Grade", "sql": "UPDATE enrollments SET grade = 1.25 WHERE enrollment_id = 1;"},
+        {"label": "DELETE an Enrollment", "sql": "DELETE FROM enrollments WHERE enrollment_id = 10;"},
+    ]
+    return render_template("sql_compiler.html", schema_info=schema_info, sample_queries=sample_queries)
+
+
+@app.route("/api/sql-compiler/execute", methods=["POST"])
+@login_required
+def sql_compiler_execute():
+    data = request.get_json()
+    sql  = (data.get("sql") or "").strip()
+    if not sql:
+        return jsonify({"error": "No SQL provided.", "columns": [], "rows": [], "rowcount": 0, "duration_ms": 0}), 400
+    result = _execute_practice_sql(sql)
+    status_code = 400 if result.get("error") else 200
+    return jsonify(result), status_code
+
+
+@app.route("/api/sql-compiler/schema", methods=["GET"])
+@login_required
+def sql_compiler_schema():
+    return jsonify({"tables": _get_practice_schema_info()})
+
+
+@app.route("/api/sql-compiler/preview/<table_name>", methods=["GET"])
+@login_required
+def sql_compiler_preview(table_name):
+    # Validate table name (alphanumeric + underscore only)
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table_name):
+        return jsonify({"error": "Invalid table name."}), 400
+    allowed_tables = {t["table"] for t in _get_practice_schema_info()}
+    if table_name not in allowed_tables:
+        return jsonify({"error": "Table not found."}), 404
+    result = _execute_practice_sql(f"SELECT * FROM {table_name} LIMIT 10")
+    return jsonify(result)
+
+
+@app.route("/api/sql-compiler/ai-help", methods=["POST"])
+@login_required
+def sql_compiler_ai_help():
+    """Use Gemini (server-side key) to explain or fix a SQL query."""
+    data    = request.get_json()
+    sql     = (data.get("sql") or "").strip()
+    mode    = data.get("mode", "explain")  # explain | fix | generate
+    context = (data.get("context") or "").strip()
+    api_key = _get_effective_gemini_key(current_user.gemini_key)
+
+    schema_summary = "\n".join(
+        f"- {t['table']} ({', '.join(c['name'] for c in t['columns'])})"
+        for t in _get_practice_schema_info()
+    )
+
+    if mode == "explain":
+        prompt = f"Explain this SQL query in plain English for a student beginner:\n\n```sql\n{sql}\n```\n\nDatabase tables available:\n{schema_summary}\n\nKeep it under 150 words. Be friendly and educational."
+    elif mode == "fix":
+        prompt = f"This SQL query has an error:\n\n```sql\n{sql}\n```\nError: {context}\n\nDatabase tables:\n{schema_summary}\n\nProvide the corrected SQL and briefly explain what was wrong. Format: corrected SQL first, then explanation."
+    else:
+        prompt = f"Generate a SQL query for: {context}\n\nDatabase tables:\n{schema_summary}\n\nReturn only the SQL query, no explanation."
+
+    if not api_key:
+        return jsonify({"error": "No Gemini API key configured. Set GEMINI_API_KEY in your .env file."}), 503
+
+    try:
+        answer = _call_gemini(api_key, prompt)
+        return jsonify({"answer": answer})
+    except Exception as e:
+        logger.error("SQL Compiler AI help error: %s", e)
+        return jsonify({"error": f"AI service unavailable: {e}"}), 503
+
 
 # ── Init ───────────────────────────────────────────────────────────────────
 with app.app_context():
