@@ -563,14 +563,10 @@ function showTableInfo(table) {
     r => r.from_table === table.name || r.to_table === table.name
   );
 
-  let html = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+  let html = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;">
     <div style="text-align:center;padding:10px;background:rgba(231,242,239,0.4);border-radius:8px;border:1px solid var(--border);">
       <div style="font-size:22px;font-weight:700;color:var(--primary);">${table.columns.length}</div>
       <div style="font-size:11px;color:var(--text-soft);">Columns</div>
-    </div>
-    <div style="text-align:center;padding:10px;background:rgba(231,242,239,0.4);border-radius:8px;border:1px solid var(--border);">
-      <div style="font-size:22px;font-weight:700;color:var(--primary);">${table.columns.filter(c=>c.primary_key).length}</div>
-      <div style="font-size:11px;color:var(--text-soft);">Primary Keys</div>
     </div>
     <div style="text-align:center;padding:10px;background:rgba(231,242,239,0.4);border-radius:8px;border:1px solid var(--border);">
       <div style="font-size:22px;font-weight:700;color:var(--primary);">${rels.length}</div>
