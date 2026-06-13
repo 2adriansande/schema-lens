@@ -3,10 +3,14 @@
 {% block auth_content %}
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    min-height: 100vh; font-family: 'DM Sans', sans-serif;
-    background: #DFEBE8; /* Slightly deeper base tint to make white panels pop better */
-    overflow-x: hidden;
+  
+  /* FORCE ROOT IMMOBILITY */
+  html, body {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    font-family: 'DM Sans', sans-serif;
+    background: #DFEBE8; 
   }
   
   /* GLOBAL BACKGROUND CANVAS */
@@ -26,15 +30,23 @@
       #DFEBE8;
     pointer-events: none;
   }
+
+  /* ACCORDION CONTAINER LOCKDOWN */
   .auth-wrap {
-    min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; position: relative; z-index: 1;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    position: relative; 
+    z-index: 1; 
+    overflow: hidden !important;
   }
   
-  /* AUTH-LEFT PANEL WITH CANVAS INTERACTION OVERLAY */
+  /* AUTH-LEFT PANEL */
   .auth-left {
-    background: linear-gradient(150deg, #556C75 0%, #7FA39E 50%, #11102B 100%); /* Deepened gradient colors slightly */
-    padding: 64px 58px; display: flex; flex-direction: column; justify-content: space-between;
-    color: #F3FAF8; position: relative; overflow: hidden;
+    background: linear-gradient(150deg, #556C75 0%, #7FA39E 50%, #11102B 100%); 
+    padding: 48px 58px; display: flex; flex-direction: column; justify-content: space-between;
+    color: #F3FAF8; position: relative; overflow: hidden; height: 100%;
   }
   #auth-left-canvas {
     position: absolute;
@@ -47,9 +59,7 @@
   .auth-left::before { content: ''; position: absolute; top: -80px; right: -80px; width: 320px; height: 320px; border-radius: 50%; background: rgba(255,255,255,0.08); pointer-events: none; z-index: 1; }
   .auth-left::after  { content: ''; position: absolute; bottom: -50px; left: -50px; width: 240px; height: 240px; border-radius: 50%; background: rgba(17,16,43,0.16); pointer-events: none; z-index: 1; }
   
-  /* Content elevation blocks */
   .al-logo-link, .al-hero, .al-features { position: relative; z-index: 2; }
-
   .al-logo { display: flex; align-items: center; gap: 11px; }
   .al-logo-icon { 
     width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.25); 
@@ -60,79 +70,86 @@
   .al-logo-icon svg { width: 22px; height: 22px; }
   .al-logo-text { font-size: 18px; font-weight: 700; letter-spacing: -.4px; color: #FFFFFF; }
   
-  .al-hero h1 { font-size: 40px; font-weight: 700; line-height: 1.12; letter-spacing: -1.2px; margin-bottom: 18px; color: #FFFFFF; }
-  .al-hero h1 span { color: #A4FFF0; text-shadow: 0 1px 2px rgba(0,0,0,0.15); } /* High contrast glowing highlight */
-  .al-hero p { font-size: 15px; color: #E6F5F2; line-height: 1.75; max-width: 360px; font-weight: 500; } /* Maximum contrast readable text */
+  .al-hero h1 { font-size: 36px; font-weight: 700; line-height: 1.12; letter-spacing: -1.2px; margin-bottom: 14px; color: #FFFFFF; }
+  .al-hero h1 span { color: #A4FFF0; text-shadow: 0 1px 2px rgba(0,0,0,0.15); } 
+  .al-hero p { font-size: 14px; color: #E6F5F2; line-height: 1.65; max-width: 360px; font-weight: 500; } 
   
-  .al-feat { 
-    display: flex; align-items: center; gap: 11px; margin-bottom: 13px; font-size: 14px; color: #FFFFFF; font-weight: 500; 
-    transition: transform 0.2s ease;
-  }
+  .al-feat { display: flex; align-items: center; gap: 11px; margin-bottom: 10px; font-size: 13px; color: #FFFFFF; font-weight: 500; transition: transform 0.2s ease; }
   .al-feat:hover { transform: translateX(4px); }
   .al-feat-dot { width: 8px; height: 8px; border-radius: 50%; background: #A4FFF0; flex-shrink: 0; }
   
-  /* Right Side Panel (Form) Styling */
-  .auth-right { display: flex; align-items: center; justify-content: center; padding: 64px 52px; background: rgba(255,255,255,0.45); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); overflow-y: auto; }
-  .auth-box { width: 100%; max-width: 400px; }
-  .auth-box h2 { font-size: 28px; font-weight: 700; letter-spacing: -.6px; margin-bottom: 7px; color: #11102B; }
-  .auth-box .sub { font-size: 14.5px; color: #354A54; margin-bottom: 28px; font-weight: 500; } /* Darker slate for sharp readability */
+  /* RIGHT PANEL INTERNAL SCROLL ISOLATION */
+  .auth-right { 
+    position: relative;
+    background: rgba(255,255,255,0.45); 
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); 
+    height: 100%; 
+    max-height: 100vh; 
+    overflow-y: auto; /* ONLY the right panel's form can scroll if screen height is microscopic */
+    padding: 40px 52px;
+    display: grid;
+    place-items: center;
+  }
+  .auth-box { width: 100%; max-width: 400px; margin: auto 0; }
+  .auth-box h2 { font-size: 26px; font-weight: 700; letter-spacing: -.6px; margin-bottom: 2px; color: #11102B; }
+  .auth-box .sub { font-size: 13.5px; color: #354A54; margin-bottom: 14px; font-weight: 500; } 
   
-  .form-group { margin-bottom: 16px; }
-  .form-label { font-size: 12px; font-weight: 700; color: #2B3D46; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .05em; } /* Darkened drastically for crispness */
+  /* COMPACT INSTRUCTION BOX */
+  .instruction-panel {
+    background: rgba(17, 16, 43, 0.04); border-left: 4px solid #556C75;
+    padding: 10px 12px; border-radius: 4px 8px 8px 4px; margin-bottom: 16px;
+  }
+  .instruction-panel h4 { font-size: 12px; font-weight: 700; color: #11102B; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .instruction-panel ul { list-style: none; padding: 0; margin: 0; }
+  .instruction-panel li { font-size: 11.5px; color: #4A5E68; line-height: 1.4; margin-bottom: 3px; display: flex; align-items: flex-start; gap: 6px; }
+  .instruction-panel li:last-child { margin-bottom: 0; }
+  .instruction-panel li i { color: #556C75; margin-top: 2px; font-size: 10px; }
+
+  /* HEIGHT CONSCIOUS FORM GROUPS */
+  .form-group { margin-bottom: 12px; position: relative; }
+  .form-label { font-size: 11px; font-weight: 700; color: #2B3D46; margin-bottom: 4px; display: block; text-transform: uppercase; letter-spacing: .05em; } 
   
   .input-container { position: relative; width: 100%; }
   .form-input { 
-    width: 100%; padding: 11px 16px; border: none; border-radius: 10px; 
-    font-family: 'DM Sans', sans-serif; font-size: 14px; color: #11102B; background: #F7F9FB; outline: none; 
-    box-shadow: inset 0 0 0 1px rgba(97, 125, 138, 0.14);
-    transition: box-shadow 0.2s, transform 0.2s; 
+    width: 100%; padding: 10px 14px; border: 2px solid transparent; border-radius: 10px; 
+    font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #11102B; background: #F7F9FB; outline: none; 
+    box-shadow: inset 0 0 0 1px rgba(97, 125, 138, 0.14); transition: all 0.2s ease; 
   }
-  .form-input::placeholder { color: #617D8A; opacity: 0.8; } /* Darker placeholder text */
-  .form-input:focus::placeholder { color: rgba(97, 125, 138, 0.4); } 
-  .form-input:focus { 
-    box-shadow: 0 0 0 3px rgba(17,16,43,0.12); 
-    transform: translateY(-1px);
-  }
+  .form-input:focus { box-shadow: 0 0 0 3px rgba(17,16,43,0.12); transform: translateY(-1px); background: #ffffff; }
+  .form-input.is-invalid { border-color: #E05C5C !important; background-color: #FFF5F5; }
+  .form-input.is-valid { border-color: #2E8B57 !important; background-color: #F4FAF6; }
   
-  /* Interactive Input Field Adornments */
-  .password-toggle {
-    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: #617D8A; cursor: pointer;
-    font-size: 16px; display: flex; align-items: center; justify-content: center;
-    padding: 4px; border-radius: 4px; transition: color 0.15s;
-    z-index: 5;
-  }
-  .password-toggle:hover { color: #11102B; }
+  .password-toggle { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #617D8A; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; padding: 4px; z-index: 5; }
   .form-input-has-adornment { padding-right: 44px; }
   
   .btn-submit { 
-    width: 100%; padding: 13px; background: linear-gradient(135deg, #11102B, #354A54); color: #FFFFFF; border: none; border-radius: 10px; 
-    font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 700; cursor: pointer; 
-    transition: all .2s cubic-bezier(0.16, 1, 0.3, 1); margin-top: 6px; box-shadow: 0 6px 20px rgba(17,16,43,0.25); 
+    width: 100%; padding: 12px; background: linear-gradient(135deg, #11102B, #354A54); color: #FFFFFF; border: none; border-radius: 10px; 
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s cubic-bezier(0.16, 1, 0.3, 1); margin-top: 4px; box-shadow: 0 6px 20px rgba(17,16,43,0.25); 
   }
-  .btn-submit:hover { 
-    background: linear-gradient(135deg, #1A1942, #415A66); 
-    box-shadow: 0 8px 28px rgba(17,16,43,0.35); 
-    transform: translateY(-2px); 
-  }
+  .btn-submit:hover { background: linear-gradient(135deg, #1A1942, #415A66); box-shadow: 0 8px 28px rgba(17,16,43,0.35); transform: translateY(-2px); }
   .btn-submit:active { transform: translateY(0) scale(0.98); }
   
-  .flash-local { padding: 11px 16px; border-radius: 9px; font-size: 13.5px; display: flex; align-items: center; gap: 9px; margin-bottom: 16px; font-weight: 500; }
-  .flash-error-local { background: #FEE2E2; color: #7F1D1D; border: 1px solid #FCA5A5; } /* Dark text on brighter background */
-  .flash-success-local { background: #D1FAE5; color: #064E3B; border: 1px solid #6EE7B7; } /* Dark text on brighter background */
+  .flash-local { padding: 10px 14px; border-radius: 9px; font-size: 13px; display: flex; align-items: center; gap: 9px; margin-bottom: 12px; font-weight: 500; }
+  .flash-error-local { background: #FEE2E2; color: #7F1D1D; border: 1px solid #FCA5A5; } 
+  .flash-success-local { background: #D1FAE5; color: #064E3B; border: 1px solid #6EE7B7; } 
 
-  .link-interactive {
-    color: #11102B; font-weight: 700; text-decoration: none; position: relative; display: inline-block;
-  }
-  .link-interactive::after {
-    content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 1.5px;
-    background-color: #11102B; transition: transform 0.2s ease; transform-origin: right;
-  }
+  .link-interactive { color: #11102B; font-weight: 700; text-decoration: none; position: relative; display: inline-block; }
+  .link-interactive::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 1.5px; background-color: #11102B; transition: transform 0.2s ease; transform-origin: right; }
   .link-interactive:hover::after { transform: scaleX(0); }
 
-  @media (max-width: 768px) { .auth-wrap { grid-template-columns: 1fr; } .auth-left { display: none; } }
-</style>
+  .field-hint-box { margin-top: 4px; padding: 8px 10px; background: #FFF5F5; border-radius: 8px; border-left: 3px solid #E05C5C; }
+  .field-hint-text { font-size: 11.5px; color: #B91C1C; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .strength-grid { margin-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: rgba(17,16,43,0.03); padding: 8px; border-radius: 8px; }
+  .strength-item { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
 
+  /* MOBILE BACKOUT CONFIG */
+  @media (max-width: 768px) { 
+    html, body { overflow-y: auto !important; height: auto !important; max-height: none !important; }
+    .auth-wrap { grid-template-columns: 1fr; height: auto !important; max-height: none !important; overflow: visible !important; } 
+    .auth-left { display: none; } 
+    .auth-right { height: auto; max-height: none; padding: 40px 24px; overflow: visible; }
+  }
+</style>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -174,6 +191,14 @@
       <h2>Create your account</h2>
       <p class="sub">Get started free — no credit card required</p>
 
+      <div class="instruction-panel">
+        <h4><i class="bi bi-shield-lock-fill"></i> Registration Requirements</h4>
+        <ul>
+          <li><i class="bi bi-circle-fill"></i> <strong>Username:</strong> Only alphabetic characters are allowed (A-Z, a-z). No numbers, spaces, or symbols.</li>
+          <li><i class="bi bi-circle-fill"></i> <strong>Password:</strong> Minimum 8 characters containing at least 1 uppercase, 1 lowercase, 1 number, and 1 special symbol.</li>
+        </ul>
+      </div>
+
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}{% for cat, msg in messages %}
           <div class="flash-local flash-{{ 'error-local' if cat=='error' else 'success-local' }}">
@@ -182,38 +207,81 @@
         {% endfor %}{% endif %}
       {% endwith %}
 
-      <form method="POST" action="{{ url_for('signup') }}">
+      <form method="POST" action="{{ url_for('signup') }}" id="signupForm" novalidate>
         <div class="form-group">
-          <label class="form-label">Full name</label>
+          <label class="form-label">Username / Full Name</label>
           <div class="input-container">
-            <input type="text" name="name" class="form-input" placeholder="Bronny James" required>
+            <input type="text" name="name" id="nameInput" class="form-input" placeholder="e.g. JohnDoe" required autocomplete="username">
+          </div>
+          <div class="field-hint-box" id="nameHint" style="display:none;">
+            <div class="field-hint-text">
+              <i class="bi bi-exclamation-triangle-fill"></i> 
+              Letters only (A–Z, a–z). No numbers, spaces, symbols, or special characters.
+            </div>
           </div>
         </div>
+
         <div class="form-group">
           <label class="form-label">Email address</label>
           <div class="input-container">
-            <input type="email" name="email" class="form-input" placeholder="you@example.com" required>
+            <input type="email" name="email" id="emailInput" class="form-input" placeholder="you@example.com" required autocomplete="email">
+          </div>
+          <div class="field-hint-box" id="emailHint" style="display:none;">
+            <div class="field-hint-text">
+              <i class="bi bi-exclamation-triangle-fill"></i> Please enter a valid email address.
+            </div>
           </div>
         </div>
+
         <div class="form-group">
           <label class="form-label">Password</label>
           <div class="input-container">
-            <input type="password" name="password" id="passwordInput" class="form-input form-input-has-adornment" placeholder="Min. 6 characters" required>
+            <input type="password" name="password" id="passwordInput" class="form-input form-input-has-adornment" placeholder="Create a secure password" required minlength="8" autocomplete="new-password">
             <button type="button" class="password-toggle" data-toggle-for="passwordInput" aria-label="Toggle password visibility">
               <i class="bi bi-eye toggle-icon"></i>
             </button>
           </div>
+          <div id="passwordStrength" class="strength-grid" style="display:none;">
+            <div class="strength-item" id="req-len" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 8+ Characters</div>
+            <div class="strength-item" id="req-upper" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 1 Uppercase</div>
+            <div class="strength-item" id="req-lower" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 1 Lowercase</div>
+            <div class="strength-item" id="req-num" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 1 Number</div>
+            <div class="strength-item" id="req-sym" style="color: #e05c5c; grid-column: span 2;"><i class="bi bi-x-circle-fill"></i> 1 Special Character (!@#$%^&*)</div>
+          </div>
         </div>
-        <div class="form-group" style="margin-bottom:22px;">
+
+        <div class="form-group">
           <label class="form-label">Confirm password</label>
           <div class="input-container">
-            <input type="password" name="confirm_password" id="confirmPasswordInput" class="form-input form-input-has-adornment" placeholder="••••••••" required>
+            <input type="password" name="confirm_password" id="confirmPasswordInput" class="form-input form-input-has-adornment" placeholder="Repeat your password" required autocomplete="new-password">
             <button type="button" class="password-toggle" data-toggle-for="confirmPasswordInput" aria-label="Toggle password visibility">
               <i class="bi bi-eye toggle-icon"></i>
             </button>
           </div>
+          <div class="field-hint-box" id="confirmHint" style="display:none;">
+            <div class="field-hint-text">
+              <i class="bi bi-exclamation-triangle-fill"></i> Passwords do not match.
+            </div>
+          </div>
         </div>
-        <button type="submit" class="btn-submit">Get Started Free →</button>
+
+        <div class="form-group" style="margin-bottom:20px;">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:#354A54;font-weight:500;line-height:1.5;">
+            <input type="checkbox" name="agreement_accepted" id="agreementCheck"
+                   style="margin-top:2px;accent-color:#2E8B57;width:16px;height:16px;flex-shrink:0;" required>
+            <span>
+              I have read and agree to the
+              <a href="{{ url_for('agreement_page') }}" target="_blank" style="color:#2E8B57;text-decoration:underline;">Terms of Use &amp; User Agreement</a>.
+            </span>
+          </label>
+          <div class="field-hint-box" id="agreementHint" style="display:none; margin-left:26px;">
+            <div class="field-hint-text">
+              <i class="bi bi-exclamation-triangle-fill"></i> You must accept the agreement to continue.
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">Get Started Free →</button>
       </form>
 
       <p style="text-align:center;margin-top:22px;font-size:13.5px;color:#354A54;font-weight:500;">
@@ -316,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 0; i < count; i++) mainParticles.push(new MainParticle());
   }
 
-
   // --- ENGINE 2: AUTH-LEFT NESTED INTERACTIVE CONSTELLATION MAP ---
   const leftCanvas = document.getElementById('auth-left-canvas');
   const leftCtx = leftCanvas.getContext('2d');
@@ -390,7 +457,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-
   // --- SYNCHRONIZED TICK RATE MASTER DISPATCHER LOOP ---
   function updateAndRender() {
     mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
@@ -439,12 +505,154 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Render initialization pipeline cycles
   resizeMainCanvas();
   if (window.getComputedStyle(leftSection).display !== 'none') {
     resizeLeftCanvas();
   }
   updateAndRender();
+
+  // ── ADVANCED INTERACTIVE REGISTRATION VALIDATION ENGINE ─────────────────
+  const signupForm    = document.getElementById('signupForm');
+  const nameInput     = document.getElementById('nameInput');
+  const emailInput    = document.getElementById('emailInput');
+  const passwordInput = document.getElementById('passwordInput');
+  const confirmInput  = document.getElementById('confirmPasswordInput');
+  const agreementChk  = document.getElementById('agreementCheck');
+
+  // Input Utility Status Cleaners
+  const setVisualState = (inputEl, hintEl, isValid, isBlank = false) => {
+    if (isBlank) {
+      inputEl.classList.remove('is-valid', 'is-invalid');
+      if(hintEl) hintEl.style.display = 'none';
+      return;
+    }
+    if (isValid) {
+      inputEl.classList.remove('is-invalid');
+      inputEl.classList.add('is-valid');
+      if(hintEl) hintEl.style.display = 'none';
+    } else {
+      inputEl.classList.remove('is-valid');
+      inputEl.classList.add('is-invalid');
+      if(hintEl) hintEl.style.display = 'block';
+    }
+  };
+
+  // 1. Username Validation: Alphabetic (A-Z, a-z) Only
+  const validateName = () => {
+    const val = nameInput.value;
+    if (!val) {
+      setVisualState(nameInput, document.getElementById('nameHint'), false, true);
+      return false;
+    }
+    const isValid = /^[A-Za-z]+$/.test(val);
+    setVisualState(nameInput, document.getElementById('nameHint'), isValid);
+    return isValid;
+  };
+  nameInput.addEventListener('input', validateName);
+  nameInput.addEventListener('blur', validateName);
+
+  // 2. Email Validation Structure Helper
+  const validateEmail = () => {
+    const val = emailInput.value;
+    if (!val) {
+      setVisualState(emailInput, document.getElementById('emailHint'), false, true);
+      return false;
+    }
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    setVisualState(emailInput, document.getElementById('emailHint'), isValid);
+    return isValid;
+  };
+  emailInput.addEventListener('input', validateEmail);
+  emailInput.addEventListener('blur', validateEmail);
+
+  // 3. Password Sophistication Metrics
+  const validatePassword = () => {
+    const v = passwordInput.value;
+    const box = document.getElementById('passwordStrength');
+    
+    if (!v) {
+      box.style.display = 'none';
+      passwordInput.classList.remove('is-valid', 'is-invalid');
+      return false;
+    }
+    
+    box.style.display = 'grid';
+    
+    const criteria = {
+      'req-len':   v.length >= 8,
+      'req-upper': /[A-Z]/.test(v),
+      'req-lower': /[a-z]/.test(v),
+      'req-num':   /\d/.test(v),
+      'req-sym':   /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?`~]/.test(v)
+    };
+
+    let allValid = true;
+    Object.keys(criteria).forEach(id => {
+      const pass = criteria[id];
+      const el = document.getElementById(id);
+      const text = el.textContent.replace(/[✓✗]\s*/, '');
+      
+      if (pass) {
+        el.innerHTML = `<i class="bi bi-check-circle-fill"></i> ${text}`;
+        el.style.color = '#2E8B57';
+      } else {
+        el.innerHTML = `<i class="bi bi-x-circle-fill"></i> ${text}`;
+        el.style.color = '#e05c5c';
+        allValid = false;
+      }
+    });
+
+    setVisualState(passwordInput, null, allValid);
+    // Cascade verify confirmation field matching if it contains text
+    if (confirmInput.value) validateConfirm();
+    
+    return allValid;
+  };
+  passwordInput.addEventListener('input', validatePassword);
+
+  // 4. Confirm Password Match Helper
+  const validateConfirm = () => {
+    const val = confirmInput.value;
+    if (!val) {
+      setVisualState(confirmInput, document.getElementById('confirmHint'), false, true);
+      return false;
+    }
+    const isMatch = val === passwordInput.value;
+    setVisualState(confirmInput, document.getElementById('confirmHint'), isMatch);
+    return isMatch;
+  };
+  confirmInput.addEventListener('input', validateConfirm);
+  confirmInput.addEventListener('blur', validateConfirm);
+
+  // 5. Terms Agreement Change Hook
+  agreementChk.addEventListener('change', () => {
+    const isChecked = agreementChk.checked;
+    document.getElementById('agreementHint').style.display = isChecked ? 'none' : 'block';
+  });
+
+  // 6. Form Submission Gateway interceptor
+  signupForm.addEventListener('submit', (e) => {
+    const isNameValid = validateName();
+    const isEmailValid = validateEmail();
+    const isPasswordValid = validatePassword();
+    const isConfirmValid = validateConfirm();
+    const isAgreementChecked = agreementChk.checked;
+
+    if (!isAgreementChecked) {
+      document.getElementById('agreementHint').style.display = 'block';
+    }
+
+    // Intercept form dispatch if validation fails
+    if (!isNameValid || !isEmailValid || !isPasswordValid || !isConfirmValid || !isAgreementChecked) {
+      e.preventDefault();
+      
+      // Dynamic fallback focus scrolling layout positioning
+      const firstError = document.querySelector('.form-input.is-invalid, #agreementCheck:invalid');
+      if (firstError) {
+        firstError.focus();
+      }
+    }
+  });
 });
 </script>
 {% endblock %}

@@ -294,6 +294,229 @@
 .badge-toast .bt-title { font-size: 13px; font-weight: 700; color: var(--warning); }
 .badge-toast .bt-desc  { font-size: 12px; color: var(--text-soft); }
 
+/* ── ERD Overview Card (Refined & Clean UI Sourced from Query) ── */
+.erd-overview-card {
+  background: #ffffff;
+  border: 1px solid #eef2f4;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  font-family: var(--font);
+  margin-bottom: 20px;
+}
+.erd-overview-header {
+  padding: 24px 24px 14px;
+  background: #edf5f3;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.erd-header-icon-box {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid #6b828b;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b828b;
+  font-size: 15px;
+  background: transparent;
+  flex-shrink: 0;
+}
+.erd-overview-title strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e2538;
+  display: block;
+  margin-bottom: 2px;
+}
+.erd-overview-meta {
+  font-size: 13px;
+  color: #8fa0a6;
+}
+.erd-tabs-container {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  background: #edf5f3;
+  border-bottom: 1px solid #eef2f4;
+}
+.erd-tab-btn {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b828b;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.erd-tab-btn:hover {
+  color: #1e2538;
+}
+.erd-tab-btn.active {
+  background: #ffffff;
+  color: #1e2538;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
+}
+.erd-body-panel {
+  padding: 20px 24px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  max-height: 700px;
+}
+.erd-scroll-container {
+  position: relative;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 6px;
+}
+
+/* Elegant scrollbar aesthetics */
+.erd-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+.erd-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.erd-scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgba(112, 137, 147, 0.25);
+  border-radius: 10px;
+}
+.erd-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(112, 137, 147, 0.45);
+}
+
+.erd-accordion-item {
+  border: 1px solid #edf3f5;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+.erd-accordion-item.expanded {
+  background: #f4f8f7;
+  border-color: #e3edea;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+}
+.erd-accordion-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: #1e2538;
+  user-select: none;
+}
+.erd-accordion-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.erd-accordion-title-left i {
+  color: #728993;
+}
+.erd-accordion-count {
+  color: #8fa0a6;
+  font-weight: 400;
+  margin-left: 2px;
+}
+.erd-accordion-arrow {
+  color: #728993;
+  font-size: 13px;
+  transition: transform 0.2s ease;
+}
+.erd-accordion-item.expanded .erd-accordion-arrow {
+  transform: rotate(180deg);
+}
+.erd-accordion-content {
+  background: #ffffff;
+  padding: 10px 20px 14px 40px;
+  border-top: 1px solid #edf3f5;
+}
+.erd-col-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 13.5px;
+}
+.erd-col-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1e2538;
+}
+.erd-key-icon {
+  color: #ff9f00;
+  font-size: 12px;
+}
+.erd-col-type {
+  color: #728993;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.erd-relationships-section {
+  margin-top: 16px;
+  border-top: 1px solid #edf3f5;
+  padding-top: 16px;
+}
+.erd-relationships-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #728993;
+  margin-bottom: 10px;
+  letter-spacing: 0.2px;
+}
+.erd-relationship-pill {
+  background: #f1f6f5;
+  border-radius: 12px;
+  padding: 9px 14px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: #556c75;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+}
+.erd-relationship-pill:last-child {
+  margin-bottom: 0;
+}
+.erd-canvas-wrap {
+  position: relative; overflow: hidden;
+  height: 280px;
+  background: rgba(248,250,252,0.6);
+  border: 1px solid #edf3f5;
+  border-radius: 12px;
+}
+.erd-canvas-wrap svg { width: 100%; height: 100%; display: block; cursor: grab; }
+.erd-canvas-wrap svg:active { cursor: grabbing; }
+.erd-footer {
+  padding: 10px 0 0 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.erd-footer-hint { font-size: 11.5px; color: var(--text-xs); display: flex; align-items: center; gap: 5px; }
+.erd-loading {
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px;
+  padding: 60px 18px; color: var(--text-soft); font-size: 13px;
+}
+.erd-empty-state { padding: 32px 18px; text-align: center; color: var(--text-soft); font-size: 13px; }
+.erd-empty-state i { font-size: 36px; opacity: .2; display: block; margin-bottom: 10px; }
+
 /* ── Sidebar ── */
 .side-card {
   background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -367,7 +590,6 @@
 
 {% block content %}
 
-<!-- ── How to Play Modal ── -->
 <div class="modal-overlay" id="htpModal" onclick="closeModal(event)">
   <div class="modal-box">
     <div class="modal-head">
@@ -425,7 +647,6 @@
   </div>
 </div>
 
-<!-- ── Page Header ── -->
 <div class="pg-head fade-in">
   <div class="pg-head-row" style="margin-bottom:4px;">
     <h1 style="margin-bottom:0;">
@@ -441,10 +662,8 @@
 
 <div class="ch-layout">
 
-  <!-- ══ LEFT COLUMN ══ -->
   <div>
 
-    <!-- Step 1: Select Schema & Difficulty -->
     <div class="sc fade-in fade-in-1">
       <div class="sc-head">
         <div class="sc-num">1</div>
@@ -471,7 +690,6 @@
           </button>
         </div>
 
-        <!-- Difficulty -->
         <div style="margin-top:14px;">
           <label class="label">Difficulty</label>
           <div class="diff-row" id="diffRow">
@@ -495,7 +713,6 @@
       </div>
     </div>
 
-    <!-- Step 2: Write SQL -->
     <div class="sc fade-in fade-in-2" id="writeCard" style="display:none;">
       <div class="sc-head">
         <div class="sc-num" id="s2num">2</div>
@@ -545,7 +762,6 @@
       </div>
     </div>
 
-    <!-- Step 3: Results -->
     <div class="sc fade-in" id="resultsCard" style="display:none;">
       <div class="sc-head">
         <div class="sc-num done">✓</div>
@@ -582,44 +798,92 @@
 
   </div>
 
-  <!-- ══ RIGHT SIDEBAR ══ -->
   <div>
 
-    <!-- Recent Attempts -->
-    <div class="side-card fade-in fade-in-2">
-      <div class="side-head">
-        <i class="bi bi-clock-history"></i> Recent Attempts
-        <button class="btn-clear ml" onclick="clearHistory()">
-          <i class="bi bi-trash3"></i> Clear
+    <div class="erd-overview-card fade-in" id="chErdOverviewCard" style="display:none;">
+      <div class="erd-overview-header">
+        <div class="erd-header-icon-box">
+          <i class="bi bi-grid-3x3-gap"></i>
+        </div>
+        <div class="erd-overview-title">
+          <strong id="chErdOverviewName">Schema Overview</strong>
+          <div class="erd-overview-meta" id="chErdOverviewMeta">Loading…</div>
+        </div>
+      </div>
+      
+      <div class="erd-tabs-container">
+        <button class="erd-tab-btn active" id="chTabTables" onclick="switchChErdTab('tables')">
+          <i class="bi bi-database"></i> Tables
+        </button>
+        <button class="erd-tab-btn" id="chTabDiagram" onclick="switchChErdTab('diagram')">
+          <i class="bi bi-diagram-3"></i> ERD
         </button>
       </div>
-      <div class="side-body" id="recentAttemptsBody">
-        {% if recent_attempts %}
-          {% for a in recent_attempts %}
-          <div class="att-item">
-            <div class="att-row">
-              <div class="att-txt">{{ a.prompt[:52] }}{% if a.prompt|length > 52 %}…{% endif %}</div>
-              <span class="att-pill {% if a.score >= 80 %}ap-g{% elif a.score >= 50 %}ap-w{% else %}ap-r{% endif %}">{{ a.score }}</span>
+
+      <div class="erd-body-panel">
+        <div class="erd-scroll-container">
+          <div id="chErdTablesPanel">
+            <div id="chErdTableListBody"></div>
+          </div>
+
+          <div id="chErdDiagramPanel" style="display:none;">
+            <div class="erd-canvas-wrap" id="chErdMiniCanvas">
+              <div class="erd-loading" id="chErdLoadingState">
+                <div class="erd-spinner"></div>
+                <span>Loading schema layout…</span>
+              </div>
+              <svg id="chErdMiniSvg" style="display:none;"></svg>
             </div>
-            <div class="att-meta">
-              {% set diff = a.difficulty if a.difficulty else 'easy' %}
-              <span class="diff-pip dp-{{ diff }}"></span>
-              <span style="text-transform:capitalize;">{{ diff }}</span>
-              <span>·</span>
-              {# Convert UTC → PH Time (UTC+8) #}
-              <span>{{ a.attempted_at | ph_time }}</span>
+            <div class="erd-footer">
+              <span class="erd-footer-hint"><i class="bi bi-arrows-move"></i> Drag to pan · Scroll to zoom</span>
+              <a id="chErdFullViewLink" href="#" class="btn btn-ghost btn-sm" style="font-size:11.5px;" target="_blank">
+                <i class="bi bi-fullscreen"></i> Full View
+              </a>
             </div>
           </div>
-          {% endfor %}
-        {% else %}
-          <div class="empty-att" id="noAttempts">
-            <i class="bi bi-journal-x"></i>No attempts yet
-          </div>
-        {% endif %}
+        </div>
+
+        <div class="erd-relationships-section">
+          <div class="erd-relationships-title">Relationships</div>
+          <div id="chErdRelationshipListBody"></div>
+        </div>
       </div>
     </div>
 
-    <!-- Your Stats -->
+    <div id="chRecentAttemptsWrapper">
+      <div class="side-card fade-in fade-in-2">
+        <div class="side-head">
+          <i class="bi bi-clock-history"></i> Recent Attempts
+          <button class="btn-clear ml" onclick="clearHistory()">
+            <i class="bi bi-trash3"></i> Clear
+          </button>
+        </div>
+        <div class="side-body" id="recentAttemptsBody">
+          {% if recent_attempts %}
+            {% for a in recent_attempts %}
+            <div class="att-item">
+              <div class="att-row">
+                <div class="att-txt">{{ a.prompt[:52] }}{% if a.prompt|length > 52 %}…{% endif %}</div>
+                <span class="att-pill {% if a.score >= 80 %}ap-g{% elif a.score >= 50 %}ap-w{% else %}ap-r{% endif %}">{{ a.score }}</span>
+              </div>
+              <div class="att-meta">
+                {% set diff = a.difficulty if a.difficulty else 'easy' %}
+                <span class="diff-pip dp-{{ diff }}"></span>
+                <span style="text-transform:capitalize;">{{ diff }}</span>
+                <span>·</span>
+                <span>{{ a.attempted_at | ph_time }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-att" id="noAttempts">
+              <i class="bi bi-journal-x"></i>No attempts yet
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
     <div class="side-card fade-in fade-in-3">
       <div class="side-head"><i class="bi bi-bar-chart"></i> Your Stats</div>
       <div class="side-body">
@@ -627,12 +891,11 @@
           <div class="sbox"><div class="sv">{{ total_attempts }}</div><div class="sl">Total</div></div>
           <div class="sbox"><div class="sv">{{ avg_score }}</div><div class="sl">Avg Score</div></div>
           <div class="sbox"><div class="sv">{{ best_score }}</div><div class="sl">Best</div></div>
-          <div class="sbox"><div class="sv">{{ perfect_count }}<span style="font-size:13px"></span></div><div class="sl">Perfect</div></div>
+          <div class="sbox"><div class="sv">{{ perfect_count }}</div><div class="sl">Perfect</div></div>
         </div>
       </div>
     </div>
 
-    <!-- Scoring Guide -->
     <div class="side-card fade-in fade-in-4">
       <div class="side-head"><i class="bi bi-lightbulb"></i> Scoring Guide</div>
       <div class="side-body">
@@ -671,7 +934,7 @@ let timerPenalty   = 0;
 let tryPenalty     = 0;
 let triesUsed      = 0;
 let challengeDone  = false;
-let challengeActive = false;   // true once a challenge has started
+let challengeActive = false;   
 
 /* ═══════════════════════════════
    MODAL
@@ -684,7 +947,7 @@ function closeModal(e) { if (e.target === document.getElementById('htpModal')) c
    DIFFICULTY — locked during active challenge
 ═══════════════════════════════ */
 function setDiff(d) {
-  if (challengeActive) return;   // locked while in progress
+  if (challengeActive) return;   
   difficulty = d;
   document.getElementById('hDiff').value = d;
   ['easy','medium','hard'].forEach(k => {
@@ -976,10 +1239,241 @@ function showFlash(msg, type) {
   setTimeout(() => el.remove(), 5000);
 }
 
+/* ══════════════════════════════════════════════
+   ERD OVERVIEW CARD LOGIC
+══════════════════════════════════════════════ */
+let chErdViewBox = { x: 0, y: 0, w: 800, h: 400 };
+let chErdPanning = false, chErdPanStart = { x: 0, y: 0 };
+
+document.getElementById('schemaSelect').addEventListener('change', function() {
+  const id = this.value;
+  if (id) loadChErdOverview(id);
+  else hideChErdCard();
+});
+
+function loadChErdOverview(schemaId) {
+  document.getElementById('chErdOverviewCard').style.display = 'block';
+  document.getElementById('chRecentAttemptsWrapper').style.display = 'none';
+  document.getElementById('chErdLoadingState').style.display = 'flex';
+  document.getElementById('chErdMiniSvg').style.display = 'none';
+  document.getElementById('chErdOverviewMeta').textContent = 'Loading…';
+  document.getElementById('chErdFullViewLink').href = `/schemas/${schemaId}/er-diagram`;
+
+  fetch(`/api/schema/${schemaId}/metadata`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+      renderChErdOverview(data);
+    })
+    .catch(() => {
+      document.getElementById('chErdLoadingState').innerHTML =
+        '<i class="bi bi-exclamation-circle" style="font-size:22px;opacity:.4;"></i><span>Could not load schema</span>';
+    });
+}
+
+function hideChErdCard() {
+  document.getElementById('chErdOverviewCard').style.display = 'none';
+  document.getElementById('chRecentAttemptsWrapper').style.display = 'block';
+}
+
+function switchChErdTab(tabName) {
+  const tablesBtn = document.getElementById('chTabTables');
+  const diagramBtn = document.getElementById('chTabDiagram');
+  const tablesPanel = document.getElementById('chErdTablesPanel');
+  const diagramPanel = document.getElementById('chErdDiagramPanel');
+  
+  if (tabName === 'tables') {
+    tablesBtn.classList.add('active');
+    diagramBtn.classList.remove('active');
+    tablesPanel.style.display = 'block';
+    diagramPanel.style.display = 'none';
+  } else if (tabName === 'diagram') {
+    diagramBtn.classList.add('active');
+    tablesBtn.classList.remove('active');
+    diagramPanel.style.display = 'block';
+    tablesPanel.style.display = 'none';
+  }
+}
+
+function toggleChErdAccordion(headerElement) {
+  const item = headerElement.closest('.erd-accordion-item');
+  item.classList.toggle('expanded');
+  const content = item.querySelector('.erd-accordion-content');
+  content.style.display = item.classList.contains('expanded') ? 'block' : 'none';
+}
+
+function renderChErdOverview(data) {
+  const tables = data.tables || [], rels = data.relationships || [];
+  document.getElementById('chErdOverviewName').textContent = data.name || 'Schema Overview';
+  document.getElementById('chErdOverviewMeta').textContent =
+    `${tables.length} Table${tables.length !== 1 ? 's' : ''} · ${rels.length} Relation${rels.length !== 1 ? 's' : ''}`;
+  
+  renderChTableList(tables);
+  renderChRelationships(rels);
+  renderChMiniErd(tables, rels);
+}
+
+function renderChTableList(tables) {
+  const container = document.getElementById('chErdTableListBody');
+  if (!tables.length) {
+    container.innerHTML = '<div class="erd-empty-state"><i class="bi bi-table"></i>No tables available</div>';
+    return;
+  }
+
+  container.innerHTML = tables.map(table => `
+    <div class="erd-accordion-item">
+      <div class="erd-accordion-header" onclick="toggleChErdAccordion(this)">
+        <div class="erd-accordion-title-left">
+          <i class="bi bi-table"></i>
+          <span>${table.name} <span class="erd-accordion-count">(${table.columns ? table.columns.length : 0})</span></span>
+        </div>
+        <i class="bi bi-chevron-down erd-accordion-arrow"></i>
+      </div>
+      <div class="erd-accordion-content" style="display: none;">
+        ${(table.columns || []).map(col => `
+          <div class="erd-col-row">
+            <div class="erd-col-name-wrapper">
+              ${col.primary_key ? '<i class="bi bi-key-fill erd-key-icon" title="Primary Key"></i>' : col.foreign_key ? '<i class="bi bi-key erd-key-icon" style="color:#728993;" title="Foreign Key"></i>' : '<div style="width:12px;"></div>'}
+              <span>${col.name}</span>
+            </div>
+            <span class="erd-col-type">${(col.type || 'varchar').toLowerCase()}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+
+
+function renderChRelationships(rels) {
+  const container = document.getElementById('chErdRelationshipListBody');
+  if (!rels || !rels.length) {
+    container.innerHTML = `<div class="erd-empty-state" style="padding:10px 0; font-size:12px;"><i class="bi bi-diagram-2" style="font-size:16px; margin-bottom:4px;"></i>No relationships established</div>`;
+    return;
+  }
+
+  container.innerHTML = rels.map(rel => `
+    <div class="erd-relationship-pill">
+       ${rel.from_table}.${rel.from_column || 'user_id'} → ${rel.to_table}.${rel.to_column || 'id'}
+    </div>
+  `).join('');
+}
+
+function renderChMiniErd(tables, rels) {
+  const svgEl = document.getElementById('chErdMiniSvg');
+  const canvas = document.getElementById('chErdMiniCanvas');
+  while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
+
+  if (!tables.length) {
+    document.getElementById('chErdLoadingState').innerHTML =
+      '<i class="bi bi-diagram-3" style="font-size:28px;opacity:.18;"></i><span style="font-size:12px;">No tables defined</span>';
+    document.getElementById('chErdLoadingState').style.display = 'flex';
+    svgEl.style.display = 'none';
+    return;
+  }
+
+  document.getElementById('chErdLoadingState').style.display = 'none';
+  svgEl.style.display = 'block';
+
+  const defs = chMkSvg('defs');
+  const marker = chMkSvg('marker', { id: 'chArrow', markerWidth: '8', markerHeight: '6', refX: '8', refY: '3', orient: 'auto' });
+  const poly = chMkSvg('polygon', { points: '0 0, 8 3, 0 6', fill: 'rgba(112,137,147,0.8)' });
+  marker.appendChild(poly); defs.appendChild(marker); svgEl.appendChild(defs);
+
+  const g = chMkSvg('g', { id: 'chErdG' });
+  svgEl.appendChild(g);
+
+  const TW = 160, RH = 24, HH = 34, PAD = 40;
+  const W = canvas.clientWidth || 260;
+  const cols = Math.max(1, Math.floor((W - PAD) / (TW + PAD)));
+  const pos = {};
+
+  tables.forEach((t, i) => {
+    const th = HH + (t.columns ? t.columns.length : 0) * RH + 6;
+    const col = i % cols, row = Math.floor(i / cols);
+    pos[t.name] = { x: PAD + col * (TW + PAD), y: PAD + row * (th + PAD), w: TW, h: th };
+  });
+
+  rels.forEach(r => {
+    const fp = pos[r.from_table], tp = pos[r.to_table];
+    if (!fp || !tp) return;
+    const x1 = fp.x + fp.w, y1 = fp.y + fp.h / 2;
+    const x2 = tp.x, y2 = tp.y + tp.h / 2;
+    const mx = (x1 + x2) / 2;
+    g.appendChild(chMkSvg('path', {
+      d: `M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`,
+      stroke: 'rgba(112,137,147,0.55)', 'stroke-width': '1.5',
+      fill: 'none', 'stroke-dasharray': '4,3',
+      'marker-end': 'url(#chArrow)'
+    }));
+  });
+
+  tables.forEach(t => {
+    const p = pos[t.name]; if (!p) return;
+    const { x, y, w, h } = p;
+    const tg = chMkSvg('g', { transform: `translate(${x},${y})` });
+    tg.appendChild(chMkSvg('rect', { x: 2, y: 2, width: w, height: h, rx: 7, fill: 'rgba(25,24,59,0.05)' }));
+    tg.appendChild(chMkSvg('rect', { x: 0, y: 0, width: w, height: h, rx: 7, fill: 'rgba(255,255,255,0.92)', stroke: 'rgba(112,137,147,0.25)', 'stroke-width': 1.5 }));
+    tg.appendChild(chMkSvg('rect', { x: 0, y: 0, width: w, height: HH, rx: 7, fill: '#19183B' }));
+    tg.appendChild(chMkSvg('rect', { x: 0, y: HH - 6, width: w, height: 6, fill: '#19183B' }));
+    const nt = chMkSvg('text', { x: 10, y: 22, fill: '#E7F2EF', 'font-size': 11, 'font-weight': 700, 'font-family': "'DM Sans',sans-serif" });
+    nt.textContent = t.name.length > 16 ? t.name.slice(0, 15) + '…' : t.name;
+    tg.appendChild(nt);
+    (t.columns || []).forEach((col, ci) => {
+      const ry = HH + 3 + ci * RH, r = RH / 2;
+      if (ci % 2 === 0) tg.appendChild(chMkSvg('rect', { x: 0, y: ry, width: w, height: RH, fill: 'rgba(231,242,239,0.3)' }));
+      if (col.primary_key) tg.appendChild(chMkSvg('circle', { cx: 11, cy: ry + r, r: 4, fill: '#f59e0b' }));
+      else if (col.foreign_key) tg.appendChild(chMkSvg('circle', { cx: 11, cy: ry + r, r: 3.5, fill: 'rgba(99,102,241,0.6)' }));
+      else tg.appendChild(chMkSvg('circle', { cx: 11, cy: ry + r, r: 2.5, fill: 'rgba(112,137,147,0.3)' }));
+      const cn = chMkSvg('text', { x: 20, y: ry + r + 4, fill: '#19183B', 'font-size': 9.5, 'font-family': "'JetBrains Mono',monospace" });
+      cn.textContent = col.name.length > 13 ? col.name.slice(0, 12) + '…' : col.name;
+      tg.appendChild(cn);
+      const ct = chMkSvg('text', { x: w - 6, y: ry + r + 4, fill: '#708993', 'font-size': 8.5, 'text-anchor': 'end', 'font-family': "'JetBrains Mono',monospace" });
+      ct.textContent = col.type ? col.type.split('(')[0].slice(0, 9) : '';
+      tg.appendChild(ct);
+    });
+    g.appendChild(tg);
+  });
+
+  const maxX = Math.max(...tables.map(t => (pos[t.name]?.x || 0) + TW)) + PAD;
+  const maxY = Math.max(...tables.map(t => (pos[t.name]?.y || 0) + (pos[t.name]?.h || 0))) + PAD;
+  chErdViewBox = { x: 0, y: 0, w: maxX, h: maxY };
+  svgEl.setAttribute('viewBox', `0 0 ${maxX} ${maxY}`);
+
+  canvas.onmousedown = e => { chErdPanning = true; chErdPanStart = { x: e.clientX, y: e.clientY }; };
+  canvas.onmousemove = e => {
+    if (!chErdPanning) return;
+    const scX = chErdViewBox.w / canvas.clientWidth;
+    const scY = chErdViewBox.h / canvas.clientHeight;
+    chErdViewBox.x -= (e.clientX - chErdPanStart.x) * scX;
+    chErdViewBox.y -= (e.clientY - chErdPanStart.y) * scY;
+    chErdPanStart = { x: e.clientX, y: e.clientY };
+    svgEl.setAttribute('viewBox', `${chErdViewBox.x} ${chErdViewBox.y} ${chErdViewBox.w} ${chErdViewBox.h}`);
+  };
+  canvas.onmouseup = canvas.onmouseleave = () => chErdPanning = false;
+  canvas.onwheel = e => {
+    e.preventDefault();
+    const f = e.deltaY > 0 ? 1.1 : 0.9;
+    chErdViewBox.w *= f; chErdViewBox.h *= f;
+    svgEl.setAttribute('viewBox', `${chErdViewBox.x} ${chErdViewBox.y} ${chErdViewBox.w} ${chErdViewBox.h}`);
+  };
+}
+
+function chMkSvg(tag, attrs = {}) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+/* ═══════════════════════════════
+   DOM INITIALIZATION
+═══════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
   const selectedId = '{{ selected_schema.id if selected_schema else "" }}';
   if (selectedId) {
     document.getElementById('schemaSelect').value = selectedId;
+    loadChErdOverview(selectedId);
   }
 });
 </script>

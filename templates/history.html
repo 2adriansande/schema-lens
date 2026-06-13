@@ -29,20 +29,6 @@
 .search-wrap input { border:none; outline:none; font-family:var(--font); font-size:13.5px; color:var(--text); flex:1; background:none; }
 .search-wrap input::placeholder { color: var(--text-xs); }
 
-.filter-tabs { display: flex; gap: 5px; }
-.filter-tab {
-  padding: 8px 16px; border-radius: var(--radius-sm);
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  border: 1px solid var(--border);
-  background: var(--card-bg);
-  backdrop-filter: blur(12px);
-  color: var(--text-soft); transition: all .2s;
-  display: flex; align-items: center; gap: 5px;
-}
-.filter-tab:hover { background: rgba(255,255,255,0.9); color: var(--text); border-color: var(--primary-light); }
-.filter-tab.active { background: linear-gradient(135deg, var(--primary), var(--primary-mid)); color: var(--primary-xlight); border-color: transparent; box-shadow: 0 4px 12px rgba(25,24,59,0.2); }
-.filter-tab.success.active { background: linear-gradient(135deg, #059669, #0e7c5a); }
-.filter-tab.error.active   { background: linear-gradient(135deg, #dc2626, #991b1b); }
 
 /* Query cards */
 .qh-card {
@@ -91,22 +77,6 @@
   background: rgba(255,255,255,0.3);
 }
 
-/* Stats footer */
-.stats-footer {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 16px; margin-top: 26px;
-}
-.stat-box {
-  border-radius: var(--radius); padding: 20px 22px; color: #fff;
-  display: flex; align-items: center; justify-content: space-between;
-  box-shadow: var(--shadow);
-}
-.stat-box.dark   { background: linear-gradient(135deg, var(--primary), var(--primary-mid)); }
-.stat-box.green  { background: linear-gradient(135deg, #059669, #10b981); }
-.stat-box.speed  { background: linear-gradient(135deg, var(--primary-mid), var(--primary-light)); }
-.stat-box-label  { font-size: 12px; opacity: .8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
-.stat-box-value  { font-size: 30px; font-weight: 700; letter-spacing: -1px; }
-.stat-box-icon   { font-size: 30px; opacity: .2; }
 </style>
 {% endblock %}
 
@@ -121,18 +91,7 @@
     <i class="bi bi-search"></i>
     <input type="text" id="searchInput" placeholder="Search queries…" oninput="filterQueries()">
   </div>
-  <div class="filter-tabs">
-    <button class="filter-tab active" id="tab-all" onclick="setFilter('all')">All</button>
-    <button class="filter-tab success" id="tab-success" onclick="setFilter('success')">
-      <i class="bi bi-check-circle-fill"></i> Success
-    </button>
-    <button class="filter-tab error" id="tab-error" onclick="setFilter('error')">
-      <i class="bi bi-x-circle-fill"></i> Errors
-    </button>
-  </div>
-  {% if queries.items %}
-  <button class="btn btn-danger btn-sm" onclick="openDeleteAllModal()"><i class="bi bi-trash"></i> Delete All</button>
-  {% endif %}
+  <button class="btn btn-danger btn-sm" onclick="clearAllQueries()" style="margin-left:auto;">Delete All</button>
 </div>
 
 <!-- Query List -->
@@ -203,11 +162,25 @@
 </div>
 {% endif %}
 
-
 {% endblock %}
 
 {% block scripts %}
 <script>
+window.handleGlobalSearch = function(query) {
+  const input = document.getElementById('searchInput');
+  if (!input) return;
+  input.value = query;
+  filterQueries();
+};
+
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const initialQuery = params.get('q');
+  if (initialQuery) {
+    window.handleGlobalSearch(initialQuery);
+  }
+})();
+
 let currentFilter = 'all';
 function setFilter(f) {
   currentFilter = f;
@@ -234,6 +207,25 @@ async function deleteQuery(id) {
     setTimeout(() => el.remove(), 250);
   }
 }
+
+async function clearAllQueries() {
+  if (!confirm('Delete all query history? This cannot be undone.')) return;
+  const r = await fetch('/history/clear-all', {method:'POST'});
+  if (r.ok) {
+    const queryList = document.getElementById('queryList');
+    queryList.innerHTML = `
+      <div class="empty">
+        <i class="bi bi-clock-history"></i>
+        <h4>No queries yet</h4>
+        <p>Your generated SQL queries will appear here.</p>
+        <a href="{{ url_for('query_page') }}" class="btn btn-primary mt-3" style="display:inline-flex;">Generate First Query</a>
+      </div>
+    `;
+    const pagination = document.querySelector('div[style*="justify-content:center"]');
+    if (pagination) pagination.remove();
+  }
+}
+
 function copySQL(id) {
   const card = document.getElementById(`qcard-${id}`);
   const sql = card.querySelector('.qh-sql').textContent.trim();

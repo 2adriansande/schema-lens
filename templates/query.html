@@ -7,7 +7,7 @@
 .page-head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 5px; }
 .page-head p  { font-size: 14px; color: var(--text-soft); }
 
-.qg-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+.qg-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
 
 .query-card {
   background: var(--card-bg); backdrop-filter: blur(12px);
@@ -146,11 +146,11 @@
 }
 .conv-input:focus { border-color: var(--primary-light); background: #fff; }
 
-/* Sidebar */
+/* Sidebar Layout */
 .qs-card {
   background: var(--card-bg); backdrop-filter: blur(12px);
   border: 1px solid var(--border); border-radius: var(--radius);
-  margin-bottom: 16px; box-shadow: var(--shadow); overflow: hidden;
+  margin-bottom: 20px; box-shadow: var(--shadow); overflow: hidden;
 }
 .qs-header {
   padding: 15px 18px; border-bottom: 1px solid var(--border);
@@ -169,7 +169,7 @@
 .pro-tips {
   background: linear-gradient(135deg, var(--primary), var(--primary-mid));
   border-radius: var(--radius); padding: 18px; color: var(--primary-xlight);
-  margin-bottom: 16px; box-shadow: var(--shadow);
+  margin-bottom: 20px; box-shadow: var(--shadow);
 }
 .pt-header { display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:700; margin-bottom:11px; }
 .pt-header i { color: #fcd34d; }
@@ -185,6 +185,225 @@
 .schema-list-item:last-child { border-bottom: none; }
 .schema-list-item:hover { background: rgba(255,255,255,0.8); color: var(--text); }
 .schema-list-item i { color: var(--primary-mid); font-size: 13px; }
+
+/* ── ERD Overview Card (Refined & Clean UI) ── */
+.erd-overview-card {
+  background: #ffffff;
+  border: 1px solid #eef2f4;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  font-family: var(--font);
+}
+.erd-overview-header {
+  padding: 24px 24px 14px;
+  background: #edf5f3;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.erd-header-icon-box {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid #6b828b;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b828b;
+  font-size: 15px;
+  background: transparent;
+  flex-shrink: 0;
+}
+.erd-overview-title strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e2538;
+  display: block;
+  margin-bottom: 2px;
+}
+.erd-overview-meta {
+  font-size: 13px;
+  color: #8fa0a6;
+}
+.erd-tabs-container {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  background: #edf5f3;
+  border-bottom: 1px solid #eef2f4;
+}
+.erd-tab-btn {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b828b;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.erd-tab-btn:hover {
+  color: #1e2538;
+}
+.erd-tab-btn.active {
+  background: #ffffff;
+  color: #1e2538;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
+}
+.erd-body-panel {
+  padding: 20px 24px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  max-height: 700px; /* Increased from 480px to give you more vertical breathing room */
+}
+.erd-scroll-container {
+  position: relative;
+  overflow-y: auto;   /* Generates the custom inner scroll tracking */
+  flex: 1;            /* Seamlessly expands to fill empty structural space */
+  padding-right: 6px;
+}
+
+/* Elegant scrollbar aesthetics */
+.erd-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+.erd-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.erd-scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgba(112, 137, 147, 0.25);
+  border-radius: 10px;
+}
+.erd-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(112, 137, 147, 0.45);
+}
+
+.erd-accordion-item {
+  border: 1px solid #edf3f5;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+.erd-accordion-item.expanded {
+  background: #f4f8f7;
+  border-color: #e3edea;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+}
+.erd-accordion-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: #1e2538;
+  user-select: none;
+}
+.erd-accordion-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.erd-accordion-title-left i {
+  color: #728993;
+}
+.erd-accordion-count {
+  color: #8fa0a6;
+  font-weight: 400;
+  margin-left: 2px;
+}
+.erd-accordion-arrow {
+  color: #728993;
+  font-size: 13px;
+  transition: transform 0.2s ease;
+}
+.erd-accordion-content {
+  background: #ffffff;
+  padding: 10px 20px 14px 40px;
+  border-top: 1px solid #edf3f5;
+}
+.erd-col-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 13.5px;
+}
+.erd-col-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1e2538;
+}
+.erd-key-icon {
+  color: #ff9f00;
+  font-size: 12px;
+}
+.erd-col-type {
+  color: #728993;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.erd-relationships-section {
+  margin-top: 16px;
+  border-top: 1px solid #edf3f5;
+  padding-top: 16px;
+}
+.erd-relationships-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #728993;
+  margin-bottom: 10px;
+  letter-spacing: 0.2px;
+}
+.erd-relationship-pill {
+  background: #f1f6f5;
+  border-radius: 12px;
+  padding: 9px 14px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: #556c75;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+}
+.erd-relationship-pill:last-child {
+  margin-bottom: 0;
+}
+.erd-canvas-wrap {
+  position: relative; overflow: hidden;
+  height: 280px;
+  background: rgba(248,250,252,0.6);
+  border: 1px solid #edf3f5;
+  border-radius: 12px;
+}
+.erd-canvas-wrap svg { width: 100%; height: 100%; display: block; cursor: grab; }
+.erd-canvas-wrap svg:active { cursor: grabbing; }
+.erd-footer {
+  padding: 10px 0 0 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.erd-footer-hint { font-size: 11.5px; color: var(--text-xs); display: flex; align-items: center; gap: 5px; }
+.erd-loading {
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px;
+  padding: 28px 18px; color: var(--text-soft); font-size: 13px;
+}
+.erd-empty-state { padding: 32px 18px; text-align: center; color: var(--text-soft); font-size: 13px; }
+.erd-empty-state i { font-size: 36px; opacity: .2; display: block; margin-bottom: 10px; }
 
 .result-natural {
   font-size: 14px; color: var(--text); font-style: italic;
@@ -203,9 +422,7 @@
 </div>
 
 <div class="qg-grid">
-  <!-- LEFT COLUMN -->
   <div>
-    <!-- Query Input -->
     <div class="query-card fade-in fade-in-1">
       <div class="qc-header">
         <i class="bi bi-stars qc-header-icon"></i>
@@ -243,9 +460,7 @@
       </div>
     </div>
 
-    <!-- Output Area -->
     <div class="output-area" id="outputArea">
-      <!-- Placeholder -->
       <div class="output-placeholder" id="outputPlaceholder">
         <i class="bi bi-terminal"></i>
         <p>Your generated SQL will appear here.</p>
@@ -253,14 +468,11 @@
           Tip: Press <kbd style="background:rgba(25,24,59,0.07);padding:2px 7px;border-radius:5px;font-family:var(--mono);font-size:11px;">Ctrl+Enter</kbd> to generate
         </p>
       </div>
-      <!-- Loading -->
       <div id="outputLoading" style="display:none;text-align:center;padding:52px;background:var(--card-bg);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:var(--radius);">
         <div style="width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--primary-mid);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px;"></div>
         <p style="font-size:13.5px;color:var(--text-soft);">Generating SQL with AI…</p>
       </div>
-      <!-- Result -->
       <div id="outputResult" style="display:none;">
-        <!-- SQL Card -->
         <div class="query-card">
           <div class="qc-header" style="background:linear-gradient(135deg,rgba(209,250,229,0.5),rgba(16,185,129,0.08));">
             <i class="bi bi-check-circle-fill" style="color:#10b981;"></i>
@@ -286,7 +498,6 @@
           </div>
         </div>
 
-        <!-- Feature 2: Plain-English Explanation -->
         <div class="explanation-panel" id="explanationPanel" style="display:none;">
           <div class="explanation-panel-title">
             <i class="bi bi-translate" style="color:var(--primary-mid);"></i>
@@ -295,7 +506,6 @@
           <div class="explanation-text" id="explanationText"></div>
         </div>
 
-        <!-- Feature 4: Accuracy Evaluation -->
         <div class="accuracy-panel" id="accuracyPanel" style="display:none;">
           <div class="accuracy-header">
             <div class="accuracy-score-circle" id="scoreCircle">
@@ -316,7 +526,6 @@
           <div id="suggestionsList_eval"></div>
         </div>
 
-        <!-- Feature 3: Conversation Refinement -->
         <div class="conversation-panel" id="conversationPanel" style="display:none;">
           <div class="qc-header" style="background:linear-gradient(135deg,rgba(25,24,59,0.05),rgba(112,137,147,0.08));">
             <i class="bi bi-chat-dots qc-header-icon"></i>
@@ -341,106 +550,121 @@
           </div>
         </div>
       </div>
-      <!-- Error -->
       <div id="outputError" style="display:none;">
         <div class="flash flash-error" id="errorMsg"></div>
       </div>
     </div>
   </div>
 
-  <!-- RIGHT COLUMN -->
   <div>
-    <div class="qs-card fade-in fade-in-2">
-      <div class="qs-header">
-        <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;"></i>
-        Quick Suggestions
-        <button class="qs-clear" onclick="clearSuggestions()">Clear</button>
+    <div class="erd-overview-card fade-in" id="erdOverviewCard" style="display:none;margin-bottom:20px;">
+      <div class="erd-overview-header">
+        <div class="erd-header-icon-box">
+          <i class="bi bi-grid-3x3-gap"></i>
+        </div>
+        <div class="erd-overview-title">
+          <strong id="erdOverviewName">Schema Overview</strong>
+          <div class="erd-overview-meta" id="erdOverviewMeta">Loading…</div>
+        </div>
       </div>
-      <div id="suggestionsList">
-        {% set suggestions = [
-          'Show all active users who signed up in the last 30 days',
-          'Get total revenue by product category for this month',
-          'Find customers who made more than 5 purchases',
-          'List all pending orders awaiting shipment',
-          'Show average order value by country'
-        ] %}
-        {% for s in suggestions %}
-        <div class="suggestion-item" onclick="useSuggestion(this.textContent.trim())">{{ s }}</div>
-        {% endfor %}
+      
+      <div class="erd-tabs-container">
+        <button class="erd-tab-btn active" id="tabTables" onclick="switchErdTab('tables')">
+          <i class="bi bi-database"></i> Tables
+        </button>
+        <button class="erd-tab-btn" id="tabDiagram" onclick="switchErdTab('diagram')">
+          <i class="bi bi-diagram-3"></i> ERD
+        </button>
       </div>
-    </div>
 
-    <div class="pro-tips fade-in fade-in-3">
-      <div class="pt-header"><i class="bi bi-lightbulb-fill"></i> Pro Tips</div>
-      <ul class="pt-list">
-        <li>Be specific about time ranges</li>
-        <li>Mention column names if known</li>
-        <li>Use Refine to iterate on results</li>
-        <li>Confirm your schema first for best accuracy</li>
-      </ul>
-    </div>
-
-    <div class="qs-card fade-in fade-in-4">
-      <div class="qs-header">
-        <i class="bi bi-layers" style="color:var(--primary-mid);"></i>
-        Database Schema
-      </div>
-      <div id="schemaTableList">
-        {% if schemas %}
-          {% for s in schemas %}
-            {% if s.confirmed_schema or s.parsed_schema %}
-              {% set raw = s.confirmed_schema or s.parsed_schema %}
-              {% set p = raw | fromjson %}
-              {% if p.tables %}
-                <div style="padding:8px 14px 4px;font-size:10.5px;font-weight:700;color:var(--text-xs);text-transform:uppercase;letter-spacing:.07em;background:rgba(231,242,239,0.3);">
-                  {{ s.schema_name or s.original_name }}
-                  {% if s.confirmed_schema %}<span class="badge badge-green" style="font-size:9px;padding:1px 5px;margin-left:4px;">✓ confirmed</span>{% endif %}
-                </div>
-                {% for t in p.tables[:5] %}
-                <div class="schema-list-item" onclick="selectSchemaTable('{{ s.id }}', '{{ t.name }}')">
-                  <i class="bi bi-table"></i> {{ t.name }}
-                </div>
-                {% endfor %}
-              {% endif %}
-            {% endif %}
-          {% endfor %}
-        {% else %}
-          <div class="schema-list-item">
-            <i class="bi bi-upload" style="color:var(--text-xs);"></i>
-            <a href="{{ url_for('schemas') }}" style="font-size:12.5px;color:var(--primary-mid);text-decoration:none;">Upload a schema first</a>
+      <div class="erd-body-panel">
+        <div class="erd-scroll-container">
+          <div id="erdTablesPanel">
+            <div id="erdTableListBody"></div>
           </div>
-        {% endif %}
+
+          <div id="erdDiagramPanel" style="display:none;">
+            <div class="erd-canvas-wrap" id="erdMiniCanvas">
+              <div class="erd-loading" id="erdLoadingState">
+                <div style="width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--primary-mid);border-radius:50%;animation:spin .7s linear infinite;"></div>
+                <span>Loading schema layout…</span>
+              </div>
+              <svg id="erdMiniSvg" style="display:none;"></svg>
+            </div>
+            <div class="erd-footer">
+              <span class="erd-footer-hint"><i class="bi bi-arrows-move"></i> Drag to pan · Scroll to zoom</span>
+              <a id="erdFullViewLink" href="#" class="btn btn-ghost btn-sm" style="font-size:11.5px;" target="_blank">
+                <i class="bi bi-fullscreen"></i> Full View
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="erd-relationships-section">
+          <div class="erd-relationships-title">Relationships</div>
+          <div id="erdRelationshipListBody"></div>
+        </div>
       </div>
     </div>
 
-    {% if not current_user.gemini_key %}
-    <div style="background:rgba(254,243,199,0.7);backdrop-filter:blur(8px);border:1px solid rgba(180,83,9,0.15);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
-      <div style="font-size:13px;font-weight:700;color:#78350f;margin-bottom:5px;"><i class="bi bi-key-fill"></i> Add Gemini API Key</div>
-      <div style="font-size:12.5px;color:#92400e;line-height:1.55;">Required for <strong>image-based schema parsing</strong>. SQL generation uses local Ollama. <a href="{{ url_for('settings') }}" style="color:var(--primary);font-weight:700;">Settings →</a></div>
-    </div>
-    {% endif %}
+    <div id="qsCardWrapper">
+      <div class="qs-card fade-in fade-in-2">
+        <div class="qs-header">
+          <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;"></i>
+          Quick Suggestions
+          <button class="qs-clear" onclick="clearSuggestions()">Clear</button>
+        </div>
+        <div id="suggestionsList">
+          {% set suggestions = [
+            'Show all active users who signed up in the last 30 days',
+            'Get total revenue by product category for this month',
+            'Find customers who made more than 5 purchases',
+            'List all pending orders awaiting shipment',
+            'Show average order value by country'
+          ] %}
+          {% for s in suggestions %}
+          <div class="suggestion-item" onclick="useSuggestion(this.textContent.trim())">{{ s }}</div>
+          {% endfor %}
+        </div>
+      </div>
 
-    <!-- Ollama info card -->
-    <div id="ollamaInfoCard" style="display:none;background:rgba(236,253,245,0.7);backdrop-filter:blur(8px);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
-      <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:5px;"><i class="bi bi-cpu-fill"></i> Ollama Active</div>
-      <div style="font-size:12.5px;color:#047857;line-height:1.55;">SQL generation is powered by <strong>llama3.2:3b</strong> running locally.</div>
-    </div>
-    <div id="ollamaOfflineCard" style="display:none;background:rgba(254,226,226,0.6);backdrop-filter:blur(8px);border:1px solid rgba(220,38,38,0.15);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
-      <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:5px;"><i class="bi bi-exclamation-triangle-fill"></i> Ollama Offline</div>
-      <div style="font-size:12.5px;color:#7f1d1d;line-height:1.55;">Start Ollama and pull <code>llama3.2:3b</code> for AI SQL generation. Fallback templates are active.</div>
-    </div>
-  </div>
+      <div class="pro-tips fade-in fade-in-3">
+        <div class="pt-header"><i class="bi bi-lightbulb-fill"></i> Pro Tips</div>
+        <ul class="pt-list">
+          <li>Be specific about time ranges</li>
+          <li>Mention column names if known</li>
+          <li>Use Refine to iterate on results</li>
+          <li>Confirm your schema first for best accuracy</li>
+        </ul>
+      </div>
+
+      {% if not current_user.gemini_key %}
+      <div style="background:rgba(254,243,199,0.7);backdrop-filter:blur(8px);border:1px solid rgba(180,83,9,0.15);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
+        <div style="font-size:13px;font-weight:700;color:#78350f;margin-bottom:5px;"><i class="bi bi-key-fill"></i> Add Gemini API Key</div>
+        <div style="font-size:12.5px;color:#92400e;line-height:1.55;">Required for <strong>image-based schema parsing</strong>. SQL generation uses local Ollama. <a href="{{ url_for('settings') }}" style="color:var(--primary);font-weight:700;">Settings →</a></div>
+      </div>
+      {% endif %}
+
+      <div id="ollamaInfoCard" style="display:none;background:rgba(236,253,245,0.7);backdrop-filter:blur(8px);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
+        <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:5px;"><i class="bi bi-cpu-fill"></i> Ollama Active</div>
+        <div style="font-size:12.5px;color:#047857;line-height:1.55;">SQL generation is powered by <strong>llama3.2:3b</strong> running locally.</div>
+      </div>
+      <div id="ollamaOfflineCard" style="display:none;background:rgba(254,226,226,0.6);backdrop-filter:blur(8px);border:1px solid rgba(220,38,38,0.15);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
+        <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:5px;"><i class="bi bi-exclamation-triangle-fill"></i> Ollama Offline</div>
+        <div style="font-size:12.5px;color:#7f1d1d;line-height:1.55;">Start Ollama and pull <code>llama3.2:3b</code> for AI SQL generation. Fallback templates are active.</div>
+      </div>
+    </div></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// State
+// Component State Control variables
 let currentQueryId = null;
 let currentSchemaId = null;
 let conversationVisible = true;
 
-// Show Ollama info card on load
+// Active initialization checks
 (async function() {
   try {
     const resp = await fetch('/api/ollama-status');
@@ -501,7 +725,7 @@ async function generateSQL() {
     if (typeof hideSqlGenModal === 'function') hideSqlGenModal();
     currentQueryId = data.query_id;
 
-    // SQL
+    // SQL Text allocation
     document.getElementById('sqlOutput').textContent = data.sql;
     document.getElementById('naturalEcho').textContent = `"${query}"`;
     const modelDisplay = data.model.startsWith('ollama/')
@@ -510,26 +734,25 @@ async function generateSQL() {
     document.getElementById('modelLabel').innerHTML = modelDisplay;
     hljs.highlightElement(document.getElementById('sqlOutput'));
 
-    // ER diagram link
     if (schemaId) {
       const link = document.getElementById('erDiagramLink');
       link.href = `/schemas/${schemaId}/er-diagram`;
       link.style.display = 'inline-flex';
     }
 
-    // Feature 2: Show explanation
+    // Explanation Area
     if (data.explanation) {
       document.getElementById('explanationText').textContent = data.explanation;
       document.getElementById('explanationPanel').style.display = 'block';
     }
 
-    // Feature 4: Show accuracy
+    // Accuracy Allocation
     if (data.evaluation) {
       renderAccuracy(data.evaluation);
       document.getElementById('accuracyPanel').style.display = 'block';
     }
 
-    // Feature 3: Initialize conversation
+    // Conversation thread init
     initConversation(query, data.sql);
     document.getElementById('conversationPanel').style.display = 'block';
 
@@ -545,12 +768,10 @@ async function generateSQL() {
   }
 }
 
-// Feature 4: Render accuracy evaluation
 function renderAccuracy(eval_data) {
   const score = eval_data.score;
   const grade = eval_data.grade;
 
-  // Score circle
   const circle = document.getElementById('scoreCircle');
   document.getElementById('scoreNum').textContent = score;
   document.getElementById('scoreGrade').textContent = grade;
@@ -560,7 +781,6 @@ function renderAccuracy(eval_data) {
   else if (score >= 50) circle.classList.add('score-fair');
   else circle.classList.add('score-review');
 
-  // Bar
   const bar = document.getElementById('accuracyBar');
   setTimeout(() => { bar.style.width = score + '%'; }, 100);
 
@@ -571,7 +791,6 @@ function renderAccuracy(eval_data) {
   else barColor = 'linear-gradient(90deg,#dc2626,var(--danger))';
   bar.style.background = barColor;
 
-  // Caption
   const captions = {
     'Excellent': 'Query looks great! Ready for use.',
     'Good': 'Query is correct with minor suggestions.',
@@ -580,14 +799,12 @@ function renderAccuracy(eval_data) {
   };
   document.getElementById('scoreCaption').textContent = captions[grade] || '';
 
-  // Issues
   let issueHtml = '';
   (eval_data.issues || []).forEach(issue => {
     issueHtml += `<div class="issue-item"><i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;margin-top:2px;"></i>${issue}</div>`;
   });
   document.getElementById('issuesList').innerHTML = issueHtml;
 
-  // Suggestions
   let suggHtml = '';
   (eval_data.suggestions || []).forEach(s => {
     suggHtml += `<div class="suggestion-item-eval"><i class="bi bi-lightbulb" style="flex-shrink:0;margin-top:2px;"></i>${s}</div>`;
@@ -595,7 +812,6 @@ function renderAccuracy(eval_data) {
   document.getElementById('suggestionsList_eval').innerHTML = suggHtml;
 }
 
-// Feature 3: Conversation
 function initConversation(userQuery, sql) {
   const msgs = document.getElementById('convMessages');
   msgs.innerHTML = '';
@@ -644,17 +860,13 @@ async function refineSQL() {
     currentQueryId = data.query_id;
     addMessage('assistant', data.sql);
 
-    // Update SQL display
     document.getElementById('sqlOutput').textContent = data.sql;
     hljs.highlightElement(document.getElementById('sqlOutput'));
     document.getElementById('naturalEcho').textContent = `"[Refined] ${refinement}"`;
 
-    // Update explanation
     if (data.explanation) {
       document.getElementById('explanationText').textContent = data.explanation;
     }
-
-    // Update accuracy
     if (data.evaluation) {
       renderAccuracy(data.evaluation);
     }
@@ -698,5 +910,263 @@ function copyToClipboard() {
 document.getElementById('queryInput').addEventListener('keydown', e => {
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generateSQL();
 });
+
+// ── ERD Interactive Component Logic (Accordion & Layout Routing) ──
+let erdCurrentSchemaId = null;
+let erdSchemaData = null;
+let erdMiniViewBox = { x: 0, y: 0, w: 800, h: 400 };
+let erdMiniPanning = false, erdMiniPanStart = { x: 0, y: 0 };
+
+document.getElementById('schemaSelect').addEventListener('change', function() {
+  const id = this.value;
+  if (id) {
+    loadErdOverview(id);
+  } else {
+    hideErdCard();
+  }
+});
+
+(function() {
+  const sel = document.getElementById('schemaSelect');
+  if (sel.value) loadErdOverview(sel.value);
+})();
+
+function loadErdOverview(schemaId) {
+  erdCurrentSchemaId = schemaId;
+  const card = document.getElementById('erdOverviewCard');
+  const qs = document.getElementById('qsCardWrapper');
+  card.style.display = 'block';
+  qs.style.display = 'none';
+
+  document.getElementById('erdLoadingState').style.display = 'flex';
+  document.getElementById('erdMiniSvg').style.display = 'none';
+  document.getElementById('erdOverviewMeta').textContent = 'Loading…';
+  document.getElementById('erdFullViewLink').href = `/schemas/${schemaId}/er-diagram`;
+
+  fetch(`/api/schema/${schemaId}/metadata`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+      erdSchemaData = data;
+      renderErdOverview(data);
+    })
+    .catch(err => {
+      document.getElementById('erdLoadingState').innerHTML =
+        `<i class="bi bi-exclamation-circle" style="font-size:24px;opacity:.4;"></i><span>Could not load schema</span>`;
+    });
+}
+
+function hideErdCard() {
+  document.getElementById('erdOverviewCard').style.display = 'none';
+  document.getElementById('qsCardWrapper').style.display = 'block';
+  erdSchemaData = null;
+}
+
+function renderErdOverview(data) {
+  const tables = data.tables || [];
+  const rels = data.relationships || [];
+  document.getElementById('erdOverviewName').textContent = data.name || 'Schema Overview';
+  document.getElementById('erdOverviewMeta').textContent =
+    `${tables.length} table${tables.length !== 1 ? 's' : ''} · ${rels.length} relationship${rels.length !== 1 ? 's' : ''}`;
+
+  renderMiniErd(tables, rels);
+  renderTableList(tables, rels);
+}
+
+function renderMiniErd(tables, rels) {
+  const svgEl = document.getElementById('erdMiniSvg');
+  const canvas = document.getElementById('erdMiniCanvas');
+  while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
+
+  if (tables.length === 0) {
+    document.getElementById('erdLoadingState').innerHTML =
+      '<i class="bi bi-diagram-3" style="font-size:32px;opacity:.18;"></i><span style="font-size:12.5px;">No tables defined</span>';
+    document.getElementById('erdLoadingState').style.display = 'flex';
+    svgEl.style.display = 'none';
+    return;
+  }
+
+  document.getElementById('erdLoadingState').style.display = 'none';
+  svgEl.style.display = 'block';
+
+  const defs = mkSvg('defs');
+  const marker = mkSvg('marker', { id: 'erdArrow', markerWidth: '8', markerHeight: '6', refX: '8', refY: '3', orient: 'auto' });
+  const poly = mkSvg('polygon', { points: '0 0, 8 3, 0 6', fill: 'rgba(112,137,147,0.8)' });
+  marker.appendChild(poly); defs.appendChild(marker); svgEl.appendChild(defs);
+
+  const g = mkSvg('g', { id: 'erdMiniG' });
+  svgEl.appendChild(g);
+
+  const TW = 180, RH = 26, HH = 38, PAD = 50;
+  const W = canvas.clientWidth || 280;
+  const cols = Math.max(1, Math.floor((W - PAD) / (TW + PAD)));
+  const positions = {};
+
+  tables.forEach((t, i) => {
+    const th = HH + t.columns.length * RH + 8;
+    const col = i % cols, row = Math.floor(i / cols);
+    positions[t.name] = { x: PAD + col * (TW + PAD), y: PAD + row * (th + PAD), w: TW, h: th };
+  });
+
+  rels.forEach(rel => {
+    const fp = positions[rel.from_table], tp = positions[rel.to_table];
+    if (!fp || !tp) return;
+    const x1 = fp.x + fp.w, y1 = fp.y + fp.h / 2;
+    const x2 = tp.x, y2 = tp.y + tp.h / 2;
+    const mx = (x1 + x2) / 2;
+    const path = mkSvg('path', {
+      d: `M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`,
+      stroke: 'rgba(112,137,147,0.55)', 'stroke-width': '1.5',
+      fill: 'none', 'stroke-dasharray': '4,3',
+      'marker-end': 'url(#erdArrow)'
+    });
+    g.appendChild(path);
+  });
+
+  tables.forEach(t => {
+    const pos = positions[t.name];
+    if (!pos) return;
+    const { x, y, w, h } = pos;
+    const tg = mkSvg('g', { transform: `translate(${x},${y})`, 'data-erd-table': t.name });
+
+    tg.appendChild(mkSvg('rect', { x: 2, y: 2, width: w, height: h, rx: 8, fill: 'rgba(25,24,59,0.05)' }));
+    tg.appendChild(mkSvg('rect', { x: 0, y: 0, width: w, height: h, rx: 8, fill: 'rgba(255,255,255,0.92)', stroke: 'rgba(112,137,147,0.25)', 'stroke-width': 1.5 }));
+    tg.appendChild(mkSvg('rect', { x: 0, y: 0, width: w, height: HH, rx: 8, fill: '#19183B' }));
+    tg.appendChild(mkSvg('rect', { x: 0, y: HH - 8, width: w, height: 8, fill: '#19183B' }));
+    
+    const nt = mkSvg('text', { x: 12, y: 25, fill: '#E7F2EF', 'font-size': 12, 'font-weight': 700, 'font-family': "'DM Sans',sans-serif" });
+    nt.textContent = t.name.length > 18 ? t.name.slice(0, 17) + '…' : t.name;
+    tg.appendChild(nt);
+
+    t.columns.forEach((col, ci) => {
+      const ry = HH + 4 + ci * RH;
+      if (ci % 2 === 0) {
+        tg.appendChild(mkSvg('rect', { x: 0, y: ry, width: w, height: RH, fill: 'rgba(231,242,239,0.3)' }));
+      }
+      const r = RH / 2;
+      if (col.primary_key) {
+        tg.appendChild(mkSvg('circle', { cx: 13, cy: ry + r, r: 4.5, fill: '#f59e0b' }));
+      } else if (col.foreign_key) {
+        tg.appendChild(mkSvg('circle', { cx: 13, cy: ry + r, r: 4, fill: 'rgba(99,102,241,0.6)' }));
+      } else {
+        tg.appendChild(mkSvg('circle', { cx: 13, cy: ry + r, r: 3, fill: 'rgba(112,137,147,0.3)' }));
+      }
+      const cn = mkSvg('text', { x: 24, y: ry + r + 4, fill: '#19183B', 'font-size': 10.5, 'font-family': "'JetBrains Mono',monospace" });
+      cn.textContent = col.name.length > 14 ? col.name.slice(0, 13) + '…' : col.name;
+      tg.appendChild(cn);
+      const ct = mkSvg('text', { x: w - 7, y: ry + r + 4, fill: '#708993', 'font-size': 9.5, 'text-anchor': 'end', 'font-family': "'JetBrains Mono',monospace" });
+      ct.textContent = col.type ? col.type.split('(')[0].slice(0, 10) : '';
+      tg.appendChild(ct);
+    });
+    g.appendChild(tg);
+  });
+
+  const maxX = Math.max(...tables.map(t => (positions[t.name]?.x || 0) + TW)) + PAD;
+  const maxY = Math.max(...tables.map(t => (positions[t.name]?.y || 0) + (positions[t.name]?.h || 0))) + PAD;
+  erdMiniViewBox = { x: 0, y: 0, w: maxX, h: maxY };
+  svgEl.setAttribute('viewBox', `0 0 ${maxX} ${maxY}`);
+
+  canvas.onmousedown = e => { if (e.target.closest('[data-erd-table]')) return; erdMiniPanning = true; erdMiniPanStart = { x: e.clientX, y: e.clientY }; };
+  canvas.onmousemove = e => {
+    if (!erdMiniPanning) return;
+    const scX = erdMiniViewBox.w / canvas.clientWidth;
+    const scY = erdMiniViewBox.h / canvas.clientHeight;
+    erdMiniViewBox.x -= (e.clientX - erdMiniPanStart.x) * scX;
+    erdMiniViewBox.y -= (e.clientY - erdMiniPanStart.y) * scY;
+    erdMiniPanStart = { x: e.clientX, y: e.clientY };
+    svgEl.setAttribute('viewBox', `${erdMiniViewBox.x} ${erdMiniViewBox.y} ${erdMiniViewBox.w} ${erdMiniViewBox.h}`);
+  };
+  canvas.onmouseup = canvas.onmouseleave = () => erdMiniPanning = false;
+  canvas.onwheel = e => {
+    e.preventDefault();
+    const f = e.deltaY > 0 ? 1.1 : 0.9;
+    erdMiniViewBox.w *= f; erdMiniViewBox.h *= f;
+    svgEl.setAttribute('viewBox', `${erdMiniViewBox.x} ${erdMiniViewBox.y} ${erdMiniViewBox.w} ${erdMiniViewBox.h}`);
+  };
+}
+
+function renderTableList(tables, rels) {
+  const body = document.getElementById('erdTableListBody');
+  if (!tables.length) {
+    body.innerHTML = '<div class="erd-empty-state"><i class="bi bi-table"></i>No tables</div>';
+    return;
+  }
+
+  body.innerHTML = tables.map((t, idx) => {
+    const shouldExpand = idx === 0 || tables.length === 1;
+    
+    let columnRowsHtml = '';
+    t.columns.forEach(col => {
+      const icon = col.primary_key 
+        ? `<i class="bi bi-key erd-key-icon"></i>` 
+        : `<span style="width:21px; display:inline-block;"></span>`;
+      columnRowsHtml += `
+        <div class="erd-col-row">
+          <div class="erd-col-name-wrapper">${icon}<span>${col.name}</span></div>
+          <span class="erd-col-type">${col.type || 'VARCHAR'}</span>
+        </div>`;
+    });
+
+    return `
+      <div class="erd-accordion-item ${shouldExpand ? 'expanded' : ''}">
+        <div class="erd-accordion-header" style="${shouldExpand ? 'background: #f4f8f7;' : ''}">
+          <div class="erd-accordion-title-left">
+            <i class="bi bi-database"></i> ${t.name} <span class="erd-accordion-count">(${t.columns.length})</span>
+          </div>
+          <i class="bi bi-${shouldExpand ? 'chevron-up' : 'chevron-down'} erd-accordion-arrow"></i>
+        </div>
+        <div class="erd-accordion-content" style="${shouldExpand ? 'display: block;' : 'display: none;'}">
+          ${columnRowsHtml}
+        </div>
+      </div>`;
+  }).join('');
+
+  body.querySelectorAll('.erd-accordion-header').forEach(header => {
+    header.addEventListener('click', function() {
+      const item = this.parentElement;
+      const content = item.querySelector('.erd-accordion-content');
+      const arrow = this.querySelector('.erd-accordion-arrow');
+      const isExpanded = item.classList.contains('expanded');
+
+      if (isExpanded) {
+        item.classList.remove('expanded');
+        this.style.background = '';
+        content.style.display = 'none';
+        arrow.className = 'bi bi-chevron-down erd-accordion-arrow';
+      } else {
+        item.classList.add('expanded');
+        this.style.background = '#f4f8f7';
+        content.style.display = 'block';
+        arrow.className = 'bi bi-chevron-up erd-accordion-arrow';
+      }
+    });
+  });
+
+  const relContainer = document.getElementById('erdRelationshipListBody');
+  if (rels.length > 0) {
+    relContainer.innerHTML = rels.map(r => `
+      <div class="erd-relationship-pill">
+        ${r.from_table}.${r.from_column || 'user_id'} → ${r.to_table}.${r.to_column || 'id'}
+      </div>
+    `).join('');
+  } else {
+    relContainer.innerHTML = '<div style="font-size:13px; color:#8fa0a6; padding-left:4px;">No relationships defined</div>';
+  }
+}
+
+function switchErdTab(tab) {
+  const isDiagram = tab === 'diagram';
+  document.getElementById('erdDiagramPanel').style.display = isDiagram ? 'block' : 'none';
+  document.getElementById('erdTablesPanel').style.display = isDiagram ? 'none' : 'block';
+  
+  document.getElementById('tabDiagram').classList.toggle('active', isDiagram);
+  document.getElementById('tabTables').classList.toggle('active', !isDiagram);
+}
+
+function mkSvg(tag, attrs = {}) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
 </script>
 {% endblock %}

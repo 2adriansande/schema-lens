@@ -441,15 +441,6 @@
       </div>
     </div>
 
-    <div class="card fade-in fade-in-2">
-      <div class="card-header">
-        <div class="card-title"><i class="bi bi-file-earmark-text" style="color:var(--primary-mid);margin-right:8px;"></i>Extracted OCR Text</div>
-        <button class="btn btn-ghost btn-sm" onclick="toggleOcr()"><i class="bi bi-eye"></i></button>
-      </div>
-      <div id="ocrText" style="display:none; padding: 20px;">
-        <div class="ocr-text-box">{{ schema.ocr_text or '(no OCR text extracted)' }}</div>
-      </div>
-    </div>
 
     <div class="card fade-in fade-in-3">
       <div class="card-header">
@@ -609,7 +600,7 @@
   </div>
   <div class="action-bar-right">
     <button onclick="resetToOriginal()" class="btn btn-outline">
-      <i class="bi bi-arrow-counterclockwise"></i> Reset to OCR
+      <i class="bi bi-x-circle"></i> Cancel
     </button>
     <button onclick="confirmAndSave()" class="btn btn-primary btn-lg" id="confirmBtn">
       <i class="bi bi-patch-check-fill"></i> Confirm Schema &amp; Continue
@@ -624,6 +615,22 @@
 const dataBridge = document.getElementById('schema-data-store');
 const schemaId = dataBridge ? dataBridge.dataset.schemaId : '';
 const originalParsed = dataBridge ? JSON.parse(dataBridge.dataset.parsedJson) : {};
+
+// Enforce single primary key selection per table
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.classList.contains('col-pk')) {
+    if (e.target.checked) {
+      const tableEditor = e.target.closest('.table-editor');
+      if (tableEditor) {
+        tableEditor.querySelectorAll('.col-pk').forEach(checkbox => {
+          if (checkbox !== e.target) {
+            checkbox.checked = false;
+          }
+        });
+      }
+    }
+  }
+});
 
 function toggleOcr() {
   const el = document.getElementById('ocrText');
