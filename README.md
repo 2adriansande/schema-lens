@@ -99,7 +99,7 @@ The system is intended solely for SQL generation, learning, analysis, and develo
 | Database       | SQLite, SQLAlchemy ORM             |
 | Authentication | Flask-Login, Werkzeug              |
 | OCR            | EasyOCR, OpenCV                    |
-| AI Model       | Google Gemini 1.5 Flash            |
+| AI Model       | Google Gemini 2.5 Flash            |
 
 ---
 
