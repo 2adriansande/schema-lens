@@ -700,16 +700,17 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // 1. Username Validation: Alphabetic (A-Z, a-z) Only
-  const validateName = () => {
-    const val = nameInput.value;
-    if (!val) {
-      setVisualState(nameInput, document.getElementById('nameHint'), false, true);
-      return false;
-    }
-    const isValid = /^[A-Za-z]+$/.test(val);
-    setVisualState(nameInput, document.getElementById('nameHint'), isValid);
-    return isValid;
-  };
+const validateName = () => {
+  const val = nameInput.value;
+  if (!val) {
+    setVisualState(nameInput, document.getElementById('nameHint'), false, true);
+    return false;
+  }
+  // Added "\s" to the regular expression to allow spacing inputs
+  const isValid = /^[A-Za-z\s]+$/.test(val) && val.trim().length > 0;
+  setVisualState(nameInput, document.getElementById('nameHint'), isValid);
+  return isValid;
+};
   nameInput.addEventListener('input', validateName);
   nameInput.addEventListener('blur', validateName);
 

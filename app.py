@@ -1377,9 +1377,12 @@ def _validate_username(name: str) -> str | None:
     """Return an error message if name is invalid, else None."""
     if not name:
         return "Full name is required."
-    if not re.fullmatch(r"[A-Za-z]+", name):
-        return ("Name must contain letters only — no numbers, spaces, "
-                "special characters, or symbols (e.g. JohnDoe).")
+    
+    # Allows both uppercase/lowercase letters and spaces
+    if not re.fullmatch(r"[A-Za-z ]+", name):
+        return ("Name must contain letters and spaces only — no numbers, "
+                "special characters, or symbols (e.g. John Doe).")
+                
     return None
 
 
