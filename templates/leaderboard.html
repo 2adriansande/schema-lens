@@ -8,6 +8,39 @@
 ════════════════════════════════════════════ */
 .lb-page { width: 100%; }
 
+/* ── ANIMATIONS & KEYFRAMES ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.92) translateY(12px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes crownFloat {
+  0% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-4px); }
+  100% { transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 4px 20px rgba(0,0,0,.2); }
+  50% { box-shadow: 0 4px 24px rgba(234, 179, 8, 0.35); border-color: rgba(234,179,8,0.6); }
+  100% { box-shadow: 0 4px 20px rgba(0,0,0,.2); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Core Animation Utility Classes */
+.fade-in { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.fade-in-1 { animation-delay: 0.08s; animation-fill-mode: both; }
+.fade-in-2 { animation-delay: 0.16s; animation-fill-mode: both; }
+
 /* ── Page header ── */
 .lb-head { margin-bottom: 24px; }
 .lb-head h1 {
@@ -18,7 +51,9 @@
   width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
   background: linear-gradient(135deg, var(--primary), var(--primary-mid));
   display: flex; align-items: center; justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+.lb-head h1:hover .h-ico { transform: rotate(10deg) scale(1.05); }
 .lb-head h1 .h-ico svg { width: 17px; height: 17px; color: var(--primary-xlight); }
 .lb-head p { font-size: 13.5px; color: var(--text-soft); }
 
@@ -33,9 +68,16 @@
   background: var(--card-bg); backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px); border: 1px solid var(--border);
   border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 13px 14px 11px;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+.my-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(25, 24, 59, 0.06);
+  border-color: rgba(112, 137, 147, 0.35);
 }
 .my-tile-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
-.my-tile-ico { width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.my-tile-ico { width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease; }
+.my-tile:hover .my-tile-ico { transform: scale(1.1); }
 .my-tile-ico svg { width: 14px; height: 14px; }
 .mti-gold   { background: rgba(234,179,8,.15);  color: #ca8a04; }
 .mti-teal   { background: rgba(112,137,147,.15); color: var(--primary-mid); }
@@ -66,8 +108,18 @@
   max-width: 680px; margin: 0 auto;
 }
 
-/* Each podium slot */
-.podium-slot { display: flex; flex-direction: column; align-items: center; width: 200px; flex: 1; max-width: 220px; }
+/* Each podium slot — Rebuilt dynamically on tab change, triggers animations */
+.podium-slot {
+  display: flex; flex-direction: column; align-items: center; width: 200px; flex: 1; max-width: 220px;
+  animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.podium-slot:hover { transform: translateY(-5px); }
+
+/* Staggered animation ordering for left(2nd), center(1st), right(3rd) */
+.podium-stage .podium-slot:nth-child(1) { animation-delay: 0.08s; } /* Rank 2 */
+.podium-stage .podium-slot:nth-child(2) { animation-delay: 0s; }    /* Rank 1 */
+.podium-stage .podium-slot:nth-child(3) { animation-delay: 0.16s; } /* Rank 3 */
 
 /* Avatar area — enough top padding for crown + rank number */
 .p-avatar-wrap {
@@ -82,16 +134,24 @@
   font-size: 23px; font-weight: 800; color: #fff;
   box-shadow: 0 4px 20px rgba(0,0,0,.2);
   position: relative;
+  transition: transform 0.2s ease;
+}
+.podium-slot:hover .p-avatar { transform: scale(1.05); }
+
+/* Pulse effect on #1 spot */
+.podium-stage .podium-slot:nth-child(2) .p-avatar {
+  animation: pulseGlow 3s ease-in-out infinite;
 }
 
-/* Crown — sits above the avatar inside the padding space */
+/* Crown — floats subtly above 1st place avatar */
 .crown-wrap {
   position: absolute; top: 0px; left: 50%; transform: translateX(-50%);
   width: 30px; height: 22px;
+  animation: crownFloat 2.5s ease-in-out infinite;
 }
 .crown-wrap svg { width: 30px; height: 22px; }
 
-/* Rank number — small circle bottom-right of avatar, NEVER overlaps LVL pill */
+/* Rank number — circle at bottom-right of avatar */
 .p-rank-circle {
   position: absolute; bottom: -5px; right: -5px;
   width: 20px; height: 20px; border-radius: 50%;
@@ -101,7 +161,7 @@
   z-index: 2;
 }
 
-/* LVL pill — below avatar, NOT on top of it */
+/* LVL pill — below avatar */
 .p-lvl-wrap { margin-top: 6px; margin-bottom: 4px; }
 .p-lvl {
   display: inline-block;
@@ -124,6 +184,7 @@
 .podium-block {
   width: 100%; border-radius: 12px 12px 0 0;
   display: flex; align-items: flex-start; justify-content: center; padding-top: 12px;
+  transition: opacity 0.25s ease;
 }
 .podium-block-num { font-size: 40px; font-weight: 900; opacity: .16; line-height: 1; }
 
@@ -140,14 +201,17 @@
   font-family: var(--font); font-size: 12.5px; font-weight: 600;
   cursor: pointer; color: var(--text-soft); background: none;
   display: flex; align-items: center; gap: 5px;
-  transition: all .15s; white-space: nowrap;
+  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1); white-space: nowrap;
 }
-.lb-tab svg { width: 12px; height: 12px; flex-shrink: 0; }
+.lb-tab svg { width: 12px; height: 12px; flex-shrink: 0; transition: transform 0.2s ease; }
+.lb-tab:hover svg { transform: scale(1.1); }
 .lb-tab:hover { background: rgba(255,255,255,.7); color: var(--text); }
 .lb-tab.active {
   background: linear-gradient(135deg, var(--primary), var(--primary-mid));
-  color: var(--primary-xlight); box-shadow: 0 3px 10px rgba(25,24,59,.2);
+  color: var(--primary-xlight); box-shadow: 0 4px 12px rgba(25,24,59,.18);
+  transform: translateY(-1px);
 }
+.lb-tab:active { transform: translateY(0) scale(0.98); }
 
 /* ════════════════════════════════════════════
    TABLE
@@ -165,18 +229,25 @@
   background: rgba(255,255,255,.3);
 }
 .lb-table thead th.th-r { text-align: right; }
-.lb-table tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
+.lb-table tbody tr { border-bottom: 1px solid var(--border); transition: background-color 0.2s ease; }
 .lb-table tbody tr:last-child { border-bottom: none; }
-.lb-table tbody tr:hover { background: rgba(255,255,255,.45); }
+.lb-table tbody tr:hover { background: rgba(255,255,255,.55) !important; }
 .lb-table tbody tr.is-me {
   background: linear-gradient(90deg, rgba(161,194,189,.18), rgba(112,137,147,.06));
 }
 .lb-table td { padding: 11px 18px; font-size: 13px; color: var(--text); vertical-align: middle; }
 .lb-table td.td-r { text-align: right; }
 
+/* Interactive row contents */
+.rank-cell, .row-user, .score-cell, .xp-cell {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lb-table tbody tr:hover .row-user { transform: translateX(4px); }
+
 /* Rank cell */
 .rank-cell { display: flex; align-items: center; gap: 7px; min-width: 60px; }
-.medal-ico  { width: 20px; height: 20px; display: block; flex-shrink: 0; }
+.medal-ico  { width: 20px; height: 20px; display: block; flex-shrink: 0; transition: transform 0.2s ease; }
+.lb-table tbody tr:hover .medal-ico { transform: scale(1.1) rotate(-5deg); }
 /* number next to medal for top 3 */
 .rank-num-label { font-size: 12px; font-weight: 800; color: var(--text-soft); }
 /* plain badge for 4+ */
@@ -222,11 +293,24 @@
   flex-shrink: 0; 
 }
 
+/* Shimmer progress bar fill with spring width easing */
 .xp-fill { 
   height: 100%; 
   border-radius: 99px; 
   background: linear-gradient(90deg, var(--primary), var(--primary-mid)); 
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
 }
+.xp-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite linear;
+}
+
 .lvl-chip {
   font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 5px;
   background: linear-gradient(135deg, var(--primary), var(--primary-mid));
@@ -238,8 +322,12 @@
 .lb-empty svg { width: 36px; height: 36px; opacity: .15; margin: 0 auto 10px; display: block; }
 .lb-empty p { font-size: 13px; color: var(--text-soft); }
 
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
+/* Tab panel transition rules */
+.tab-panel { display: none; opacity: 0; }
+.tab-panel.active {
+  display: block;
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 </style>
 {% endblock %}
 
@@ -266,7 +354,7 @@
 {% endif %}
 {% endmacro %}
 
-{# ── Avatar color class helper — rank always wins for top 3, You=gold only outside top 3 ── #}
+{# ── Avatar color class helper ── #}
 {% macro av_class(rank, is_me) %}{{ 'av-gold' if rank==1 else ('av-silver' if rank==2 else ('av-bronze' if rank==3 else ('av-me' if is_me else 'av-default'))) }}{% endmacro %}
 
 {# ── Generic table panel macro ── #}
@@ -320,7 +408,6 @@
             <div class="xp-track">
               <div class="xp-fill" style="--xp-pct: {{ ((row.xp % 200) / 200 * 100)|round(0) }}%; width: var(--xp-pct);"></div>
             </div>
-          </div>
             <span class="score-val">{{ row.xp }}</span>
           </div>
           {% else %}
@@ -357,40 +444,53 @@
   {# ── My stats ── #}
   {% if me %}
   <div class="my-strip fade-in fade-in-1">
-    <div class="my-tile">
-      <div class="my-tile-top">
-        <div class="my-tile-ico mti-gold">{{ ico('star') | replace('viewBox','width="14" height="14" viewBox') | safe }}</div>
-        {% if xp_rank %}<span class="rank-pill"># {{ xp_rank }}</span>{% endif %}
+    
+    <a href = "{{ url_for('badges_page') }}" style="text-decoration:none;color:inherit">
+      <div class="my-tile">
+        <div class="my-tile-top">
+          <div class="my-tile-ico mti-gold">{{ ico('star') | replace('viewBox','width="14" height="14" viewBox') | safe }}</div>
+          {% if xp_rank %}<span class="rank-pill"># {{ xp_rank }}</span>{% endif %}
+        </div>
+        <div class="my-tile-lbl">My Level / XP</div>
+        <div class="my-tile-val">LVL {{ me.level }}</div>
+        <div class="my-tile-sub">{{ me.xp }} XP total</div>
       </div>
-      <div class="my-tile-lbl">My Level / XP</div>
-      <div class="my-tile-val">LVL {{ me.level }}</div>
-      <div class="my-tile-sub">{{ me.xp }} XP total</div>
-    </div>
+     </a>
+    
+   
     <div class="my-tile">
-      <div class="my-tile-top">
-        <div class="my-tile-ico mti-teal">{{ ico('search') | replace('viewBox','width="14" height="14" viewBox') | safe }}</div>
-        {% if query_rank %}<span class="rank-pill"># {{ query_rank }}</span>{% endif %}
-      </div>
-      <div class="my-tile-lbl">My Queries</div>
-      <div class="my-tile-val">{{ me.query_count }}</div>
+      <a href = "{{ url_for('query_page') }}"class style="text-decoration:none;color:inherit">
+        <div class="my-tile-top">
+          <div class="my-tile-ico mti-teal">{{ ico('search') | replace('viewBox','width="14" height="14" viewBox') | safe }}</div>
+          {% if query_rank %}<span class="rank-pill"># {{ query_rank }}</span>{% endif %}
+        </div>
+        <div class="my-tile-lbl">My Queries</div>
+        <div class="my-tile-val">{{ me.query_count }}</div> 
+      </a>
     </div>
+    
     <div class="my-tile">
+      <a href = "{{ url_for('schemas') }}" style="text-decoration:none;color:inherit">
       <div class="my-tile-top">
         <div class="my-tile-ico mti-green">{{ ico('layers') | replace('viewBox','width="14" height="14" viewBox') | safe }}</div>
         {% if schema_rank %}<span class="rank-pill"># {{ schema_rank }}</span>{% endif %}
       </div>
       <div class="my-tile-lbl">My Schemas</div>
       <div class="my-tile-val">{{ me.schema_count }}</div>
+      </a>
     </div>
     <div class="my-tile">
+      <a href = "{{ url_for('badges_page') }}" style="text-decoration:none;color:inherit">
       <div class="my-tile-top">
         <div class="my-tile-ico mti-purple">{{ ico('award') | replace('viewBox','width="14" height="14" viewBox') | safe }}</div>
         {% if badge_rank %}<span class="rank-pill"># {{ badge_rank }}</span>{% endif %}
       </div>
       <div class="my-tile-lbl">My Badges</div>
       <div class="my-tile-val">{{ me.badge_count }}</div>
+      </a>
     </div>
     <div class="my-tile">
+      <a href = "{{ url_for('challenge_page') }}" style="text-decoration:none;color:inherit">
       <div class="my-tile-top">
         <div class="my-tile-ico mti-blue">{{ ico('target') | replace('viewBox','width="14" height="14" viewBox') | safe }}</div>
         {% if score_rank %}<span class="rank-pill"># {{ score_rank }}</span>{% endif %}
@@ -399,10 +499,11 @@
       <div class="my-tile-val">{{ me.avg_score }}</div>
       <div class="my-tile-sub">pts avg</div>
     </div>
+    </a>
   </div>
   {% endif %}
 
-  {# ══ PODIUM — JS updates on tab switch ══ #}
+  {# ══ PODIUM ══ #}
   <div class="podium-card fade-in fade-in-1">
     <div class="podium-card-head">
       {{ ico('trophy') | replace('viewBox','width="14" height="14" viewBox') | safe }}
@@ -449,100 +550,68 @@
 
 </div>
 
-{# ══ All board data embedded server-side for JS podium ══ #}
 <script>
-// 1. Serialize the server arrays into valid JSON strings, wrapped in quotes for VSCode safety
+// 1. Serialize server arrays into JSON
 const topXpData      = JSON.parse('{{ (top_xp[:3]|tojson if top_xp else "[]") | safe }}');
 const topQueriesData = JSON.parse('{{ (top_queries[:3]|tojson if top_queries else "[]") | safe }}');
 const topSchemasData = JSON.parse('{{ (top_schemas[:3]|tojson if top_schemas else "[]") | safe }}');
 const topBadgesData  = JSON.parse('{{ (top_badges[:3]|tojson if top_badges else "[]") | safe }}');
 const topScoresData  = JSON.parse('{{ (top_scores[:3]|tojson if top_scores else "[]") | safe }}');
 
-// 2. Safely parse the active user's ID
 const currentUserId  = JSON.parse('{{ (current_user.id|tojson if current_user and current_user.id else "null") | safe }}');
-// Helper function to map your raw server arrays into your exact UI schema
+
 function mapPodiumRows(dataArray, metaKey, metaSuffix = '') {
   return dataArray.map(r => {
     const nameStr = r.name || "?";
     return {
       name: r.name,
       init: nameStr.charAt(0).toUpperCase(),
-      lvl: r.level || undefined, // Only sets level property if it exists in the data source
+      lvl: r.level || undefined,
       meta: r[metaKey] !== undefined ? `${r[metaKey]}${metaSuffix}` : "",
       isMe: r.id === currentUserId
     };
   });
 }
 
-// 3. Build your final LB data configuration object
 const LB = {
-  xp: {
-    title: "XP &amp; Level Podium",
-    rows: mapPodiumRows(topXpData, 'xp', ' XP')
-  },
-  queries: {
-    title: "Queries Podium",
-    rows: mapPodiumRows(topQueriesData, 'query_count', ' Queries')
-  },
-  schemas: {
-    title: "Schemas Podium",
-    rows: mapPodiumRows(topSchemasData, 'schema_count', ' Schemas')
-  },
-  badges: {
-    title: "Badges Podium",
-    rows: mapPodiumRows(topBadgesData, 'badge_count', ' Badges')
-  },
-  scores: {
-    title: "Avg Score Podium",
-    rows: mapPodiumRows(topScoresData, 'avg_score', ' pts avg')
-  }
+  xp: { title: "XP &amp; Level Podium", rows: mapPodiumRows(topXpData, 'xp', ' XP') },
+  queries: { title: "Queries Podium", rows: mapPodiumRows(topQueriesData, 'query_count', ' Queries') },
+  schemas: { title: "Schemas Podium", rows: mapPodiumRows(topSchemasData, 'schema_count', ' Schemas') },
+  badges: { title: "Badges Podium", rows: mapPodiumRows(topBadgesData, 'badge_count', ' Badges') },
+  scores: { title: "Avg Score Podium", rows: mapPodiumRows(topScoresData, 'avg_score', ' pts avg') }
 };
-/*
-  Display positions: left=rank2, centre=rank1, right=rank3
-  posIdx:              0            1              2
-*/
+
 const POS_RANK    = [2,    1,    3   ];
-const POS_H       = [90,   120,  65  ];  /* podium block heights */
+const POS_H       = [90,   120,  65  ];
 const POS_BLOCK   = [
-  'linear-gradient(160deg,#e2e8f0,#94a3b8)',  /* silver */
-  'linear-gradient(160deg,#fef08a,#eab308)',  /* gold   */
-  'linear-gradient(160deg,#fed7aa,#c2440a)'   /* bronze */
+  'linear-gradient(160deg,#e2e8f0,#94a3b8)',
+  'linear-gradient(160deg,#fef08a,#eab308)',
+  'linear-gradient(160deg,#fed7aa,#c2440a)'
 ];
 const POS_AV      = [
-  'linear-gradient(135deg,#94a3b8,#64748b)',  /* silver */
-  'linear-gradient(135deg,#eab308,#ca8a04)',  /* gold   */
-  'linear-gradient(135deg,#c2440a,#9a3412)'   /* bronze */
+  'linear-gradient(135deg,#94a3b8,#64748b)',
+  'linear-gradient(135deg,#eab308,#ca8a04)',
+  'linear-gradient(135deg,#c2440a,#9a3412)'
 ];
-/* rank-number circle on avatar */
 const POS_NUM_BG    = ['#94a3b8', '#eab308', '#c2440a'];
 const POS_NUM_COLOR = ['#1e293b', '#713f12', '#fff'   ];
-/* LVL pill colors */
 const POS_LVL_BG    = ['#94a3b8', '#eab308', '#c2440a'];
 const POS_LVL_COLOR = ['#1e293b', '#713f12', '#fff'   ];
-/* big rank number inside the block */
 const POS_BLOCK_NUM_COLOR = ['#1e293b','#713f12','#431407'];
 
 function buildSlot(posIdx, row, key) {
   const rank    = POS_RANK[posIdx];
   const isEmpty = !row;
 
-  /* Crown — only for #1, sits in padding-top space */
   const crown = (rank === 1 && !isEmpty)
     ? `<span class="crown-wrap"><svg viewBox="0 0 24 18" fill="none"><path d="M1 16L5 5L10 11L12 2L14 11L19 5L23 16H1Z" fill="#EAB308" stroke="#CA8A04" stroke-width="1.2" stroke-linejoin="round"/></svg></span>`
     : '';
 
-  /* Avatar gradient — position color: gold=rank1, silver=rank2, bronze=rank3 */
-  const avBg = isEmpty ? 'background:rgba(112,137,147,.14)'
-                       : `background:${POS_AV[posIdx]}`;
-
-  /* Rank number circle on avatar bottom-right */
-  const rankCircle = isEmpty ? ''
-    : `<span class="p-rank-circle" style="background:${POS_NUM_BG[posIdx]};color:${POS_NUM_COLOR[posIdx]}">${rank}</span>`;
-
-  /* LVL pill — shown below avatar, separate from rank circle */
+  const avBg = isEmpty ? 'background:rgba(112,137,147,.14)' : `background:${POS_AV[posIdx]}`;
+  const rankCircle = isEmpty ? '' : `<span class="p-rank-circle" style="background:${POS_NUM_BG[posIdx]};color:${POS_NUM_COLOR[posIdx]}">${rank}</span>`;
   const lvlPill = (key === 'xp' && !isEmpty && row.lvl)
     ? `<div class="p-lvl-wrap"><span class="p-lvl" style="background:${POS_LVL_BG[posIdx]};color:${POS_LVL_COLOR[posIdx]}">LVL ${row.lvl}</span></div>`
-    : '<div class="p-lvl-wrap" style="height:18px"></div>';   /* keep spacing even without pill */
+    : '<div class="p-lvl-wrap" style="height:18px"></div>';
 
   const initChar = isEmpty ? '?' : row.init;
   const youDot   = (!isEmpty && row.isMe) ? `<span class="you-dot"></span>` : '';
@@ -572,7 +641,6 @@ function renderPodium(key) {
   const board = LB[key];
   if (!board) return;
   document.getElementById('podium-title').innerHTML = board.title;
-  /* order: left=rank2(rows[1]), centre=rank1(rows[0]), right=rank3(rows[2]) */
   const rowOrder = [1, 0, 2];
   let html = '';
   rowOrder.forEach((rowIdx, posIdx) => {
