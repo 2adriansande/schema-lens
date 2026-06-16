@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SchemaLens{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="dash-header fade-in">
+  <h1>Welcome back, {{ current_user.name.split()[0] }} </h1>
+  <p>Track your stats, read tutorials, or take on structural schema challenges.</p>
+</div>
+
+{% if not current_user.gemini_key %}
+<div class="api-banner fade-in">
+  <div class="api-banner-icon"><i class="bi bi-stars"></i></div>
+  <div>
+    <h4>Unlock Intelligent Parsing</h4>
+    <p>Provide a Gemini API Key to let AI interpret complex relational image layouts automatically.</p>
+  </div>
+  <a href="{{ url_for('settings') }}" class="api-banner-btn">Configure →</a>
+</div>
+{% endif %}
+
+<div class="feature-hub fade-in fade-in-1">
+  <a href="{{ url_for('learn') }}" class="hub-card learn-card">
+    <div class="hub-icon">
+      <i class="bi bi-journal-bookmark-fill"></i>
+    </div>
+    <div class="hub-content">
+      <span class="hub-tag">Guided Path</span>
+      <div class="hub-title">SQL Learn</div>
+      <p class="hub-desc">Explore lessons, documentation, logical tutorials, and syntax examples to build your foundations.</p>
+    </div>
+    <div class="hub-arrow"><i class="bi bi-arrow-right"></i></div>
+  </a>
+
+  <a href="{{ url_for('challenge_page') }}" class="hub-card challenge-card">
+    <div class="hub-icon">
+      <i class="bi bi-trophy-fill"></i>
+    </div>
+    <div class="hub-content">
+      <span class="hub-tag">Practice Arena</span>
+      <div class="hub-title">SQL Challenges</div>
+      <p class="hub-desc">Test your muscle memory against practical schema exercises, interactive quizzes, and data puzzles.</p>
+    </div>
+    <div class="hub-arrow"><i class="bi bi-arrow-right"></i></div>
+  </a>
+</div>
+
+<div class="stats-grid fade-in fade-in-1">
+  <div class="stat-card" id="total-queries">
+    <a href="{{ url_for('query_page') }}" style="text-decoration:none; color:inherit;">
+      <div class="stat-card-top">
+        <div class="stat-card-icon dark"><i class="bi bi-terminal"></i></div>
+        <span class="stat-change">Active</span>
+      </div>
+      <div class="stat-label">Total Queries</div>
+      <div class="stat-value">{{ total_queries }}</div>
+    </a>
+  </div>
+  
+  <div class="stat-card">
+    <a href="{{ url_for('schemas') }}" style="text-decoration:none; color:inherit;">
+      <div class="stat-card-top">
+        <div class="stat-card-icon mid"><i class="bi bi-layers"></i></div>
+        <span class="stat-change">Stored</span>
+      </div>
+      <div class="stat-label">Schemas Uploaded</div>
+      <div class="stat-value">{{ schemas|length }}</div>
+    </a>
+  </div>
+
+  <div class="stat-card">
+    <a href="{{ url_for('settings') }}" style="text-decoration:none; color:inherit;">
+      <div class="stat-card-top" style="gap:8px; flex-wrap:wrap;">
+        <div class="stat-card-icon {% if current_user.gemini_key %}teal{% else %}light{% endif %}"><i class="bi bi-cpu"></i></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="ollama-status-badge ollama-badge ollama-checking" title="Checking status…">
+            <span class="ollama-dot"></span>
+            <span class="ollama-label">Ollama</span>
+          </span>
+        </div>
+      </div>
+      <div class="stat-label">AI Engine Status</div>
+      <div class="stat-value" style="font-size:18px; padding-top:4px;">
+        {% if current_user.gemini_key %}<span style="color:#0e7c5a; font-weight:700;">Gemini Active</span>{% else %}<span style="color:var(--text-soft);">No Key Set</span>{% endif %}
+      </div>
+    </a>
+  </div>
+
+  <div class="stat-card">
+    <a href="{{ url_for('history')}}" style="text-decoration:none; color:inherit;">
+      <div class="stat-card-top">
+        <div class="stat-card-icon light"><i class="bi bi-clock-history"></i></div>
+        <span class="stat-change">Recent</span>
+      </div>
+      <div class="stat-label">Recent Activity</div>
+      <div class="stat-value">{{ recent_queries|length }}</div>
+    </a>
+  </div>
+</div>
+
+<div class="dash-grid">
+  <div class="card fade-in fade-in-2">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-layers" style="color:var(--primary-mid);margin-right:8px;"></i>Your Schemas</div>
+      <a href="{{ url_for('schemas') }}" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    <div class="card-body">
+      {% if schemas %}
+        {% for s in schemas[:5] %}
+        <a href="{{ url_for('schema_detail', schema_id=s.id) }}" style="text-decoration:none;color:inherit;display:block;">
+          <div class="schema-row">
+            <div class="schema-thumb"><i class="bi bi-database"></i></div>
+            <div style="flex:1; flex-grow:1;">
+              <div class="schema-row-name">{{ s.schema_name or s.original_name }}</div>
+              <div class="schema-row-meta">{{ s.uploaded_at.strftime('%b %d, %Y') }} · {{ s.queries|length }} queries</div>
+            </div>
+            <i class="bi bi-chevron-right" style="color:var(--border);font-size:11px;"></i>
+          </div>
+        </a>
+        {% endfor %}
+        {% if schemas|length > 5 %}
+        <div style="text-align:center;padding:12px 0 0;">
+          <a href="{{ url_for('schemas') }}" style="font-size:13px;color:var(--primary-mid);font-weight:600;text-decoration:none;">+{{ schemas|length - 5 }} more →</a>
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="empty">
+          <i class="bi bi-layers"></i>
+          <h4>No schemas yet</h4>
+          <p>Upload a database schema image to get started.</p>
+          <a href="{{ url_for('schemas') }}" class="btn btn-primary mt-2" style="display:inline-flex;">Upload Schema</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card fade-in fade-in-3">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-clock-history" style="color:var(--primary-mid);margin-right:8px;"></i>Recent Queries</div>
+      <a href="{{ url_for('history') }}" class="btn btn-outline btn-sm">Full History</a>
+    </div>
+    <div class="card-body">
+      {% if recent_queries %}
+        {% for q in recent_queries %}
+        <div class="query-row">
+          <div class="query-row-text">{{ q.natural_query[:80] }}{% if q.natural_query|length > 80 %}…{% endif %}</div>
+          <div class="query-row-sql">{{ q.generated_sql[:80] }}…</div>
+          <div style="margin-top:7px;display:flex;gap:6px;align-items:center;">
+            <span class="badge {{ 'badge-dark' if q.model_used != 'heuristic' else 'badge-amber' }}">{{ q.model_used }}</span>
+            <span style="font-size:11px;color:var(--text-soft);font-family:var(--mono);">{{ q.created_at.strftime('%b %d · %H:%M') }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">
+          <i class="bi bi-terminal"></i>
+          <h4>No queries yet</h4>
+          <a href="{{ url_for('query_page') }}" class="btn btn-primary mt-2" style="display:inline-flex;">Generate SQL</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="ai-panel fade-in fade-in-4">
+  <div>
+    <h3>Schema Analysis Assistant</h3>
+    <p>Upload your relational database layouts and let AI analyze structures to generate interactive query files automatically.</p>
+  </div>
+  <a href="{{ url_for('schemas') }}" class="ai-panel-btn"><i class="bi bi-upload"></i> Upload Layout</a>
+</div>
+{% endblock %}

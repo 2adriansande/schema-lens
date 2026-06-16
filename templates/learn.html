@@ -1,0 +1,669 @@
+{% extends "base.html" %}
+{% block title %}SQL Learn — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+/* Main Layout & Structure */
+.learn-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+/* Sidebar Styling */
+.learn-sidebar {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: sticky;
+  top: calc(var(--topbar-h) + 24px);
+}
+.learn-sidebar-header {
+  padding: 20px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  color: var(--primary-xlight);
+}
+.learn-sidebar-header h3 { 
+  font-size: 15px; 
+  font-weight: 700; 
+  margin-bottom: 4px; 
+  display: flex; 
+  align-items: center; 
+}
+.learn-sidebar-header p { font-size: 12px; opacity: .8; margin: 0; }
+
+.learn-section-group { border-bottom: 1px solid var(--border); }
+.learn-section-group:last-child { border-bottom: none; }
+
+.learn-section-btn {
+  width: 100%;
+  display: flex; 
+  align-items: center; 
+  gap: 12px;
+  padding: 14px 18px;
+  font-family: var(--font); 
+  font-size: 13.5px; 
+  font-weight: 600;
+  color: var(--text-soft); 
+  background: none; 
+  border: none;
+  cursor: pointer; 
+  text-align: left;
+  transition: all .2s ease;
+}
+.learn-section-btn:hover { 
+  background: rgba(255, 255, 255, 0.4); 
+  color: var(--text); 
+}
+.learn-section-btn.active { 
+  background: var(--primary-xlight); 
+  color: var(--primary); 
+}
+.learn-section-btn i.bi-chevron-right {
+  font-size: 11px;
+  opacity: .5;
+  transition: transform .2s ease;
+}
+.learn-section-btn.active i.bi-chevron-right {
+  transform: rotate(90deg);
+  opacity: .8;
+}
+
+/* Lesson Items */
+.learn-lesson-list { 
+  background: rgba(255, 255, 255, 0.2); 
+  padding: 6px 0;
+}
+.learn-lesson-item {
+  display: flex; 
+  align-items: center; 
+  gap: 10px;
+  padding: 10px 20px 10px 28px;
+  font-size: 13px; 
+  color: var(--text-soft);
+  text-decoration: none;
+  transition: all .15s ease;
+}
+.learn-lesson-item:hover { 
+  background: rgba(255, 255, 255, 0.6); 
+  color: var(--text); 
+}
+.learn-lesson-item.active {
+  background: rgba(161, 194, 189, 0.15);
+  color: var(--primary);
+  font-weight: 600;
+}
+.learn-lesson-item i { font-size: 8px; opacity: .4; }
+.learn-lesson-item.active i { opacity: 1; color: var(--primary); }
+
+/* Sidebar Navigation Challenge Box */
+.sidebar-challenge-box {
+  padding: 18px;
+  margin: 14px;
+  background: linear-gradient(135deg, rgba(161, 194, 189, 0.1), rgba(255, 255, 255, 0.4));
+  border: 1px dashed var(--primary-mid);
+  border-radius: var(--radius-sm);
+}
+.sidebar-challenge-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sidebar-challenge-text {
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+/* Main Lesson Content Card */
+.lesson-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.lesson-header {
+  padding: 28px 32px 22px;
+  background: linear-gradient(135deg, rgba(231, 242, 239, 0.7), rgba(255, 255, 255, 0.3));
+  border-bottom: 1px solid var(--border);
+}
+.lesson-section-tag {
+  display: inline-flex; 
+  align-items: center; 
+  gap: 6px;
+  padding: 5px 14px; 
+  border-radius: 100px;
+  font-size: 11px; 
+  font-weight: 700; 
+  text-transform: uppercase; 
+  letter-spacing: .06em;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.7); 
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+}
+.lesson-title { 
+  font-size: 24px; 
+  font-weight: 700; 
+  letter-spacing: -.5px; 
+  color: var(--text); 
+  margin: 0;
+}
+.lesson-body { padding: 32px; }
+
+/* Content Render Settings */
+.lesson-content {
+  font-size: 14.5px; 
+  line-height: 1.8; 
+  color: var(--text);
+}
+.lesson-content p { margin-bottom: 18px; }
+.lesson-content strong, .lesson-content b { font-weight: 700; color: var(--primary); }
+.lesson-content ul, .lesson-content ol { padding-left: 24px; margin-bottom: 18px; }
+.lesson-content li { margin-bottom: 8px; }
+
+/* Inline & Fenced Code Syntax */
+.lesson-content code {
+  background: rgba(25, 24, 59, 0.06); 
+  color: var(--primary);
+  padding: 3px 6px; 
+  border-radius: 6px;
+  font-family: var(--mono); 
+  font-size: 12.5px;
+}
+.lesson-content pre {
+  background: var(--primary); 
+  color: var(--primary-light);
+  border-radius: var(--radius-sm); 
+  padding: 18px 22px;
+  font-family: var(--mono); 
+  font-size: 13px;
+  overflow-x: auto; 
+  margin: 20px 0;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.15);
+}
+.lesson-content pre code {
+  background: none; 
+  color: inherit; 
+  padding: 0;
+}
+
+/* Structural Schemas & Examples */
+.schema-example {
+  background: rgba(25, 24, 59, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px; 
+  margin-bottom: 20px;
+}
+.schema-example-label {
+  font-size: 11px; 
+  font-weight: 700; 
+  text-transform: uppercase;
+  color: var(--text-xs); 
+  letter-spacing: .06em; 
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+.schema-example-text {
+  font-family: var(--mono); 
+  font-size: 13px; 
+  color: var(--primary-mid);
+  line-height: 1.5;
+}
+
+/* SQL Query Block Customizations */
+.example-query-box {
+  background: var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 18px 22px; 
+  margin-bottom: 20px;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(25, 24, 59, 0.08);
+}
+.example-query-label {
+  font-size: 10px; 
+  font-weight: 700; 
+  text-transform: uppercase;
+  color: rgba(161, 194, 189, 0.6); 
+  letter-spacing: .08em; 
+  margin-bottom: 10px;
+}
+.example-query-code {
+  font-family: var(--mono); 
+  font-size: 13px;
+  color: var(--primary-xlight); 
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+.copy-query-btn {
+  position: absolute; 
+  top: 14px; 
+  right: 14px;
+  background: rgba(255, 255, 255, 0.08); 
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px; 
+  padding: 4px 12px;
+  color: rgba(255, 255, 255, 0.7); 
+  font-size: 11px; 
+  cursor: pointer;
+  font-family: var(--font); 
+  transition: all .2s;
+}
+.copy-query-btn:hover { 
+  background: rgba(255, 255, 255, 0.2); 
+  color: #fff; 
+  transform: translateY(-1px);
+}
+
+/* Premium Table Previews */
+.result-table-wrap {
+  border: 1px solid var(--border); 
+  border-radius: var(--radius-sm);
+  overflow: hidden; 
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+.result-table-label {
+  padding: 10px 16px;
+  background: rgba(161, 194, 189, 0.12);
+  font-size: 11px; 
+  font-weight: 700; 
+  text-transform: uppercase;
+  color: var(--text-soft); 
+  letter-spacing: .06em;
+  border-bottom: 1px solid var(--border);
+}
+.result-table {
+  width: 100%; 
+  border-collapse: collapse;
+  font-family: var(--mono); 
+  font-size: 12.5px;
+}
+.result-table th {
+  padding: 10px 16px; 
+  text-align: left;
+  background: rgba(255, 255, 255, 0.6);
+  font-weight: 700; 
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font); 
+  font-size: 11px;
+  text-transform: uppercase; 
+  letter-spacing: .05em;
+}
+.result-table td {
+  padding: 9px 16px; 
+  color: var(--primary-mid);
+  border-bottom: 1px solid rgba(112, 137, 147, 0.06);
+}
+.result-table tr:last-child td { border-bottom: none; }
+.result-table tr:hover td { background: rgba(255, 255, 255, 0.4); }
+
+/* Navigation Routing Controls */
+.lesson-nav {
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
+  padding: 20px 32px; 
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* AI SQL Tutor Interface */
+.tutor-card {
+  background: linear-gradient(135deg, rgba(231, 242, 239, 0.6), rgba(255, 255, 255, 0.5));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-top: 24px;
+  overflow: hidden;
+}
+.tutor-header {
+  padding: 18px 24px; 
+  border-bottom: 1px solid var(--border);
+  display: flex; 
+  align-items: center; 
+  gap: 12px;
+}
+.tutor-icon {
+  width: 38px; 
+  height: 38px; 
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  font-size: 18px; 
+  color: var(--primary-xlight); 
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(25, 24, 59, 0.15);
+}
+.tutor-chat { 
+  padding: 20px 24px; 
+  max-height: 300px; 
+  overflow-y: auto; 
+}
+.tutor-message {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-size: 13.5px; 
+  line-height: 1.7; 
+  color: var(--text);
+  margin-bottom: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+.tutor-message code {
+  background: rgba(25, 24, 59, 0.06); 
+  color: var(--primary);
+  padding: 2px 5px; 
+  border-radius: 4px;
+  font-family: var(--mono); 
+  font-size: 12px;
+}
+.tutor-input-row {
+  padding: 0 24px 20px;
+  display: flex; 
+  gap: 12px; 
+  align-items: flex-end;
+}
+.tutor-input {
+  flex: 1; 
+  border: 1.5px solid var(--border); 
+  border-radius: var(--radius-sm);
+  padding: 12px 16px; 
+  font-family: var(--font); 
+  font-size: 13.5px;
+  background: #ffffff; 
+  outline: none; 
+  resize: none;
+  transition: all .2s ease;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.03);
+}
+.tutor-input:focus { 
+  border-color: var(--primary-mid); 
+  box-shadow: 0 0 0 3.5px rgba(161, 194, 189, 0.25); 
+}
+
+/* Layout Responsiveness */
+@media (max-width: 960px) {
+  .learn-layout { grid-template-columns: 1fr; gap: 20px; }
+  .learn-sidebar { position: static; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in" style="margin-bottom:24px;">
+  <h1 style="font-size:28px;font-weight:700;letter-spacing:-.6px;margin-bottom:6px;">SQL Learn</h1>
+  <p style="font-size:14.5px;color:var(--text-soft);margin:0;">Learn SQL from scratch with interactive lessons and an AI tutor.</p>
+</div>
+
+<div class="learn-layout">
+  <div class="learn-sidebar fade-in fade-in-1">
+    <div class="learn-sidebar-header">
+      <h3><i class="bi bi-book-half me-2"></i> Learning Path</h3>
+      <p>{{ sections|length }} sections · progress at your own pace</p>
+    </div>
+
+    {% for key, section in sections.items() %}
+    <div class="learn-section-group">
+      <a href="{{ url_for('learn', section=key) }}" style="text-decoration:none;">
+        <div class="learn-section-btn {% if current_section_key == key %}active{% endif %}">
+          <div class="learn-section-btn-icon" 
+            style="font-size: 15px; --section-color: {{ section.color }}; color: var(--section-color); display: flex; align-items: center;">
+            <i class="bi {{ section.icon }}">
+            </i>
+            </div>
+          <span>{{ section.title }}</span>
+          <i class="bi bi-chevron-right ms-auto"></i>
+        </div>
+      </a>
+      {% if current_section_key == key %}
+      <div class="learn-lesson-list">
+        {% for lesson in section.lessons %}
+        <a href="{{ url_for('learn', section=key, lesson=lesson.id) }}"
+           class="learn-lesson-item {% if current_lesson and current_lesson.id == lesson.id %}active{% endif %}">
+          <i class="bi {% if current_lesson and current_lesson.id == lesson.id %}bi-circle-fill{% else %}bi-circle{% endif %}"></i>
+          <span>{{ lesson.title }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Sidebar Navigation Challenge Box Component -->
+   <div class="sidebar-challenge-box">
+  <div class="sidebar-challenge-title">
+    <i class="bi bi-trophy"></i> Nav Challenge
+  </div>
+  <div class="sidebar-challenge-text">
+    Ready to test your indexing knowledge? Find and select the lesson on query optimizations to unlock your badge.
+  </div>
+  <a href="{{ url_for('challenge_page') }}" class="btn btn-outline btn-sm" style="width: 100%; text-align: center; justify-content: center; display: flex;">
+    Go to Challenge
+  </a>
+</div>
+  </div>
+
+  <div>
+    {% if current_lesson %}
+    <div class="lesson-card fade-in fade-in-2">
+      <div class="lesson-header">
+        <div class="lesson-section-tag">
+          <i class="bi {{ current_section.icon }}" style="--icon-color: {{ current_section.color }}; color: var(--icon-color);"></i>
+          {{ current_section.title }}
+        </div>
+        <h2 class="lesson-title">{{ current_lesson.title }}</h2>
+      </div>
+
+      <div class="lesson-body">
+        {% if current_lesson.example_schema %}
+        <div class="schema-example">
+          <div class="schema-example-label"><i class="bi bi-database me-2"></i> Example Schema</div>
+          <div class="schema-example-text">{{ current_lesson.example_schema }}</div>
+        </div>
+        {% endif %}
+
+        <div class="lesson-content">
+          {% set content = current_lesson.content %}
+          {% for line in content.split('\n') %}
+            {% if line.startswith('```') %}
+              {# skip fence markers #}
+            {% elif line.strip() == '' %}
+              <br>
+            {% elif line.startswith('**') and line.endswith('**') %}
+              <p><strong>{{ line[2:-2] }}</strong></p>
+            {% elif line.startswith('- ') %}
+              <p style="padding-left:16px;">• {{ line[2:] | replace('**','<strong>') | replace('**','</strong>') | safe }}</p>
+            {% else %}
+              <p>{{ line | replace('`', '<code>') | replace('`', '</code>') | safe }}</p>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        {% if current_lesson.example_query %}
+        <div class="example-query-box">
+          <div class="example-query-label"><i class="bi bi-play-circle me-1"></i> Example Query</div>
+          <div class="example-query-code">{{ current_lesson.example_query }}</div>
+          <button class="copy-query-btn" onclick="copyLearnQuery(this)">Copy</button>
+        </div>
+        {% endif %}
+
+        {% if current_lesson.result %}
+        <div class="result-table-wrap">
+          <div class="result-table-label"><i class="bi bi-table me-2"></i> Sample Result</div>
+          <table class="result-table">
+            <tbody>
+              {% for row in current_lesson.result %}
+              <tr>
+                {% for cell in row %}
+                <td>{{ cell }}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="lesson-nav">
+        {% set lesson_list = current_section.lessons %}
+        {% set current_idx = namespace(val=0) %}
+        {% for l in lesson_list %}
+          {% if l.id == current_lesson.id %}
+            {% set current_idx.val = loop.index0 %}
+          {% endif %}
+        {% endfor %}
+
+        {% if current_idx.val > 0 %}
+        <a href="{{ url_for('learn', section=current_section_key, lesson=lesson_list[current_idx.val - 1].id) }}"
+           class="btn btn-outline btn-sm">
+          <i class="bi bi-chevron-left me-1"></i> Previous
+        </a>
+        {% else %}
+        <div></div>
+        {% endif %}
+
+        {% if current_idx.val < lesson_list|length - 1 %}
+        <a href="{{ url_for('learn', section=current_section_key, lesson=lesson_list[current_idx.val + 1].id) }}"
+           class="btn btn-primary btn-sm">
+          Next <i class="bi bi-chevron-right ms-1"></i>
+        </a>
+        {% else %}
+          {% set section_keys = sections.keys()|list %}
+          {% set curr_sec_idx = namespace(val=0) %}
+          {% for k in section_keys %}
+            {% if k == current_section_key %}{% set curr_sec_idx.val = loop.index0 %}{% endif %}
+          {% endfor %}
+          {% if curr_sec_idx.val < section_keys|length - 1 %}
+          <a href="{{ url_for('learn', section=section_keys[curr_sec_idx.val + 1]) }}"
+             class="btn btn-primary btn-sm">
+            Next Section <i class="bi bi-chevron-right ms-1"></i>
+          </a>
+          {% else %}
+          <span class="badge badge-green" style="padding: 6px 12px; font-weight: 600;"><i class="bi bi-check-circle me-1"></i> Section Complete!</span>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="tutor-card fade-in fade-in-3">
+      <div class="tutor-header">
+        <div class="tutor-icon"><i class="bi bi-stars"></i></div>
+        <div>
+          <div style="font-size:14.5px;font-weight:700;color:var(--text);">AI SQL Tutor</div>
+          <div style="font-size:12px;color:var(--text-soft);">Ask anything about SQL — powered by Gemini or Ollama</div>
+        </div>
+      </div>
+      <div class="tutor-chat" id="tutorChat">
+        <div class="tutor-message" style="background: linear-gradient(135deg, rgba(231,242,239,0.5), rgba(255,255,255,0.3)); border-color: var(--border);">
+          <i class="bi bi-stars" style="color:var(--primary-mid);margin-right:6px;"></i>
+          Hi! I'm your SQL Tutor. Ask me anything about <strong>{{ current_lesson.title }}</strong> or any SQL concept!
+        </div>
+      </div>
+      <div class="tutor-input-row">
+        <textarea class="tutor-input" id="tutorInput" rows="2"
+          placeholder="Ask about this lesson, SQL syntax, errors…"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();askTutor();}"></textarea>
+        <button class="btn btn-primary" onclick="askTutor()" id="tutorBtn" style="padding: 10px 20px; height: 45px; display: flex; align-items: center; gap: 6px;">
+          <i class="bi bi-send"></i> Ask
+        </button>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="lesson-card fade-in fade-in-2">
+      <div class="lesson-body" style="text-align:center;padding:80px 40px;">
+        <i class="bi bi-book" style="font-size:56px;color:var(--border);display:block;margin-bottom:20px;"></i>
+        <h3 style="font-size:22px;font-weight:700;margin-bottom:8px;color:var(--text);">Select a Lesson</h3>
+        <p style="color:var(--text-soft);max-width:360px;margin:0 auto 24px;">Choose a section and lesson from the sidebar to start learning.</p>
+        <a href="{{ url_for('learn', section='beginner', lesson='what-is-db') }}" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:8px; padding:10px 22px;">
+          <i class="bi bi-play-circle"></i> Start from Beginning
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyLearnQuery(btn) {
+  const code = btn.previousElementSibling.textContent.trim();
+  navigator.clipboard.writeText(code);
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy', 2000);
+}
+
+async function askTutor() {
+  const input = document.getElementById('tutorInput');
+  const btn = document.getElementById('tutorBtn');
+  const question = input.value.trim();
+  if (!question) return;
+
+  // Show user bubble
+  const chat = document.getElementById('tutorChat');
+  const userMsg = document.createElement('div');
+  userMsg.className = 'tutor-message';
+  userMsg.style.cssText = 'background:rgba(25,24,59,0.04); border-color:var(--border); margin-left:32px; box-shadow:none;';
+  userMsg.innerHTML = `<div style="display:flex;align-items:start;gap:8px;"><i class="bi bi-person-circle" style="color:var(--text-soft);margin-top:2px;"></i><div>${question}</div></div>`;
+  chat.appendChild(userMsg);
+
+  // Loading state bubble
+  const loadMsg = document.createElement('div');
+  loadMsg.className = 'tutor-message';
+  loadMsg.style.cssText = 'margin-right:32px;';
+  loadMsg.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><i class="bi bi-stars" style="color:var(--primary-mid);"></i><em style="color:var(--text-soft);">Thinking…</em></div>';
+  chat.appendChild(loadMsg);
+  chat.scrollTop = chat.scrollHeight;
+
+  input.value = '';
+  btn.disabled = true;
+
+  try {
+    const r = await fetch('/api/learn/ask-tutor', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        question,
+        context: '{{ current_lesson.title if current_lesson else "" }}'
+      })
+    });
+    const data = await r.json();
+    const answer = data.answer || 'Sorry, I could not generate an answer. Please try again.';
+    // Format response content syntax
+    const formatted = answer
+      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\ **([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+    loadMsg.innerHTML = `<div style="display:flex;align-items:start;gap:8px;"><i class="bi bi-stars" style="color:var(--primary-mid);margin-top:3px;flex-shrink:0;"></i><div>${formatted}</div></div>`;
+  } catch(e) {
+    loadMsg.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><i class="bi bi-exclamation-triangle" style="color:var(--warning);"></i><span style="color:var(--text-soft);">Failed to connect to tutor. Check your status.</span></div>';
+  }
+
+  btn.disabled = false;
+  chat.scrollTop = chat.scrollHeight;
+}
+</script>
+{% endblock %}

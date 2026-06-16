@@ -1,0 +1,821 @@
+{% extends "base.html" %}
+{% block title %}Create Account — SchemaLens{% endblock %}
+{% block auth_content %}
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  /* FORCE ROOT IMMOBILITY */
+  html, body {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    font-family: 'DM Sans', sans-serif;
+    background: #DFEBE8; 
+  }
+  
+  /* GLOBAL BACKGROUND CANVAS */
+  #antigravity-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 10%, rgba(85,108,117,0.25) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 60% at 90% 80%, rgba(134,171,165,0.3) 0%, transparent 60%),
+      #DFEBE8;
+    pointer-events: none;
+  }
+
+  /* ACCORDION CONTAINER LOCKDOWN */
+  .auth-wrap {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    position: relative; 
+    z-index: 1; 
+    overflow: hidden !important;
+  }
+  
+  /* AUTH-LEFT PANEL */
+  .auth-left {
+    background: linear-gradient(150deg, #556C75 0%, #7FA39E 50%, #11102B 100%); 
+    padding: 48px 58px; display: flex; flex-direction: column; justify-content: space-between;
+    color: #F3FAF8; position: relative; overflow: hidden; height: 100%;
+  }
+  #auth-left-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .auth-left::before { content: ''; position: absolute; top: -80px; right: -80px; width: 320px; height: 320px; border-radius: 50%; background: rgba(255,255,255,0.08); pointer-events: none; z-index: 1; }
+  .auth-left::after  { content: ''; position: absolute; bottom: -50px; left: -50px; width: 240px; height: 240px; border-radius: 50%; background: rgba(17,16,43,0.16); pointer-events: none; z-index: 1; }
+  
+  .al-logo-link, .al-hero, .al-features { position: relative; z-index: 2; }
+  .al-logo { display: flex; align-items: center; gap: 11px; }
+  .al-logo-icon { 
+    width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.25); 
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .al-logo-link:hover .al-logo-icon { transform: scale(1.08) rotate(3deg); }
+  .al-logo-icon svg { width: 22px; height: 22px; }
+  .al-logo-text { font-size: 18px; font-weight: 700; letter-spacing: -.4px; color: #FFFFFF; }
+  
+  .al-hero h1 { font-size: 36px; font-weight: 700; line-height: 1.12; letter-spacing: -1.2px; margin-bottom: 14px; color: #FFFFFF; }
+  .al-hero h1 span { color: #A4FFF0; text-shadow: 0 1px 2px rgba(0,0,0,0.15); } 
+  .al-hero p { font-size: 14px; color: #E6F5F2; line-height: 1.65; max-width: 360px; font-weight: 500; } 
+  
+  .al-feat { display: flex; align-items: center; gap: 11px; margin-bottom: 10px; font-size: 13px; color: #FFFFFF; font-weight: 500; transition: transform 0.2s ease; }
+  .al-feat:hover { transform: translateX(4px); }
+  .al-feat-dot { width: 8px; height: 8px; border-radius: 50%; background: #A4FFF0; flex-shrink: 0; }
+  
+  /* RIGHT PANEL INTERNAL SCROLL ISOLATION */
+  .auth-right { 
+    position: relative;
+    background: rgba(255,255,255,0.45); 
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); 
+    height: 100%; 
+    max-height: 100vh; 
+    overflow-y: auto; /* ONLY the right panel's form can scroll if screen height is microscopic */
+    padding: 40px 52px;
+    display: grid;
+    place-items: center;
+  }
+  .auth-box { width: 100%; max-width: 400px; margin: auto 0; }
+  .auth-box h2 { font-size: 26px; font-weight: 700; letter-spacing: -.6px; margin-bottom: 2px; color: #11102B; }
+  .auth-box .sub { font-size: 13.5px; color: #354A54; margin-bottom: 14px; font-weight: 500; } 
+  
+  /* COMPACT INSTRUCTION BOX */
+  .instruction-panel {
+    background: rgba(17, 16, 43, 0.04); border-left: 4px solid #556C75;
+    padding: 10px 12px; border-radius: 4px 8px 8px 4px; margin-bottom: 16px;
+  }
+  .instruction-panel h4 { font-size: 12px; font-weight: 700; color: #11102B; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .instruction-panel ul { list-style: none; padding: 0; margin: 0; }
+  .instruction-panel li { font-size: 11.5px; color: #4A5E68; line-height: 1.4; margin-bottom: 3px; display: flex; align-items: flex-start; gap: 6px; }
+  .instruction-panel li:last-child { margin-bottom: 0; }
+  .instruction-panel li i { color: #556C75; margin-top: 2px; font-size: 10px; }
+
+  /* HEIGHT CONSCIOUS FORM GROUPS */
+  .form-group { margin-bottom: 12px; position: relative; }
+  .form-label { font-size: 11px; font-weight: 700; color: #2B3D46; margin-bottom: 4px; display: block; text-transform: uppercase; letter-spacing: .05em; } 
+  
+  .input-container { position: relative; width: 100%; }
+  .form-input { 
+    width: 100%; padding: 10px 14px; border: 2px solid transparent; border-radius: 10px; 
+    font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #11102B; background: #F7F9FB; outline: none; 
+    box-shadow: inset 0 0 0 1px rgba(97, 125, 138, 0.14); transition: all 0.2s ease; 
+  }
+  .form-input:focus { box-shadow: 0 0 0 3px rgba(17,16,43,0.12); transform: translateY(-1px); background: #ffffff; }
+  .form-input.is-invalid { border-color: #E05C5C !important; background-color: #FFF5F5; }
+  .form-input.is-valid { border-color: #2E8B57 !important; background-color: #F4FAF6; }
+  
+  .password-toggle { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #617D8A; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; padding: 4px; z-index: 5; }
+  .form-input-has-adornment { padding-right: 44px; }
+  
+  .btn-submit { 
+    width: 100%; padding: 12px; background: linear-gradient(135deg, #11102B, #354A54); color: #FFFFFF; border: none; border-radius: 10px; 
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s cubic-bezier(0.16, 1, 0.3, 1); margin-top: 4px; box-shadow: 0 6px 20px rgba(17,16,43,0.25); 
+  }
+  .btn-submit:hover { background: linear-gradient(135deg, #1A1942, #415A66); box-shadow: 0 8px 28px rgba(17,16,43,0.35); transform: translateY(-2px); }
+  .btn-submit:active { transform: translateY(0) scale(0.98); }
+  
+  .flash-local { padding: 10px 14px; border-radius: 9px; font-size: 13px; display: flex; align-items: center; gap: 9px; margin-bottom: 12px; font-weight: 500; }
+  .flash-error-local { background: #FEE2E2; color: #7F1D1D; border: 1px solid #FCA5A5; } 
+  .flash-success-local { background: #D1FAE5; color: #064E3B; border: 1px solid #6EE7B7; } 
+
+  .link-interactive { color: #11102B; font-weight: 700; text-decoration: none; position: relative; display: inline-block; }
+  .link-interactive::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 1.5px; background-color: #11102B; transition: transform 0.2s ease; transform-origin: right; }
+  .link-interactive:hover::after { transform: scaleX(0); }
+
+  .field-hint-box { margin-top: 4px; padding: 8px 10px; background: #FFF5F5; border-radius: 8px; border-left: 3px solid #E05C5C; }
+  .field-hint-text { font-size: 11.5px; color: #B91C1C; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .strength-grid { margin-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: rgba(17,16,43,0.03); padding: 8px; border-radius: 8px; }
+  .strength-item { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+
+  /* ────────────────────────────────────────────────────────
+     AGREEMENT POPUP OVERLAY MODAL STYLES
+     ──────────────────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(17, 16, 43, 0.45);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    z-index: 9999; display: grid; place-items: center; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+  }
+  .modal-overlay.is-active { opacity: 1; pointer-events: auto; }
+
+  .modal-container {
+    background: #FFFFFF; width: 100%; max-width: 640px; max-height: 85vh;
+    border-radius: 16px; border: 1px solid rgba(97, 125, 138, 0.2);
+    box-shadow: 0 20px 50px rgba(17, 16, 43, 0.3);
+    display: flex; flex-direction: column; overflow: hidden;
+    transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .modal-overlay.is-active .modal-container { transform: translateY(0); }
+
+  .modal-header {
+    padding: 20px 24px; border-bottom: 1px solid rgba(97, 125, 138, 0.15);
+    display: flex; align-items: center; justify-content: space-between; background: #F7F9FB;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; color: #11102B; display: flex; align-items: center; gap: 10px; }
+  .modal-close-btn { background: none; border: none; font-size: 20px; color: #617D8A; cursor: pointer; padding: 4px; transition: color 0.2s; }
+  .modal-close-btn:hover { color: #11102B; }
+
+  .modal-body { padding: 24px; overflow-y: auto; background: #FFFFFF; }
+
+  .policy-section { margin-bottom: 24px; }
+  .policy-section-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: #11102B; margin-bottom: 12px; }
+  .policy-section-title .icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+  .policy-list { list-style: none; padding: 0; margin: 0; }
+  .policy-list li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; font-size: 13px; color: #4A5E68; line-height: 1.6; }
+  .policy-list li:last-child { margin-bottom: 0; }
+  .policy-list li .num { font-size: 11px; font-weight: 700; color: #556C75; background: rgba(85,108,117,0.1); min-width: 20px; height: 20px; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .policy-list li strong { color: #11102B; font-weight: 600; }
+
+  .consent-bullets { list-style: none; padding: 0; margin: 12px 0; }
+  .consent-bullets li { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; font-size: 13px; color: #4A5E68; }
+  .consent-bullets li i { color: #2E8B57; font-size: 14px; margin-top: 1px; }
+
+  .modal-footer {
+    padding: 16px 24px; border-top: 1px solid rgba(97, 125, 138, 0.15);
+    background: #F7F9FB; display: flex; gap: 12px; justify-content: flex-end;
+  }
+  .btn-modal-secondary { padding: 10px 16px; background: #E6F0EE; color: #354A54; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+  .btn-modal-secondary:hover { background: #D6E5E2; }
+  .btn-modal-primary { padding: 10px 20px; background: linear-gradient(135deg, #11102B, #354A54); color: #FFFFFF; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; display: flex; align-items: center; gap: 8px; }
+  .btn-modal-primary:hover { opacity: 0.9; }
+
+  /* MOBILE BACKOUT CONFIG */
+  @media (max-width: 768px) { 
+    html, body { overflow-y: auto !important; height: auto !important; max-height: none !important; }
+    .auth-wrap { grid-template-columns: 1fr; height: auto !important; max-height: none !important; overflow: visible !important; } 
+    .auth-left { display: none; } 
+    .auth-right { height: auto; max-height: none; padding: 40px 24px; overflow: visible; }
+  }
+</style>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<canvas id="antigravity-canvas"></canvas>
+
+<div class="auth-wrap">
+  <div class="auth-left">
+    <canvas id="auth-left-canvas"></canvas>
+    
+    <a href="{{ url_for('landing') }}" class="al-logo-link" style="text-decoration:none;">
+      <div class="al-logo">
+        <div class="al-logo-icon">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="50" cy="28" rx="26" ry="9" fill="#A1C2BD" opacity="0.8"/>
+            <rect x="24" y="28" width="52" height="38" fill="#A1C2BD" opacity="0.8"/>
+            <ellipse cx="50" cy="66" rx="26" ry="9" fill="#A1C2BD" opacity="0.8"/>
+            <circle cx="50" cy="50" r="22" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="28" y1="50" x2="42" y2="50" stroke="#FFFFFF" stroke-width="2.5"/>
+            <line x1="58" y1="50" x2="72" y2="50" stroke="#FFFFFF" stroke-width="2.5"/>
+            <circle cx="50" cy="50" r="5" fill="#FFFFFF"/>
+          </svg>
+        </div>
+        <span class="al-logo-text">SchemaLens</span>
+      </div>
+    </a>
+    <div class="al-hero">
+      <h1 class="stagger-reveal">From Schema Image<br>to <span>Perfect SQL</span><br>in Seconds</h1>
+      <p class="stagger-reveal" style="animation-delay: 0.1s;">Upload your ER diagram, describe what you need in plain English, and get optimized SQL queries instantly.</p>
+    </div>
+    <div class="al-features">
+      <div class="al-feat stagger-reveal" style="animation-delay: 0.2s;"><div class="al-feat-dot"></div> OCR-powered schema extraction</div>
+      <div class="al-feat stagger-reveal" style="animation-delay: 0.25s;"><div class="al-feat-dot"></div> Gemini AI SQL generation</div>
+      <div class="al-feat stagger-reveal" style="animation-delay: 0.3s;"><div class="al-feat-dot"></div> Full history &amp; analytics</div>
+    </div>
+  </div>
+  
+  <div class="auth-right">
+    <div class="auth-box fade-in">
+      <h2>Create your account</h2>
+      <p class="sub">Get started free — no credit card required</p>
+
+      <div class="instruction-panel">
+        <h4><i class="bi bi-shield-lock-fill"></i> Registration Requirements</h4>
+        <ul>
+          <li><i class="bi bi-circle-fill"></i> <strong>Username:</strong> Only alphabetic characters are allowed (A-Z, a-z). No numbers, spaces, or symbols.</li>
+          <li><i class="bi bi-circle-fill"></i> <strong>Password:</strong> Minimum 8 characters containing at least 1 uppercase, 1 lowercase, 1 number, and 1 special symbol.</li>
+        </ul>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+          <div class="flash-local flash-{{ 'error-local' if cat=='error' else 'success-local' }}">
+            <i class="bi bi-{% if cat=='success' %}check-circle-fill{% else %}x-circle-fill{% endif %}"></i>{{ msg }}
+          </div>
+        {% endfor %}{% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('signup') }}" id="signupForm" novalidate>
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <div class="input-container">
+            <input type="text" name="name" id="nameInput" class="form-input" placeholder="e.g. Bronny" required autocomplete="username">
+          </div>
+          <div class="field-hint-box" id="nameHint" style="display:none;">
+            <div class="field-hint-text">
+              <i class="bi bi-exclamation-triangle-fill"></i> 
+              Letters only (A–Z, a–z). No numbers, spaces, symbols, or special characters.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <div class="input-container">
+            <input type="email" name="email" id="emailInput" class="form-input" placeholder="bronnyjames@example.com" required autocomplete="email">
+          </div>
+          <div class="field-hint-box" id="emailHint" style="display:none;">
+            <div class="field-hint-text">
+              <i class="bi bi-exclamation-triangle-fill"></i> Please enter a valid email address.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-container">
+            <input type="password" name="password" id="passwordInput" class="form-input form-input-has-adornment" placeholder="Create a secure password" required minlength="8" autocomplete="new-password">
+            <button type="button" class="password-toggle" data-toggle-for="passwordInput" aria-label="Toggle password visibility">
+              <i class="bi bi-eye toggle-icon"></i>
+            </button>
+          </div>
+          <div id="passwordStrength" class="strength-grid" style="display:none;">
+            <div class="strength-item" id="req-len" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 8+ Characters</div>
+            <div class="strength-item" id="req-upper" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 1 Uppercase</div>
+            <div class="strength-item" id="req-lower" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 1 Lowercase</div>
+            <div class="strength-item" id="req-num" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 1 Number</div>
+            <div class="strength-item" id="req-sym" style="color: #e05c5c; grid-column: span 2;"><i class="bi bi-x-circle-fill"></i> 1 Special Character (!@#$%^&*)</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Confirm password</label>
+          <div class="input-container">
+            <input type="password" name="confirm_password" id="confirmPasswordInput" class="form-input form-input-has-adornment" placeholder="Repeat your password" required autocomplete="new-password">
+            <button type="button" class="password-toggle" data-toggle-for="confirmPasswordInput" aria-label="Toggle password visibility">
+              <i class="bi bi-eye toggle-icon"></i>
+            </button>
+          </div>
+          <div class="field-hint-box" id="confirmHint" style="display:none;">
+            <div class="field-hint-text">
+              <i class="bi bi-exclamation-triangle-fill"></i> Passwords do not match.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:20px;">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:#354A54;font-weight:500;line-height:1.5;">
+            <input type="checkbox" name="agreement_accepted" id="agreementCheck"
+                   style="margin-top:2px;accent-color:#2E8B57;width:16px;height:16px;flex-shrink:0;" required>
+            <span>
+              I have read and agree to the
+              <a href="#" id="openAgreementLink" style="color:#2E8B57;text-decoration:underline;">Terms of Use &amp; User Agreement</a>.
+            </span>
+          </label>
+          <div class="field-hint-box" id="agreementHint" style="display:none; margin-left:26px;">
+            <div class="field-hint-text">
+              <i class="bi bi-exclamation-triangle-fill"></i> You must accept the agreement to continue.
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">Get Started Free →</button>
+      </form>
+
+      <p style="text-align:center;margin-top:22px;font-size:13.5px;color:#354A54;font-weight:500;">
+        Already have an account?
+        <a href="{{ url_for('login') }}" class="link-interactive">Sign In</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- AGREEMENT OVERLAY MODAL -->
+<div class="modal-overlay" id="agreementModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <div class="modal-title">
+        <i class="bi bi-shield-check" style="color: #556C75;"></i>
+        <span>Terms &amp; Privacy Agreement</span>
+      </div>
+      <button type="button" class="modal-close-btn" id="closeModalBtn"><i class="bi bi-x-lg"></i></button>
+    </div>
+    
+    <div class="modal-body">
+      <p style="font-size: 13.5px; color: #4A5E68; margin-bottom: 20px; line-height: 1.5;">Please read and accept our policies to continue creating your SchemaLens account.</p>
+      
+      <!-- Section 1: Terms -->
+      <div class="policy-section">
+        <div class="policy-section-title">
+          <div class="icon" style="background: rgba(85,108,117,0.15); color: #556C75;">
+            <i class="bi bi-file-earmark-text"></i>
+          </div>
+          Terms of Service
+        </div>
+        <ol class="policy-list">
+          <li><div class="num">1</div><span><strong>Use of Service.</strong> SchemaLens provides AI-powered SQL query generation from natural language and uploaded schema images. Results are suggestions only and are not professional database advice.</span></li>
+          <li><div class="num">2</div><span><strong>User Conduct.</strong> You agree not to misuse the service, attempt to reverse-engineer the application, use it for unlawful purposes, or attempt to circumvent security measures.</span></li>
+          <li><div class="num">3</div><span><strong>Intellectual Property.</strong> All content, algorithms, and UI designs within SchemaLens are proprietary. Unauthorized reproduction or distribution is prohibited.</span></li>
+          <li><div class="num">4</div><span><strong>AI Limitations.</strong> Generated SQL queries are AI-produced suggestions. Always review and validate SQL before executing against production databases. SchemaLens is not liable for data loss from executed queries.</span></li>
+          <li><div class="num">5</div><span><strong>Disclaimer.</strong> The service is provided "as-is" without warranties. We do not guarantee 100% accuracy of schema detection or SQL generation.</span></li>
+        </ol>
+      </div>
+
+      <!-- Section 2: Privacy -->
+      <div class="policy-section">
+        <div class="policy-section-title">
+          <div class="icon" style="background: rgba(46,139,87,0.1); color: #2E8B57;">
+            <i class="bi bi-shield-lock"></i>
+          </div>
+          Privacy Policy
+        </div>
+        <ol class="policy-list">
+          <li><div class="num">1</div><span><strong>Account Data.</strong> We collect your name, email address, and hashed password to manage your account. Passwords are secured using industry-standard hashing (scrypt).</span></li>
+          <li><div class="num">2</div><span><strong>Uploaded Images.</strong> Schema images you upload are stored on our server only to enable OCR processing and schema detection. Images are not shared with third parties.</span></li>
+          <li><div class="num">3</div><span><strong>API Keys.</strong> Your Gemini API key is stored encrypted in your account and is only used to call the Gemini API on your behalf. It is never logged or shared.</span></li>
+          <li><div class="num">4</div><span><strong>Query History.</strong> Your generated SQL queries and natural language inputs are stored to provide history and analytics features. Only you can view this data.</span></li>
+        </ol>
+      </div>
+
+      <!-- Section 3: Consent -->
+      <div class="policy-section">
+        <div class="policy-section-title">
+          <div class="icon" style="background: rgba(224,92,92,0.1); color: #E05C5C;">
+            <i class="bi bi-clipboard-data"></i>
+          </div>
+          Data Collection Consent
+        </div>
+        <div style="font-size: 13px; color: #4A5E68; line-height: 1.6;">
+          <p>By accepting this agreement, you consent to the following data collection activities:</p>
+          <ul class="consent-bullets">
+            <li><i class="bi bi-check-circle-fill"></i><span>Account information (name, email) to identify your account.</span></li>
+            <li><i class="bi bi-check-circle-fill"></i><span>Uploaded schema images for OCR and AI analysis.</span></li>
+            <li><i class="bi bi-check-circle-fill"></i><span>Query history to power dashboard history features.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-modal-secondary" id="declineModalBtn">Decline</button>
+      <button type="button" class="btn-modal-primary" id="acceptModalBtn">
+        <i class="bi bi-patch-check-fill"></i> I Agree &amp; Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+.fade-in { animation: fadeIn .4s cubic-bezier(0.215, 0.61, 0.355, 1) both; }
+.stagger-reveal { opacity: 0; transform: translateY(16px); animation: fadeIn .5s cubic-bezier(0.215, 0.61, 0.355, 1) forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // --- PASSWORD FIELDS VISIBILITY DUAL-MAPPING CONTROLLER ---
+  const toggles = document.querySelectorAll('.password-toggle');
+  toggles.forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const targetId = toggle.getAttribute('data-toggle-for');
+      const targetInput = document.getElementById(targetId);
+      const icon = toggle.querySelector('.toggle-icon');
+      
+      if (targetInput && icon) {
+        const isPassword = targetInput.type === 'password';
+        targetInput.type = isPassword ? 'text' : 'password';
+        icon.className = isPassword ? 'bi bi-eye-slash toggle-icon' : 'bi bi-eye toggle-icon';
+      }
+    });
+  });
+
+  // --- ENGINE 1: GLOBAL BACKGROUND PARTICLES ---
+  const mainCanvas = document.getElementById('antigravity-canvas');
+  const mainCtx = mainCanvas.getContext('2d');
+  let mainParticles = [];
+  let globalMouse = { x: null, y: null, radius: 140 };
+
+  function resizeMainCanvas() {
+    mainCanvas.width = window.innerWidth;
+    mainCanvas.height = window.innerHeight;
+    initMainParticles();
+  }
+
+  class MainParticle {
+    constructor() {
+      this.x = Math.random() * mainCanvas.width;
+      this.y = Math.random() * mainCanvas.height;
+      this.width = 2 + Math.random() * 2;
+      this.height = 6 + Math.random() * 10;
+      this.baseSpeedY = -(0.2 + Math.random() * 0.4);
+      this.baseSpeedX = (Math.random() - 0.5) * 0.15;
+      this.vx = this.baseSpeedX;
+      this.vy = this.baseSpeedY;
+      this.opacity = 0.12 + Math.random() * 0.25;
+      const colors = ['rgba(112, 137, 147, ', 'rgba(161, 194, 189, '];
+      this.colorBase = colors[Math.floor(Math.random() * colors.length)];
+    }
+    draw() {
+      mainCtx.save();
+      mainCtx.beginPath();
+      mainCtx.translate(this.x, this.y);
+      const angle = Math.atan2(this.vy, this.vx) + Math.PI / 2;
+      mainCtx.rotate(angle);
+      mainCtx.roundRect(-this.width / 2, -this.height / 2, this.width, this.height, 2);
+      mainCtx.fillStyle = `${this.colorBase}${this.opacity})`;
+      mainCtx.fill();
+      mainCtx.restore();
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      if (this.y < -20) { this.y = mainCanvas.height + 20; this.x = Math.random() * mainCanvas.width; }
+      if (this.x < -20) this.x = mainCanvas.width + 20;
+      if (this.x > mainCanvas.width + 20) this.x = -20;
+
+      if (globalMouse.x !== null && globalMouse.y !== null) {
+        let dx = this.x - globalMouse.x;
+        let dy = this.y - globalMouse.y;
+        let distance = Math.hypot(dx, dy);
+        if (distance < globalMouse.radius) {
+          let force = (globalMouse.radius - distance) / globalMouse.radius;
+          this.vx += (dx / distance) * force * 4;
+          this.vy += (dy / distance) * force * 4;
+        } else {
+          this.vx += (this.baseSpeedX - this.vx) * 0.04;
+          this.vy += (this.baseSpeedY - this.vy) * 0.04;
+        }
+      } else {
+        this.vx += (this.baseSpeedX - this.vx) * 0.04;
+        this.vy += (this.baseSpeedY - this.vy) * 0.04;
+      }
+    }
+  }
+
+  function initMainParticles() {
+    mainParticles = [];
+    const count = Math.floor((mainCanvas.width * mainCanvas.height) / 11000);
+    for (let i = 0; i < count; i++) mainParticles.push(new MainParticle());
+  }
+
+  // --- ENGINE 2: AUTH-LEFT NESTED INTERACTIVE CONSTELLATION MAP ---
+  const leftCanvas = document.getElementById('auth-left-canvas');
+  const leftCtx = leftCanvas.getContext('2d');
+  const leftSection = document.querySelector('.auth-left');
+  let leftParticles = [];
+  let leftMouse = { x: null, y: null, radius: 160 };
+
+  function resizeLeftCanvas() {
+    const box = leftSection.getBoundingClientRect();
+    leftCanvas.width = box.width;
+    leftCanvas.height = box.height;
+    initLeftParticles();
+  }
+
+  class LeftParticle {
+    constructor() {
+      this.x = Math.random() * leftCanvas.width;
+      this.y = Math.random() * leftCanvas.height;
+      this.radius = 1.5 + Math.random() * 2;
+      this.vx = (Math.random() - 0.5) * 0.6;
+      this.vy = (Math.random() - 0.5) * 0.6;
+      this.opacity = 0.2 + Math.random() * 0.4;
+    }
+    draw() {
+      leftCtx.beginPath();
+      leftCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      leftCtx.fillStyle = `rgba(164, 255, 240, ${this.opacity})`;
+      leftCtx.fill();
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      if (this.x < 0 || this.x > leftCanvas.width) this.vx *= -1;
+      if (this.y < 0 || this.y > leftCanvas.height) this.vy *= -1;
+
+      if (leftMouse.x !== null && leftMouse.y !== null) {
+        let dx = this.x - leftMouse.x;
+        let dy = this.y - leftMouse.y;
+        let distance = Math.hypot(dx, dy);
+        if (distance < leftMouse.radius) {
+          let force = (leftMouse.radius - distance) / leftMouse.radius;
+          this.x -= (dx / distance) * force * 0.8;
+          this.y -= (dy / distance) * force * 0.8;
+        }
+      }
+    }
+  }
+
+  function initLeftParticles() {
+    leftParticles = [];
+    const count = Math.floor((leftCanvas.width * leftCanvas.height) / 7000);
+    for (let i = 0; i < count; i++) leftParticles.push(new LeftParticle());
+  }
+
+  function drawConnections() {
+    for (let i = 0; i < leftParticles.length; i++) {
+      for (let j = i + 1; j < leftParticles.length; j++) {
+        let dx = leftParticles[i].x - leftParticles[j].x;
+        let dy = leftParticles[i].y - leftParticles[j].y;
+        let dist = Math.hypot(dx, dy);
+
+        if (dist < 95) {
+          leftCtx.beginPath();
+          leftCtx.moveTo(leftParticles[i].x, leftParticles[i].y);
+          leftCtx.lineTo(leftParticles[j].x, leftParticles[j].y);
+          let alpha = (1 - (dist / 95)) * 0.15;
+          leftCtx.strokeStyle = `rgba(164, 255, 240, ${alpha})`;
+          leftCtx.lineWidth = 1;
+          leftCtx.stroke();
+        }
+      }
+    }
+  }
+
+  // --- SYNCHRONIZED TICK RATE MASTER DISPATCHER LOOP ---
+  function updateAndRender() {
+    mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+    for (let i = 0; i < mainParticles.length; i++) {
+      mainParticles[i].update();
+      mainParticles[i].draw();
+    }
+
+    if (window.getComputedStyle(leftSection).display !== 'none') {
+      leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
+      for (let i = 0; i < leftParticles.length; i++) {
+        leftParticles[i].update();
+        leftParticles[i].draw();
+      }
+      drawConnections();
+    }
+    
+    requestAnimationFrame(updateAndRender);
+  }
+
+  // --- MOUSE COORDINATE RE-MAPPING EVENTS ---
+  window.addEventListener('mousemove', (e) => {
+    globalMouse.x = e.clientX;
+    globalMouse.y = e.clientY;
+
+    if (window.getComputedStyle(leftSection).display !== 'none') {
+      const box = leftSection.getBoundingClientRect();
+      if (e.clientX >= box.left && e.clientX <= box.right && e.clientY >= box.top && e.clientY <= box.bottom) {
+        leftMouse.x = e.clientX - box.left;
+        leftMouse.y = e.clientY - box.top;
+      } else {
+        leftMouse.x = null; leftMouse.y = null;
+      }
+    }
+  });
+
+  window.addEventListener('mouseleave', () => {
+    globalMouse.x = null; globalMouse.y = null;
+    leftMouse.x = null; leftMouse.y = null;
+  });
+
+  window.addEventListener('resize', () => {
+    resizeMainCanvas();
+    if (window.getComputedStyle(leftSection).display !== 'none') {
+      resizeLeftCanvas();
+    }
+  });
+
+  resizeMainCanvas();
+  if (window.getComputedStyle(leftSection).display !== 'none') {
+    resizeLeftCanvas();
+  }
+  updateAndRender();
+
+  // ── ADVANCED INTERACTIVE REGISTRATION VALIDATION ENGINE ─────────────────
+  const signupForm    = document.getElementById('signupForm');
+  const nameInput     = document.getElementById('nameInput');
+  const emailInput    = document.getElementById('emailInput');
+  const passwordInput = document.getElementById('passwordInput');
+  const confirmInput  = document.getElementById('confirmPasswordInput');
+  const agreementChk  = document.getElementById('agreementCheck');
+
+  // --- POPUP MODAL HOOK ENGINE ---
+  const agreementModal  = document.getElementById('agreementModal');
+  const openAgreement   = document.getElementById('openAgreementLink');
+  const closeModalBtn   = document.getElementById('closeModalBtn');
+  const declineModalBtn = document.getElementById('declineModalBtn');
+  const acceptModalBtn  = document.getElementById('acceptModalBtn');
+
+  openAgreement.addEventListener('click', (e) => {
+    e.preventDefault();
+    agreementModal.classList.add('is-active');
+  });
+
+  const hideAgreementModal = () => {
+    agreementModal.classList.remove('is-active');
+  };
+
+  closeModalBtn.addEventListener('click', hideAgreementModal);
+  declineModalBtn.addEventListener('click', () => {
+    agreementChk.checked = false;
+    document.getElementById('agreementHint').style.display = 'block';
+    hideAgreementModal();
+  });
+
+  acceptModalBtn.addEventListener('click', () => {
+    agreementChk.checked = true;
+    document.getElementById('agreementHint').style.display = 'none';
+    hideAgreementModal();
+  });
+
+  // Close modal on gray overlay backdrop click
+  agreementModal.addEventListener('click', (e) => {
+    if (e.target === agreementModal) hideAgreementModal();
+  });
+
+  // Input Utility Status Cleaners
+  const setVisualState = (inputEl, hintEl, isValid, isBlank = false) => {
+    if (isBlank) {
+      inputEl.classList.remove('is-valid', 'is-invalid');
+      if(hintEl) hintEl.style.display = 'none';
+      return;
+    }
+    if (isValid) {
+      inputEl.classList.remove('is-invalid');
+      inputEl.classList.add('is-valid');
+      if(hintEl) hintEl.style.display = 'none';
+    } else {
+      inputEl.classList.remove('is-valid');
+      inputEl.classList.add('is-invalid');
+      if(hintEl) hintEl.style.display = 'block';
+    }
+  };
+
+  // 1. Username Validation: Alphabetic (A-Z, a-z) Only
+const validateName = () => {
+  const val = nameInput.value;
+  if (!val) {
+    setVisualState(nameInput, document.getElementById('nameHint'), false, true);
+    return false;
+  }
+  // Added "\s" to the regular expression to allow spacing inputs
+  const isValid = /^[A-Za-z\s]+$/.test(val) && val.trim().length > 0;
+  setVisualState(nameInput, document.getElementById('nameHint'), isValid);
+  return isValid;
+};
+  nameInput.addEventListener('input', validateName);
+  nameInput.addEventListener('blur', validateName);
+
+  // 2. Email Validation Structure Helper
+  const validateEmail = () => {
+    const val = emailInput.value;
+    if (!val) {
+      setVisualState(emailInput, document.getElementById('emailHint'), false, true);
+      return false;
+    }
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    setVisualState(emailInput, document.getElementById('emailHint'), isValid);
+    return isValid;
+  };
+  emailInput.addEventListener('input', validateEmail);
+  emailInput.addEventListener('blur', validateEmail);
+
+  // 3. Password Sophistication Metrics
+  const validatePassword = () => {
+    const v = passwordInput.value;
+    const box = document.getElementById('passwordStrength');
+    
+    if (!v) {
+      box.style.display = 'none';
+      passwordInput.classList.remove('is-valid', 'is-invalid');
+      return false;
+    }
+    
+    box.style.display = 'grid';
+    
+    const criteria = {
+      'req-len':   v.length >= 8,
+      'req-upper': /[A-Z]/.test(v),
+      'req-lower': /[a-z]/.test(v),
+      'req-num':   /\d/.test(v),
+      'req-sym':   /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?`~]/.test(v)
+    };
+
+    let allValid = true;
+    Object.keys(criteria).forEach(id => {
+      const pass = criteria[id];
+      const el = document.getElementById(id);
+      const text = el.textContent.replace(/[✓✗]\s*/, '');
+      
+      if (pass) {
+        el.innerHTML = `<i class="bi bi-check-circle-fill"></i> ${text}`;
+        el.style.color = '#2E8B57';
+      } else {
+        el.innerHTML = `<i class="bi bi-x-circle-fill"></i> ${text}`;
+        el.style.color = '#e05c5c';
+        allValid = false;
+      }
+    });
+
+    setVisualState(passwordInput, null, allValid);
+    // Cascade verify confirmation field matching if it contains text
+    if (confirmInput.value) validateConfirm();
+    
+    return allValid;
+  };
+  passwordInput.addEventListener('input', validatePassword);
+
+  // 4. Confirm Password Match Helper
+  const validateConfirm = () => {
+    const val = confirmInput.value;
+    if (!val) {
+      setVisualState(confirmInput, document.getElementById('confirmHint'), false, true);
+      return false;
+    }
+    const isMatch = val === passwordInput.value;
+    setVisualState(confirmInput, document.getElementById('confirmHint'), isMatch);
+    return isMatch;
+  };
+  confirmInput.addEventListener('input', validateConfirm);
+  confirmInput.addEventListener('blur', validateConfirm);
+
+  // 5. Terms Agreement Change Hook
+  agreementChk.addEventListener('change', () => {
+    const isChecked = agreementChk.checked;
+    document.getElementById('agreementHint').style.display = isChecked ? 'none' : 'block';
+  });
+
+  // 6. Form Submission Gateway interceptor
+  signupForm.addEventListener('submit', (e) => {
+    const isNameValid = validateName();
+    const isEmailValid = validateEmail();
+    const isPasswordValid = validatePassword();
+    const isConfirmValid = validateConfirm();
+    const isAgreementChecked = agreementChk.checked;
+
+    if (!isAgreementChecked) {
+      document.getElementById('agreementHint').style.display = 'block';
+    }
+
+    // Intercept form dispatch if validation fails
+    if (!isNameValid || !isEmailValid || !isPasswordValid || !isConfirmValid || !isAgreementChecked) {
+      e.preventDefault();
+      
+      // Dynamic fallback focus scrolling layout positioning
+      const firstError = document.querySelector('.form-input.is-invalid, #agreementCheck:invalid');
+      if (firstError) {
+        firstError.focus();
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

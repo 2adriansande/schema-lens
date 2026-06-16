@@ -1,0 +1,1178 @@
+{% extends "base.html" %}
+{% block title %}AI Query Generator — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.page-head { margin-bottom: 26px; }
+.page-head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 5px; }
+.page-head p  { font-size: 14px; color: var(--text-soft); }
+
+.qg-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+
+.query-card {
+  background: var(--card-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; box-shadow: var(--shadow);
+}
+.qc-header {
+  padding: 16px 22px; display: flex; align-items: center; gap: 9px;
+  background: linear-gradient(135deg, rgba(231,242,239,0.8), rgba(161,194,189,0.2));
+  border-bottom: 1px solid var(--border);
+}
+.qc-header-icon { color: var(--primary-mid); font-size: 16px; }
+.qc-header-title { font-size: 14px; font-weight: 700; color: var(--primary); }
+.qc-header-sub   { font-size: 12px; color: var(--text-soft); margin-top: 1px; }
+.qc-body { padding: 22px; }
+.describe-area {
+  width: 100%; border: none; outline: none; resize: none;
+  font-family: var(--font); font-size: 14px; color: var(--text);
+  line-height: 1.7; min-height: 120px; background: transparent;
+}
+.describe-area::placeholder { color: var(--primary-light); }
+.qc-footer {
+  padding: 13px 22px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(255,255,255,0.3);
+}
+.schema-pill { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-soft); }
+.schema-pill select {
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 5px 10px; font-family: var(--font); font-size: 12.5px;
+  color: var(--text); background: rgba(255,255,255,0.8); outline: none;
+  transition: border-color .2s;
+}
+.schema-pill select:focus { border-color: var(--primary-light); }
+.gen-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  color: var(--primary-xlight); border: none; border-radius: var(--radius-sm);
+  padding: 10px 22px; font-family: var(--font); font-size: 13.5px; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 4px 14px rgba(25,24,59,0.2);
+}
+.gen-btn:hover { box-shadow: 0 6px 20px rgba(25,24,59,0.3); transform: translateY(-1px); }
+.gen-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.output-area { margin-top: 20px; }
+.output-placeholder {
+  text-align: center; padding: 52px 24px;
+  background: var(--card-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.output-placeholder i { font-size: 40px; opacity: .2; display: block; margin-bottom: 12px; }
+.output-placeholder p { font-size: 13.5px; color: var(--text-soft); }
+
+/* Feature 2: Explanation panel */
+.explanation-panel {
+  background: linear-gradient(135deg, rgba(231,242,239,0.7), rgba(255,255,255,0.5));
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 22px; margin-top: 16px;
+  box-shadow: var(--shadow);
+}
+.explanation-panel-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 9px; display: flex; align-items: center; gap: 7px; }
+.explanation-text { font-size: 14px; color: var(--text-soft); line-height: 1.75; }
+
+/* Feature 4: Accuracy panel */
+.accuracy-panel {
+  background: var(--card-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 22px; margin-top: 16px;
+  box-shadow: var(--shadow);
+}
+.accuracy-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.accuracy-score-circle {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-weight: 700; flex-shrink: 0;
+  position: relative;
+}
+.accuracy-score-circle .score-num { font-size: 18px; line-height: 1; }
+.accuracy-score-circle .score-label { font-size: 9px; opacity: .7; }
+.score-excellent { background: rgba(16,185,129,0.12); color: #059669; border: 2px solid rgba(16,185,129,0.3); }
+.score-good      { background: rgba(161,194,189,0.2); color: var(--primary); border: 2px solid var(--border); }
+.score-fair      { background: rgba(245,158,11,0.12); color: #d97706; border: 2px solid rgba(245,158,11,0.25); }
+.score-review    { background: rgba(212,24,61,0.1); color: var(--danger); border: 2px solid rgba(212,24,61,0.2); }
+
+.accuracy-bar-bg { background: rgba(161,194,189,0.2); border-radius: 100px; height: 6px; overflow: hidden; margin-bottom: 12px; }
+.accuracy-bar-fill { height: 100%; border-radius: 100px; transition: width .8s ease; }
+
+.issue-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 12px; border-radius: var(--radius-sm);
+  font-size: 13px; margin-bottom: 6px;
+  background: rgba(212,24,61,0.06); border: 1px solid rgba(212,24,61,0.12);
+  color: #7f1d1d;
+}
+.suggestion-item-eval {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 12px; border-radius: var(--radius-sm);
+  font-size: 13px; margin-bottom: 6px;
+  background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15);
+  color: #78350f;
+}
+
+/* Feature 3: Conversation refinement */
+.conversation-panel {
+  background: var(--card-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; margin-top: 16px; box-shadow: var(--shadow);
+}
+.conv-messages {
+  padding: 16px; max-height: 280px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.msg-bubble {
+  padding: 10px 14px; border-radius: var(--radius-sm); max-width: 90%; font-size: 13px; line-height: 1.55;
+}
+.msg-bubble.user {
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  color: var(--primary-xlight); align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+.msg-bubble.assistant {
+  background: rgba(255,255,255,0.8); color: var(--text); align-self: flex-start;
+  border: 1px solid var(--border); border-bottom-left-radius: 4px;
+  font-family: var(--mono); font-size: 11.5px; white-space: pre-wrap;
+}
+.conv-input-row {
+  display: flex; gap: 8px; padding: 12px 16px;
+  border-top: 1px solid var(--border); background: rgba(255,255,255,0.3);
+}
+.conv-input {
+  flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 9px 14px; font-family: var(--font); font-size: 13.5px; color: var(--text);
+  background: rgba(255,255,255,0.8); outline: none; transition: border-color .2s;
+}
+.conv-input:focus { border-color: var(--primary-light); background: #fff; }
+
+/* Sidebar Layout */
+.qs-card {
+  background: var(--card-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 20px; box-shadow: var(--shadow); overflow: hidden;
+}
+.qs-header {
+  padding: 15px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13.5px; font-weight: 700; color: var(--text);
+}
+.qs-clear { margin-left: auto; font-size: 12px; color: var(--text-soft); cursor: pointer; font-weight: 500; border: none; background: none; transition: color .15s; }
+.qs-clear:hover { color: var(--primary); }
+.suggestion-item {
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text-soft); cursor: pointer;
+  transition: all .15s; line-height: 1.5;
+}
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover { background: rgba(255,255,255,0.8); color: var(--text); padding-left: 22px; }
+.pro-tips {
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  border-radius: var(--radius); padding: 18px; color: var(--primary-xlight);
+  margin-bottom: 20px; box-shadow: var(--shadow);
+}
+.pt-header { display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:700; margin-bottom:11px; }
+.pt-header i { color: #fcd34d; }
+.pt-list { list-style: none; }
+.pt-list li { font-size: 13px; color: rgba(231,242,239,.88); padding: 4px 0; display: flex; align-items: flex-start; gap: 7px; }
+.pt-list li::before { content: '·'; color: var(--primary-light); margin-top:1px; flex-shrink:0; font-size:16px; line-height:1; }
+.schema-list-item {
+  padding: 11px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; color: var(--text-soft); cursor: pointer;
+  transition: all .15s;
+}
+.schema-list-item:last-child { border-bottom: none; }
+.schema-list-item:hover { background: rgba(255,255,255,0.8); color: var(--text); }
+.schema-list-item i { color: var(--primary-mid); font-size: 13px; }
+
+/* ── ERD Overview Card (Refined & Clean UI) ── */
+.erd-overview-card {
+  background: #ffffff;
+  border: 1px solid #eef2f4;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  font-family: var(--font);
+}
+.erd-overview-header {
+  padding: 24px 24px 14px;
+  background: #edf5f3;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.erd-header-icon-box {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid #6b828b;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b828b;
+  font-size: 15px;
+  background: transparent;
+  flex-shrink: 0;
+}
+.erd-overview-title strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e2538;
+  display: block;
+  margin-bottom: 2px;
+}
+.erd-overview-meta {
+  font-size: 13px;
+  color: #8fa0a6;
+}
+.erd-tabs-container {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  background: #edf5f3;
+  border-bottom: 1px solid #eef2f4;
+}
+.erd-tab-btn {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b828b;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.erd-tab-btn:hover {
+  color: #1e2538;
+}
+.erd-tab-btn.active {
+  background: #ffffff;
+  color: #1e2538;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
+}
+.erd-body-panel {
+  padding: 20px 24px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  max-height: 700px; /* Increased from 480px to give you more vertical breathing room */
+}
+.erd-scroll-container {
+  position: relative;
+  overflow-y: auto;   /* Generates the custom inner scroll tracking */
+  flex: 1;            /* Seamlessly expands to fill empty structural space */
+  padding-right: 6px;
+}
+
+/* Elegant scrollbar aesthetics */
+.erd-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+.erd-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.erd-scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgba(112, 137, 147, 0.25);
+  border-radius: 10px;
+}
+.erd-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(112, 137, 147, 0.45);
+}
+
+.erd-accordion-item {
+  border: 1px solid #edf3f5;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+.erd-accordion-item.expanded {
+  background: #f4f8f7;
+  border-color: #e3edea;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+}
+.erd-accordion-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: #1e2538;
+  user-select: none;
+}
+.erd-accordion-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.erd-accordion-title-left i {
+  color: #728993;
+}
+.erd-accordion-count {
+  color: #8fa0a6;
+  font-weight: 400;
+  margin-left: 2px;
+}
+.erd-accordion-arrow {
+  color: #728993;
+  font-size: 13px;
+  transition: transform 0.2s ease;
+}
+.erd-accordion-content {
+  background: #ffffff;
+  padding: 10px 20px 14px 40px;
+  border-top: 1px solid #edf3f5;
+}
+.erd-col-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 13.5px;
+}
+.erd-col-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1e2538;
+}
+.erd-key-icon {
+  color: #ff9f00;
+  font-size: 12px;
+}
+.erd-col-type {
+  color: #728993;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.erd-relationships-section {
+  margin-top: 16px;
+  border-top: 1px solid #edf3f5;
+  padding-top: 16px;
+}
+.erd-relationships-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #728993;
+  margin-bottom: 10px;
+  letter-spacing: 0.2px;
+}
+.erd-relationship-pill {
+  background: #f1f6f5;
+  border-radius: 12px;
+  padding: 9px 14px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: #556c75;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+}
+.erd-relationship-pill:last-child {
+  margin-bottom: 0;
+}
+.erd-canvas-wrap {
+  position: relative; overflow: hidden;
+  height: 280px;
+  background: rgba(248,250,252,0.6);
+  border: 1px solid #edf3f5;
+  border-radius: 12px;
+}
+.erd-canvas-wrap svg { width: 100%; height: 100%; display: block; cursor: grab; }
+.erd-canvas-wrap svg:active { cursor: grabbing; }
+.erd-footer {
+  padding: 10px 0 0 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.erd-footer-hint { font-size: 11.5px; color: var(--text-xs); display: flex; align-items: center; gap: 5px; }
+.erd-loading {
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px;
+  padding: 28px 18px; color: var(--text-soft); font-size: 13px;
+}
+.erd-empty-state { padding: 32px 18px; text-align: center; color: var(--text-soft); font-size: 13px; }
+.erd-empty-state i { font-size: 36px; opacity: .2; display: block; margin-bottom: 10px; }
+
+.result-natural {
+  font-size: 14px; color: var(--text); font-style: italic;
+  margin-bottom: 14px; padding: 11px 16px;
+  background: rgba(231,242,239,0.5); border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary-light);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head fade-in">
+  <h1>AI Query Generator</h1>
+  <p>Transform natural language into optimized SQL queries with AI explanation and refinement.</p>
+</div>
+
+<div class="qg-grid">
+  <div>
+    <div class="query-card fade-in fade-in-1">
+      <div class="qc-header">
+        <i class="bi bi-stars qc-header-icon"></i>
+        <div>
+          <div class="qc-header-title">Describe Your Query</div>
+          <div class="qc-header-sub">Type what you need in plain English</div>
+        </div>
+      </div>
+      <div class="qc-body">
+        <textarea id="queryInput" class="describe-area"
+          placeholder="Example: Show me all active users who signed up in the last 30 days…"></textarea>
+      </div>
+      <div class="qc-footer">
+        <div class="schema-pill">
+          <i class="bi bi-layers" style="color:var(--primary-mid);"></i>
+          <select id="schemaSelect">
+            <option value="">No schema selected</option>
+            {% for s in schemas %}
+            <option value="{{ s.id }}" {% if selected_schema and selected_schema.id == s.id %}selected{% endif %}>
+              {{ s.schema_name or s.original_name }}
+              {% if s.confirmed_schema %} ✓{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="ollama-status-badge ollama-badge ollama-checking" title="Checking Ollama status…">
+            <span class="ollama-dot"></span>
+            <span class="ollama-label">Ollama</span>
+          </span>
+          <button class="gen-btn" id="generateBtn" onclick="generateSQL()">
+            <i class="bi bi-stars"></i> Generate SQL
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="output-area" id="outputArea">
+      <div class="output-placeholder" id="outputPlaceholder">
+        <i class="bi bi-terminal"></i>
+        <p>Your generated SQL will appear here.</p>
+        <p style="margin-top:9px;font-size:12px;color:var(--text-xs);">
+          Tip: Press <kbd style="background:rgba(25,24,59,0.07);padding:2px 7px;border-radius:5px;font-family:var(--mono);font-size:11px;">Ctrl+Enter</kbd> to generate
+        </p>
+      </div>
+      <div id="outputLoading" style="display:none;text-align:center;padding:52px;background:var(--card-bg);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:var(--radius);">
+        <div style="width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--primary-mid);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px;"></div>
+        <p style="font-size:13.5px;color:var(--text-soft);">Generating SQL with AI…</p>
+      </div>
+      <div id="outputResult" style="display:none;">
+        <div class="query-card">
+          <div class="qc-header" style="background:linear-gradient(135deg,rgba(209,250,229,0.5),rgba(16,185,129,0.08));">
+            <i class="bi bi-check-circle-fill" style="color:#10b981;"></i>
+            <div>
+              <div class="qc-header-title" style="color:#065f46;">SQL Generated Successfully</div>
+              <div class="qc-header-sub" id="modelLabel" style="color:#059669;"></div>
+            </div>
+            <button onclick="clearResult()" class="btn btn-ghost btn-sm" style="margin-left:auto;">
+              <i class="bi bi-x"></i> Clear
+            </button>
+          </div>
+          <div class="qc-body">
+            <div class="result-natural" id="naturalEcho"></div>
+            <div class="sql-code">
+              <button class="sql-copy" onclick="copySql(this)">Copy</button>
+              <pre><code class="language-sql" id="sqlOutput"></code></pre>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:9px;flex-wrap:wrap;">
+              <button onclick="copyToClipboard()" class="btn btn-outline btn-sm"><i class="bi bi-clipboard"></i> Copy SQL</button>
+              <button onclick="document.getElementById('queryInput').focus()" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-repeat"></i> New Query</button>
+              <a id="erDiagramLink" href="#" class="btn btn-outline btn-sm" style="display:none;"><i class="bi bi-diagram-3"></i> View ER Diagram</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="explanation-panel" id="explanationPanel" style="display:none;">
+          <div class="explanation-panel-title">
+            <i class="bi bi-translate" style="color:var(--primary-mid);"></i>
+            Plain-English Explanation
+          </div>
+          <div class="explanation-text" id="explanationText"></div>
+        </div>
+
+        <div class="accuracy-panel" id="accuracyPanel" style="display:none;">
+          <div class="accuracy-header">
+            <div class="accuracy-score-circle" id="scoreCircle">
+              <span class="score-num" id="scoreNum">—</span>
+              <span class="score-label">Score</span>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px;">
+                Accuracy Analysis: <span id="scoreGrade" style="color:var(--primary-mid);"></span>
+              </div>
+              <div class="accuracy-bar-bg">
+                <div class="accuracy-bar-fill" id="accuracyBar" style="width:0%;"></div>
+              </div>
+              <div style="font-size:12px;color:var(--text-soft);" id="scoreCaption"></div>
+            </div>
+          </div>
+          <div id="issuesList"></div>
+          <div id="suggestionsList_eval"></div>
+        </div>
+
+        <div class="conversation-panel" id="conversationPanel" style="display:none;">
+          <div class="qc-header" style="background:linear-gradient(135deg,rgba(25,24,59,0.05),rgba(112,137,147,0.08));">
+            <i class="bi bi-chat-dots qc-header-icon"></i>
+            <div>
+              <div class="qc-header-title">Refine Your Query</div>
+              <div class="qc-header-sub">Ask follow-up questions to improve the SQL</div>
+            </div>
+            <button onclick="toggleConversation()" class="btn btn-ghost btn-sm" style="margin-left:auto;" id="convToggleBtn">
+              <i class="bi bi-chevron-up"></i>
+            </button>
+          </div>
+          <div id="convBody">
+            <div class="conv-messages" id="convMessages"></div>
+            <div class="conv-input-row">
+              <input type="text" class="conv-input" id="refinementInput"
+                     placeholder='e.g. "Only show BSCS students" or "Add ORDER BY name"'
+                     onkeydown="if(event.key==='Enter')refineSQL()">
+              <button onclick="refineSQL()" class="btn btn-primary btn-sm" id="refineBtn">
+                <i class="bi bi-send"></i> Refine
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="outputError" style="display:none;">
+        <div class="flash flash-error" id="errorMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="erd-overview-card fade-in" id="erdOverviewCard" style="display:none;margin-bottom:20px;">
+      <div class="erd-overview-header">
+        <div class="erd-header-icon-box">
+          <i class="bi bi-grid-3x3-gap"></i>
+        </div>
+        <div class="erd-overview-title">
+          <strong id="erdOverviewName">Schema Overview</strong>
+          <div class="erd-overview-meta" id="erdOverviewMeta">Loading…</div>
+        </div>
+      </div>
+      
+      <div class="erd-tabs-container">
+        <button class="erd-tab-btn active" id="tabTables" onclick="switchErdTab('tables')">
+          <i class="bi bi-database"></i> Tables
+        </button>
+        <button class="erd-tab-btn" id="tabDiagram" onclick="switchErdTab('diagram')">
+          <i class="bi bi-diagram-3"></i> ERD
+        </button>
+      </div>
+
+      <div class="erd-body-panel">
+        <div class="erd-scroll-container">
+          <div id="erdTablesPanel">
+            <div id="erdTableListBody"></div>
+          </div>
+
+          <div id="erdDiagramPanel" style="display:none;">
+            <div class="erd-canvas-wrap" id="erdMiniCanvas">
+              <div class="erd-loading" id="erdLoadingState">
+                <div style="width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--primary-mid);border-radius:50%;animation:spin .7s linear infinite;"></div>
+                <span>Loading schema layout…</span>
+              </div>
+              <svg id="erdMiniSvg" style="display:none;"></svg>
+            </div>
+            <div class="erd-footer">
+              <span class="erd-footer-hint"><i class="bi bi-arrows-move"></i> Drag to pan · Scroll to zoom</span>
+              <a id="erdFullViewLink" href="#" class="btn btn-ghost btn-sm" style="font-size:11.5px;" target="_blank">
+                <i class="bi bi-fullscreen"></i> Full View
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="erd-relationships-section">
+          <div class="erd-relationships-title">Relationships</div>
+          <div id="erdRelationshipListBody"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="qsCardWrapper">
+      <div class="qs-card fade-in fade-in-2">
+        <div class="qs-header">
+          <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;"></i>
+          Quick Suggestions
+          <button class="qs-clear" onclick="clearSuggestions()">Clear</button>
+        </div>
+        <div id="suggestionsList">
+          {% set suggestions = [
+            'Show all active users who signed up in the last 30 days',
+            'Get total revenue by product category for this month',
+            'Find customers who made more than 5 purchases',
+            'List all pending orders awaiting shipment',
+            'Show average order value by country'
+          ] %}
+          {% for s in suggestions %}
+          <div class="suggestion-item" onclick="useSuggestion(this.textContent.trim())">{{ s }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="pro-tips fade-in fade-in-3">
+        <div class="pt-header"><i class="bi bi-lightbulb-fill"></i> Pro Tips</div>
+        <ul class="pt-list">
+          <li>Be specific about time ranges</li>
+          <li>Mention column names if known</li>
+          <li>Use Refine to iterate on results</li>
+          <li>Confirm your schema first for best accuracy</li>
+        </ul>
+      </div>
+
+      {% if not current_user.gemini_key %}
+      <div style="background:rgba(254,243,199,0.7);backdrop-filter:blur(8px);border:1px solid rgba(180,83,9,0.15);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
+        <div style="font-size:13px;font-weight:700;color:#78350f;margin-bottom:5px;"><i class="bi bi-key-fill"></i> Add Gemini API Key</div>
+        <div style="font-size:12.5px;color:#92400e;line-height:1.55;">Required for <strong>image-based schema parsing</strong>. SQL generation uses local Ollama. <a href="{{ url_for('settings') }}" style="color:var(--primary);font-weight:700;">Settings →</a></div>
+      </div>
+      {% endif %}
+
+      <div id="ollamaInfoCard" style="display:none;background:rgba(236,253,245,0.7);backdrop-filter:blur(8px);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
+        <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:5px;"><i class="bi bi-cpu-fill"></i> Ollama Active</div>
+        <div style="font-size:12.5px;color:#047857;line-height:1.55;">SQL generation is powered by <strong>llama3.2:3b</strong> running locally.</div>
+      </div>
+      <div id="ollamaOfflineCard" style="display:none;background:rgba(254,226,226,0.6);backdrop-filter:blur(8px);border:1px solid rgba(220,38,38,0.15);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
+        <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:5px;"><i class="bi bi-exclamation-triangle-fill"></i> Ollama Offline</div>
+        <div style="font-size:12.5px;color:#7f1d1d;line-height:1.55;">Start Ollama and pull <code>llama3.2:3b</code> for AI SQL generation. Fallback templates are active.</div>
+      </div>
+    </div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Component State Control variables
+let currentQueryId = null;
+let currentSchemaId = null;
+let conversationVisible = true;
+
+// Active initialization checks
+(async function() {
+  try {
+    const resp = await fetch('/api/ollama-status');
+    if (resp.ok) {
+      const d = await resp.json();
+      document.getElementById('ollamaInfoCard').style.display = d.active ? 'block' : 'none';
+      document.getElementById('ollamaOfflineCard').style.display = d.active ? 'none' : 'block';
+    }
+  } catch(e) {
+    document.getElementById('ollamaOfflineCard').style.display = 'block';
+  }
+})();
+
+function useSuggestion(text) {
+  document.getElementById('queryInput').value = text;
+  document.getElementById('queryInput').focus();
+}
+
+function selectSchemaTable(schemaId, tableName) {
+  document.getElementById('schemaSelect').value = schemaId;
+  const q = document.getElementById('queryInput');
+  if (!q.value) q.value = `Show all records from ${tableName}`;
+  q.focus();
+}
+
+function clearSuggestions() {
+  document.getElementById('suggestionsList').innerHTML =
+    '<div style="padding:18px;text-align:center;font-size:13px;color:var(--text-xs);">Suggestions cleared</div>';
+}
+
+async function generateSQL() {
+  const query = document.getElementById('queryInput').value.trim();
+  const schemaId = document.getElementById('schemaSelect').value || null;
+  currentSchemaId = schemaId;
+
+  if (!query) {
+    const ta = document.getElementById('queryInput');
+    ta.style.outline = '2px solid var(--danger)';
+    setTimeout(() => ta.style.outline = '', 1500);
+    return;
+  }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="width:14px;height:14px;border:2px solid rgba(231,242,239,.4);border-top-color:var(--primary-xlight);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span> Generating…';
+  showState('loading');
+  if (typeof showSqlGenModal === 'function') showSqlGenModal();
+
+  try {
+    const resp = await fetch('/api/generate-sql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, schema_id: schemaId })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Unknown error');
+
+    if (typeof hideSqlGenModal === 'function') hideSqlGenModal();
+    currentQueryId = data.query_id;
+
+    // SQL Text allocation
+    document.getElementById('sqlOutput').textContent = data.sql;
+    document.getElementById('naturalEcho').textContent = `"${query}"`;
+    const modelDisplay = data.model.startsWith('ollama/')
+      ? `<i class="bi bi-cpu-fill" style="color:#10b981;margin-right:4px;"></i>Generated by Ollama · llama3.2:3b`
+      : `Generated by ${data.model}`;
+    document.getElementById('modelLabel').innerHTML = modelDisplay;
+    hljs.highlightElement(document.getElementById('sqlOutput'));
+
+    if (schemaId) {
+      const link = document.getElementById('erDiagramLink');
+      link.href = `/schemas/${schemaId}/er-diagram`;
+      link.style.display = 'inline-flex';
+    }
+
+    // Explanation Area
+    if (data.explanation) {
+      document.getElementById('explanationText').textContent = data.explanation;
+      document.getElementById('explanationPanel').style.display = 'block';
+    }
+
+    // Accuracy Allocation
+    if (data.evaluation) {
+      renderAccuracy(data.evaluation);
+      document.getElementById('accuracyPanel').style.display = 'block';
+    }
+
+    // Conversation thread init
+    initConversation(query, data.sql);
+    document.getElementById('conversationPanel').style.display = 'block';
+
+    showState('result');
+
+  } catch (err) {
+    if (typeof hideSqlGenModal === 'function') hideSqlGenModal();
+    document.getElementById('errorMsg').innerHTML = `<i class="bi bi-x-circle-fill"></i> ${err.message}`;
+    showState('error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-stars"></i> Generate SQL';
+  }
+}
+
+function renderAccuracy(eval_data) {
+  const score = eval_data.score;
+  const grade = eval_data.grade;
+
+  const circle = document.getElementById('scoreCircle');
+  document.getElementById('scoreNum').textContent = score;
+  document.getElementById('scoreGrade').textContent = grade;
+  circle.className = 'accuracy-score-circle';
+  if (score >= 85) circle.classList.add('score-excellent');
+  else if (score >= 70) circle.classList.add('score-good');
+  else if (score >= 50) circle.classList.add('score-fair');
+  else circle.classList.add('score-review');
+
+  const bar = document.getElementById('accuracyBar');
+  setTimeout(() => { bar.style.width = score + '%'; }, 100);
+
+  let barColor;
+  if (score >= 85) barColor = 'linear-gradient(90deg,#059669,#10b981)';
+  else if (score >= 70) barColor = 'linear-gradient(90deg,var(--primary),var(--primary-mid))';
+  else if (score >= 50) barColor = 'linear-gradient(90deg,#d97706,#f59e0b)';
+  else barColor = 'linear-gradient(90deg,#dc2626,var(--danger))';
+  bar.style.background = barColor;
+
+  const captions = {
+    'Excellent': 'Query looks great! Ready for use.',
+    'Good': 'Query is correct with minor suggestions.',
+    'Fair': 'Review the issues below before running.',
+    'Needs Review': 'Query has problems — review carefully.'
+  };
+  document.getElementById('scoreCaption').textContent = captions[grade] || '';
+
+  let issueHtml = '';
+  (eval_data.issues || []).forEach(issue => {
+    issueHtml += `<div class="issue-item"><i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;margin-top:2px;"></i>${issue}</div>`;
+  });
+  document.getElementById('issuesList').innerHTML = issueHtml;
+
+  let suggHtml = '';
+  (eval_data.suggestions || []).forEach(s => {
+    suggHtml += `<div class="suggestion-item-eval"><i class="bi bi-lightbulb" style="flex-shrink:0;margin-top:2px;"></i>${s}</div>`;
+  });
+  document.getElementById('suggestionsList_eval').innerHTML = suggHtml;
+}
+
+function initConversation(userQuery, sql) {
+  const msgs = document.getElementById('convMessages');
+  msgs.innerHTML = '';
+  addMessage('user', userQuery);
+  addMessage('assistant', sql);
+  document.getElementById('refinementInput').value = '';
+}
+
+function addMessage(role, content) {
+  const msgs = document.getElementById('convMessages');
+  const div = document.createElement('div');
+  div.className = `msg-bubble ${role}`;
+  div.textContent = content;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function refineSQL() {
+  const refinement = document.getElementById('refinementInput').value.trim();
+  if (!refinement) return;
+  if (!currentQueryId) {
+    alert('Generate a query first before refining.');
+    return;
+  }
+
+  const btn = document.getElementById('refineBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="width:12px;height:12px;border:2px solid rgba(231,242,239,.4);border-top-color:var(--primary-xlight);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span>';
+
+  addMessage('user', refinement);
+  document.getElementById('refinementInput').value = '';
+
+  try {
+    const resp = await fetch('/api/refine-sql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query_id: currentQueryId,
+        refinement: refinement,
+        schema_id: currentSchemaId
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Refinement failed');
+
+    currentQueryId = data.query_id;
+    addMessage('assistant', data.sql);
+
+    document.getElementById('sqlOutput').textContent = data.sql;
+    hljs.highlightElement(document.getElementById('sqlOutput'));
+    document.getElementById('naturalEcho').textContent = `"[Refined] ${refinement}"`;
+
+    if (data.explanation) {
+      document.getElementById('explanationText').textContent = data.explanation;
+    }
+    if (data.evaluation) {
+      renderAccuracy(data.evaluation);
+    }
+
+  } catch (err) {
+    addMessage('assistant', `Error: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-send"></i> Refine';
+  }
+}
+
+function toggleConversation() {
+  const body = document.getElementById('convBody');
+  const icon = document.getElementById('convToggleBtn').querySelector('i');
+  conversationVisible = !conversationVisible;
+  body.style.display = conversationVisible ? '' : 'none';
+  icon.className = conversationVisible ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+}
+
+function showState(s) {
+  ['outputPlaceholder', 'outputLoading', 'outputResult', 'outputError'].forEach(id =>
+    document.getElementById(id).style.display = 'none'
+  );
+  const m = { placeholder: 'outputPlaceholder', loading: 'outputLoading', result: 'outputResult', error: 'outputError' };
+  document.getElementById(m[s]).style.display = 'block';
+}
+
+function clearResult() {
+  showState('placeholder');
+  currentQueryId = null;
+  document.getElementById('explanationPanel').style.display = 'none';
+  document.getElementById('accuracyPanel').style.display = 'none';
+  document.getElementById('conversationPanel').style.display = 'none';
+}
+
+function copyToClipboard() {
+  navigator.clipboard.writeText(document.getElementById('sqlOutput').innerText);
+}
+
+document.getElementById('queryInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generateSQL();
+});
+
+// ── ERD Interactive Component Logic (Accordion & Layout Routing) ──
+let erdCurrentSchemaId = null;
+let erdSchemaData = null;
+let erdMiniViewBox = { x: 0, y: 0, w: 800, h: 400 };
+let erdMiniPanning = false, erdMiniPanStart = { x: 0, y: 0 };
+
+document.getElementById('schemaSelect').addEventListener('change', function() {
+  const id = this.value;
+  if (id) {
+    loadErdOverview(id);
+  } else {
+    hideErdCard();
+  }
+});
+
+(function() {
+  const sel = document.getElementById('schemaSelect');
+  if (sel.value) loadErdOverview(sel.value);
+})();
+
+function loadErdOverview(schemaId) {
+  erdCurrentSchemaId = schemaId;
+  const card = document.getElementById('erdOverviewCard');
+  const qs = document.getElementById('qsCardWrapper');
+  card.style.display = 'block';
+  qs.style.display = 'none';
+
+  document.getElementById('erdLoadingState').style.display = 'flex';
+  document.getElementById('erdMiniSvg').style.display = 'none';
+  document.getElementById('erdOverviewMeta').textContent = 'Loading…';
+  document.getElementById('erdFullViewLink').href = `/schemas/${schemaId}/er-diagram`;
+
+  fetch(`/api/schema/${schemaId}/metadata`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+      erdSchemaData = data;
+      renderErdOverview(data);
+    })
+    .catch(err => {
+      document.getElementById('erdLoadingState').innerHTML =
+        `<i class="bi bi-exclamation-circle" style="font-size:24px;opacity:.4;"></i><span>Could not load schema</span>`;
+    });
+}
+
+function hideErdCard() {
+  document.getElementById('erdOverviewCard').style.display = 'none';
+  document.getElementById('qsCardWrapper').style.display = 'block';
+  erdSchemaData = null;
+}
+
+function renderErdOverview(data) {
+  const tables = data.tables || [];
+  const rels = data.relationships || [];
+  document.getElementById('erdOverviewName').textContent = data.name || 'Schema Overview';
+  document.getElementById('erdOverviewMeta').textContent =
+    `${tables.length} table${tables.length !== 1 ? 's' : ''} · ${rels.length} relationship${rels.length !== 1 ? 's' : ''}`;
+
+  renderMiniErd(tables, rels);
+  renderTableList(tables, rels);
+}
+
+function renderMiniErd(tables, rels) {
+  const svgEl = document.getElementById('erdMiniSvg');
+  const canvas = document.getElementById('erdMiniCanvas');
+  while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
+
+  if (tables.length === 0) {
+    document.getElementById('erdLoadingState').innerHTML =
+      '<i class="bi bi-diagram-3" style="font-size:32px;opacity:.18;"></i><span style="font-size:12.5px;">No tables defined</span>';
+    document.getElementById('erdLoadingState').style.display = 'flex';
+    svgEl.style.display = 'none';
+    return;
+  }
+
+  document.getElementById('erdLoadingState').style.display = 'none';
+  svgEl.style.display = 'block';
+
+  const defs = mkSvg('defs');
+  const marker = mkSvg('marker', { id: 'erdArrow', markerWidth: '8', markerHeight: '6', refX: '8', refY: '3', orient: 'auto' });
+  const poly = mkSvg('polygon', { points: '0 0, 8 3, 0 6', fill: 'rgba(112,137,147,0.8)' });
+  marker.appendChild(poly); defs.appendChild(marker); svgEl.appendChild(defs);
+
+  const g = mkSvg('g', { id: 'erdMiniG' });
+  svgEl.appendChild(g);
+
+  const TW = 180, RH = 26, HH = 38, PAD = 50;
+  const W = canvas.clientWidth || 280;
+  const cols = Math.max(1, Math.floor((W - PAD) / (TW + PAD)));
+  const positions = {};
+
+  tables.forEach((t, i) => {
+    const th = HH + t.columns.length * RH + 8;
+    const col = i % cols, row = Math.floor(i / cols);
+    positions[t.name] = { x: PAD + col * (TW + PAD), y: PAD + row * (th + PAD), w: TW, h: th };
+  });
+
+  rels.forEach(rel => {
+    const fp = positions[rel.from_table], tp = positions[rel.to_table];
+    if (!fp || !tp) return;
+    const x1 = fp.x + fp.w, y1 = fp.y + fp.h / 2;
+    const x2 = tp.x, y2 = tp.y + tp.h / 2;
+    const mx = (x1 + x2) / 2;
+    const path = mkSvg('path', {
+      d: `M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`,
+      stroke: 'rgba(112,137,147,0.55)', 'stroke-width': '1.5',
+      fill: 'none', 'stroke-dasharray': '4,3',
+      'marker-end': 'url(#erdArrow)'
+    });
+    g.appendChild(path);
+  });
+
+  tables.forEach(t => {
+    const pos = positions[t.name];
+    if (!pos) return;
+    const { x, y, w, h } = pos;
+    const tg = mkSvg('g', { transform: `translate(${x},${y})`, 'data-erd-table': t.name });
+
+    tg.appendChild(mkSvg('rect', { x: 2, y: 2, width: w, height: h, rx: 8, fill: 'rgba(25,24,59,0.05)' }));
+    tg.appendChild(mkSvg('rect', { x: 0, y: 0, width: w, height: h, rx: 8, fill: 'rgba(255,255,255,0.92)', stroke: 'rgba(112,137,147,0.25)', 'stroke-width': 1.5 }));
+    tg.appendChild(mkSvg('rect', { x: 0, y: 0, width: w, height: HH, rx: 8, fill: '#19183B' }));
+    tg.appendChild(mkSvg('rect', { x: 0, y: HH - 8, width: w, height: 8, fill: '#19183B' }));
+    
+    const nt = mkSvg('text', { x: 12, y: 25, fill: '#E7F2EF', 'font-size': 12, 'font-weight': 700, 'font-family': "'DM Sans',sans-serif" });
+    nt.textContent = t.name.length > 18 ? t.name.slice(0, 17) + '…' : t.name;
+    tg.appendChild(nt);
+
+    t.columns.forEach((col, ci) => {
+      const ry = HH + 4 + ci * RH;
+      if (ci % 2 === 0) {
+        tg.appendChild(mkSvg('rect', { x: 0, y: ry, width: w, height: RH, fill: 'rgba(231,242,239,0.3)' }));
+      }
+      const r = RH / 2;
+      if (col.primary_key) {
+        tg.appendChild(mkSvg('circle', { cx: 13, cy: ry + r, r: 4.5, fill: '#f59e0b' }));
+      } else if (col.foreign_key) {
+        tg.appendChild(mkSvg('circle', { cx: 13, cy: ry + r, r: 4, fill: 'rgba(99,102,241,0.6)' }));
+      } else {
+        tg.appendChild(mkSvg('circle', { cx: 13, cy: ry + r, r: 3, fill: 'rgba(112,137,147,0.3)' }));
+      }
+      const cn = mkSvg('text', { x: 24, y: ry + r + 4, fill: '#19183B', 'font-size': 10.5, 'font-family': "'JetBrains Mono',monospace" });
+      cn.textContent = col.name.length > 14 ? col.name.slice(0, 13) + '…' : col.name;
+      tg.appendChild(cn);
+      const ct = mkSvg('text', { x: w - 7, y: ry + r + 4, fill: '#708993', 'font-size': 9.5, 'text-anchor': 'end', 'font-family': "'JetBrains Mono',monospace" });
+      ct.textContent = col.type ? col.type.split('(')[0].slice(0, 10) : '';
+      tg.appendChild(ct);
+    });
+    g.appendChild(tg);
+  });
+
+  const maxX = Math.max(...tables.map(t => (positions[t.name]?.x || 0) + TW)) + PAD;
+  const maxY = Math.max(...tables.map(t => (positions[t.name]?.y || 0) + (positions[t.name]?.h || 0))) + PAD;
+  erdMiniViewBox = { x: 0, y: 0, w: maxX, h: maxY };
+  svgEl.setAttribute('viewBox', `0 0 ${maxX} ${maxY}`);
+
+  canvas.onmousedown = e => { if (e.target.closest('[data-erd-table]')) return; erdMiniPanning = true; erdMiniPanStart = { x: e.clientX, y: e.clientY }; };
+  canvas.onmousemove = e => {
+    if (!erdMiniPanning) return;
+    const scX = erdMiniViewBox.w / canvas.clientWidth;
+    const scY = erdMiniViewBox.h / canvas.clientHeight;
+    erdMiniViewBox.x -= (e.clientX - erdMiniPanStart.x) * scX;
+    erdMiniViewBox.y -= (e.clientY - erdMiniPanStart.y) * scY;
+    erdMiniPanStart = { x: e.clientX, y: e.clientY };
+    svgEl.setAttribute('viewBox', `${erdMiniViewBox.x} ${erdMiniViewBox.y} ${erdMiniViewBox.w} ${erdMiniViewBox.h}`);
+  };
+  canvas.onmouseup = canvas.onmouseleave = () => erdMiniPanning = false;
+  canvas.onwheel = e => {
+    e.preventDefault();
+    const f = e.deltaY > 0 ? 1.1 : 0.9;
+    erdMiniViewBox.w *= f; erdMiniViewBox.h *= f;
+    svgEl.setAttribute('viewBox', `${erdMiniViewBox.x} ${erdMiniViewBox.y} ${erdMiniViewBox.w} ${erdMiniViewBox.h}`);
+  };
+}
+
+function renderTableList(tables, rels) {
+  const body = document.getElementById('erdTableListBody');
+  if (!tables.length) {
+    body.innerHTML = '<div class="erd-empty-state"><i class="bi bi-table"></i>No tables</div>';
+    return;
+  }
+
+  body.innerHTML = tables.map((t, idx) => {
+    const shouldExpand = idx === 0 || tables.length === 1;
+    
+    let columnRowsHtml = '';
+    t.columns.forEach(col => {
+      const icon = col.primary_key 
+        ? `<i class="bi bi-key erd-key-icon"></i>` 
+        : `<span style="width:21px; display:inline-block;"></span>`;
+      columnRowsHtml += `
+        <div class="erd-col-row">
+          <div class="erd-col-name-wrapper">${icon}<span>${col.name}</span></div>
+          <span class="erd-col-type">${col.type || 'VARCHAR'}</span>
+        </div>`;
+    });
+
+    return `
+      <div class="erd-accordion-item ${shouldExpand ? 'expanded' : ''}">
+        <div class="erd-accordion-header" style="${shouldExpand ? 'background: #f4f8f7;' : ''}">
+          <div class="erd-accordion-title-left">
+            <i class="bi bi-database"></i> ${t.name} <span class="erd-accordion-count">(${t.columns.length})</span>
+          </div>
+          <i class="bi bi-${shouldExpand ? 'chevron-up' : 'chevron-down'} erd-accordion-arrow"></i>
+        </div>
+        <div class="erd-accordion-content" style="${shouldExpand ? 'display: block;' : 'display: none;'}">
+          ${columnRowsHtml}
+        </div>
+      </div>`;
+  }).join('');
+
+  body.querySelectorAll('.erd-accordion-header').forEach(header => {
+    header.addEventListener('click', function() {
+      const item = this.parentElement;
+      const content = item.querySelector('.erd-accordion-content');
+      const arrow = this.querySelector('.erd-accordion-arrow');
+      const isExpanded = item.classList.contains('expanded');
+
+      if (isExpanded) {
+        item.classList.remove('expanded');
+        this.style.background = '';
+        content.style.display = 'none';
+        arrow.className = 'bi bi-chevron-down erd-accordion-arrow';
+      } else {
+        item.classList.add('expanded');
+        this.style.background = '#f4f8f7';
+        content.style.display = 'block';
+        arrow.className = 'bi bi-chevron-up erd-accordion-arrow';
+      }
+    });
+  });
+
+  const relContainer = document.getElementById('erdRelationshipListBody');
+  if (rels.length > 0) {
+    relContainer.innerHTML = rels.map(r => `
+      <div class="erd-relationship-pill">
+        ${r.from_table}.${r.from_col} → ${r.to_table}.${r.to_col}
+      </div>
+    `).join('');
+  } else {
+    relContainer.innerHTML = '<div style="font-size:13px; color:#8fa0a6; padding-left:4px;">No relationships defined</div>';
+  }
+}
+
+function switchErdTab(tab) {
+  const isDiagram = tab === 'diagram';
+  document.getElementById('erdDiagramPanel').style.display = isDiagram ? 'block' : 'none';
+  document.getElementById('erdTablesPanel').style.display = isDiagram ? 'none' : 'block';
+
+  document.getElementById('tabDiagram').classList.toggle('active', isDiagram);
+  document.getElementById('tabTables').classList.toggle('active', !isDiagram);
+
+  // The diagram canvas has zero width while its panel is hidden, so re-render
+  // it now that it's visible to get correct sizing.
+  if (isDiagram && erdSchemaData) {
+    renderMiniErd(erdSchemaData.tables || [], erdSchemaData.relationships || []);
+  }
+}
+
+function mkSvg(tag, attrs = {}) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+</script>
+{% endblock %}
