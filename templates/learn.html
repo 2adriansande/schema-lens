@@ -101,6 +101,30 @@
 .learn-lesson-item i { font-size: 8px; opacity: .4; }
 .learn-lesson-item.active i { opacity: 1; color: var(--primary); }
 
+/* Sidebar Navigation Challenge Box */
+.sidebar-challenge-box {
+  padding: 18px;
+  margin: 14px;
+  background: linear-gradient(135deg, rgba(161, 194, 189, 0.1), rgba(255, 255, 255, 0.4));
+  border: 1px dashed var(--primary-mid);
+  border-radius: var(--radius-sm);
+}
+.sidebar-challenge-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sidebar-challenge-text {
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
 /* Main Lesson Content Card */
 .lesson-card {
   background: var(--card-bg);
@@ -424,6 +448,19 @@
       {% endif %}
     </div>
     {% endfor %}
+
+    <!-- Sidebar Navigation Challenge Box Component -->
+   <div class="sidebar-challenge-box">
+  <div class="sidebar-challenge-title">
+    <i class="bi bi-trophy"></i> Nav Challenge
+  </div>
+  <div class="sidebar-challenge-text">
+    Ready to test your indexing knowledge? Find and select the lesson on query optimizations to unlock your badge.
+  </div>
+  <a href="{{ url_for('challenge_page') }}" class="btn btn-outline btn-sm" style="width: 100%; text-align: center; justify-content: center; display: flex;">
+    Go to Challenge
+  </a>
+</div>
   </div>
 
   <div>
