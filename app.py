@@ -1882,6 +1882,30 @@ def explain_sql_endpoint():
     return jsonify({"explanation": explanation})
 
 
+# ── Schema metadata endpoint for ERD overview card ──
+@app.route("/api/schema/<int:schema_id>/metadata")
+@login_required
+def schema_metadata(schema_id):
+    schema = SchemaUpload.query.filter_by(id=schema_id, user_id=current_user.id).first()
+    if not schema:
+        return jsonify({"error": "Schema not found"}), 404
+    raw = schema.confirmed_schema or schema.parsed_schema or ""
+    if raw:
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            parsed = {"tables": [], "relationships": []}
+    else:
+        parsed = {"tables": [], "relationships": []}
+    return jsonify({
+        "id": schema.id,
+        "name": schema.schema_name or schema.original_name,
+        "confirmed": bool(schema.confirmed_schema),
+        "tables": parsed.get("tables", []),
+        "relationships": parsed.get("relationships", []),
+    })
+
+
 # ── Ollama status endpoint ──
 @app.route("/api/ollama-status")
 @login_required

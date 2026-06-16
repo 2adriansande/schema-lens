@@ -1146,7 +1146,7 @@ function renderTableList(tables, rels) {
   if (rels.length > 0) {
     relContainer.innerHTML = rels.map(r => `
       <div class="erd-relationship-pill">
-        ${r.from_table}.${r.from_column || 'user_id'} → ${r.to_table}.${r.to_column || 'id'}
+        ${r.from_table}.${r.from_col} → ${r.to_table}.${r.to_col}
       </div>
     `).join('');
   } else {
@@ -1158,9 +1158,15 @@ function switchErdTab(tab) {
   const isDiagram = tab === 'diagram';
   document.getElementById('erdDiagramPanel').style.display = isDiagram ? 'block' : 'none';
   document.getElementById('erdTablesPanel').style.display = isDiagram ? 'none' : 'block';
-  
+
   document.getElementById('tabDiagram').classList.toggle('active', isDiagram);
   document.getElementById('tabTables').classList.toggle('active', !isDiagram);
+
+  // The diagram canvas has zero width while its panel is hidden, so re-render
+  // it now that it's visible to get correct sizing.
+  if (isDiagram && erdSchemaData) {
+    renderMiniErd(erdSchemaData.tables || [], erdSchemaData.relationships || []);
+  }
 }
 
 function mkSvg(tag, attrs = {}) {
