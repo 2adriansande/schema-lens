@@ -1585,6 +1585,7 @@ def upload_schema():
     )
     db.session.add(schema)
     db.session.commit()
+    check_and_award_badges(current_user.id)
     flash("Schema uploaded! Please review and confirm the detected schema below.", "success")
     # Redirect to confirmation page (Feature 1)
     return redirect(url_for("schema_confirm", schema_id=schema.id))
@@ -1758,13 +1759,17 @@ def generate_sql():
     db.session.add(history)
     db.session.commit()
 
+    # Award any newly earned badges (first_query, query_10, query_50 …)
+    newly_awarded = check_and_award_badges(current_user.id)
+
     return jsonify({
         "sql": sql,
         "model": model_used,
         "query_id": history.id,
         "explanation": explanation,
         "evaluation": eval_result,
-        "ollama_active": ollama_ok
+        "ollama_active": ollama_ok,
+        "new_badges": newly_awarded,
     })
 
 
@@ -2145,6 +2150,9 @@ BADGES = {
 @app.route("/badges")
 @login_required
 def badges_page():
+    # Auto-award any badges the user has earned but not yet been granted
+    check_and_award_badges(current_user.id)
+
     user_badge_rows = UserBadge.query.filter_by(user_id=current_user.id).all()
     earned      = {b.badge_key for b in user_badge_rows}
     badge_dates = {b.badge_key: b.awarded_at for b in user_badge_rows}
