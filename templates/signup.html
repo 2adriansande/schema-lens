@@ -3,6 +3,7 @@
 {% block auth_content %}
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+<<<<<<< HEAD
   
   /* FORCE ROOT IMMOBILITY */
   html, body {
@@ -11,6 +12,12 @@
     overflow: hidden !important;
     font-family: 'DM Sans', sans-serif;
     background: #DFEBE8; 
+=======
+  body {
+    min-height: 100vh; font-family: 'DM Sans', sans-serif;
+    background: #DFEBE8; /* Slightly deeper base tint to make white panels pop better */
+    overflow-x: hidden;
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   }
   
   /* GLOBAL BACKGROUND CANVAS */
@@ -30,6 +37,7 @@
       #DFEBE8;
     pointer-events: none;
   }
+<<<<<<< HEAD
 
   /* ACCORDION CONTAINER LOCKDOWN */
   .auth-wrap {
@@ -203,6 +211,115 @@
     .auth-right { height: auto; max-height: none; padding: 40px 24px; overflow: visible; }
   }
 </style>
+=======
+  .auth-wrap {
+    min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; position: relative; z-index: 1;
+  }
+  
+  /* AUTH-LEFT PANEL WITH CANVAS INTERACTION OVERLAY */
+  .auth-left {
+    background: linear-gradient(150deg, #556C75 0%, #7FA39E 50%, #11102B 100%); /* Deepened gradient colors slightly */
+    padding: 64px 58px; display: flex; flex-direction: column; justify-content: space-between;
+    color: #F3FAF8; position: relative; overflow: hidden;
+  }
+  #auth-left-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .auth-left::before { content: ''; position: absolute; top: -80px; right: -80px; width: 320px; height: 320px; border-radius: 50%; background: rgba(255,255,255,0.08); pointer-events: none; z-index: 1; }
+  .auth-left::after  { content: ''; position: absolute; bottom: -50px; left: -50px; width: 240px; height: 240px; border-radius: 50%; background: rgba(17,16,43,0.16); pointer-events: none; z-index: 1; }
+  
+  /* Content elevation blocks */
+  .al-logo-link, .al-hero, .al-features { position: relative; z-index: 2; }
+
+  .al-logo { display: flex; align-items: center; gap: 11px; }
+  .al-logo-icon { 
+    width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.25); 
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .al-logo-link:hover .al-logo-icon { transform: scale(1.08) rotate(3deg); }
+  .al-logo-icon svg { width: 22px; height: 22px; }
+  .al-logo-text { font-size: 18px; font-weight: 700; letter-spacing: -.4px; color: #FFFFFF; }
+  
+  .al-hero h1 { font-size: 40px; font-weight: 700; line-height: 1.12; letter-spacing: -1.2px; margin-bottom: 18px; color: #FFFFFF; }
+  .al-hero h1 span { color: #A4FFF0; text-shadow: 0 1px 2px rgba(0,0,0,0.15); } /* High contrast glowing highlight */
+  .al-hero p { font-size: 15px; color: #E6F5F2; line-height: 1.75; max-width: 360px; font-weight: 500; } /* Maximum contrast readable text */
+  
+  .al-feat { 
+    display: flex; align-items: center; gap: 11px; margin-bottom: 13px; font-size: 14px; color: #FFFFFF; font-weight: 500; 
+    transition: transform 0.2s ease;
+  }
+  .al-feat:hover { transform: translateX(4px); }
+  .al-feat-dot { width: 8px; height: 8px; border-radius: 50%; background: #A4FFF0; flex-shrink: 0; }
+  
+  /* Right Side Panel (Form) Styling */
+  .auth-right { display: flex; align-items: center; justify-content: center; padding: 64px 52px; background: rgba(255,255,255,0.45); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); overflow-y: auto; }
+  .auth-box { width: 100%; max-width: 400px; }
+  .auth-box h2 { font-size: 28px; font-weight: 700; letter-spacing: -.6px; margin-bottom: 7px; color: #11102B; }
+  .auth-box .sub { font-size: 14.5px; color: #354A54; margin-bottom: 28px; font-weight: 500; } /* Darker slate for sharp readability */
+  
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 700; color: #2B3D46; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .05em; } /* Darkened drastically for crispness */
+  
+  .input-container { position: relative; width: 100%; }
+  .form-input { 
+    width: 100%; padding: 11px 16px; border: none; border-radius: 10px; 
+    font-family: 'DM Sans', sans-serif; font-size: 14px; color: #11102B; background: #F7F9FB; outline: none; 
+    box-shadow: inset 0 0 0 1px rgba(97, 125, 138, 0.14);
+    transition: box-shadow 0.2s, transform 0.2s; 
+  }
+  .form-input::placeholder { color: #617D8A; opacity: 0.8; } /* Darker placeholder text */
+  .form-input:focus::placeholder { color: rgba(97, 125, 138, 0.4); } 
+  .form-input:focus { 
+    box-shadow: 0 0 0 3px rgba(17,16,43,0.12); 
+    transform: translateY(-1px);
+  }
+  
+  /* Interactive Input Field Adornments */
+  .password-toggle {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: #617D8A; cursor: pointer;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+    padding: 4px; border-radius: 4px; transition: color 0.15s;
+    z-index: 5;
+  }
+  .password-toggle:hover { color: #11102B; }
+  .form-input-has-adornment { padding-right: 44px; }
+  
+  .btn-submit { 
+    width: 100%; padding: 13px; background: linear-gradient(135deg, #11102B, #354A54); color: #FFFFFF; border: none; border-radius: 10px; 
+    font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 700; cursor: pointer; 
+    transition: all .2s cubic-bezier(0.16, 1, 0.3, 1); margin-top: 6px; box-shadow: 0 6px 20px rgba(17,16,43,0.25); 
+  }
+  .btn-submit:hover { 
+    background: linear-gradient(135deg, #1A1942, #415A66); 
+    box-shadow: 0 8px 28px rgba(17,16,43,0.35); 
+    transform: translateY(-2px); 
+  }
+  .btn-submit:active { transform: translateY(0) scale(0.98); }
+  
+  .flash-local { padding: 11px 16px; border-radius: 9px; font-size: 13.5px; display: flex; align-items: center; gap: 9px; margin-bottom: 16px; font-weight: 500; }
+  .flash-error-local { background: #FEE2E2; color: #7F1D1D; border: 1px solid #FCA5A5; } /* Dark text on brighter background */
+  .flash-success-local { background: #D1FAE5; color: #064E3B; border: 1px solid #6EE7B7; } /* Dark text on brighter background */
+
+  .link-interactive {
+    color: #11102B; font-weight: 700; text-decoration: none; position: relative; display: inline-block;
+  }
+  .link-interactive::after {
+    content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 1.5px;
+    background-color: #11102B; transition: transform 0.2s ease; transform-origin: right;
+  }
+  .link-interactive:hover::after { transform: scaleX(0); }
+
+  @media (max-width: 768px) { .auth-wrap { grid-template-columns: 1fr; } .auth-left { display: none; } }
+</style>
+
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -212,7 +329,11 @@
   <div class="auth-left">
     <canvas id="auth-left-canvas"></canvas>
     
+<<<<<<< HEAD
     <a href="{{ url_for('landing') }}" class="al-logo-link" style="text-decoration:none;">
+=======
+    <a href="{{ url_for('landing')}}" class="al-logo-link" style="text-decoration:none;">
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
       <div class="al-logo">
         <div class="al-logo-icon">
           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -262,6 +383,7 @@
 
       <form method="POST" action="{{ url_for('signup') }}" id="signupForm" novalidate>
         <div class="form-group">
+<<<<<<< HEAD
           <label class="form-label">Name</label>
           <div class="input-container">
             <input type="text" name="name" id="nameInput" class="form-input" placeholder="e.g. Bronny" required autocomplete="username">
@@ -271,29 +393,43 @@
               <i class="bi bi-exclamation-triangle-fill"></i> 
               Letters only (A–Z, a–z). No numbers, spaces, symbols, or special characters.
             </div>
+=======
+          <label class="form-label">Full name</label>
+          <div class="input-container">
+            <input type="text" name="name" class="form-input" placeholder="Bronny James" required>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label">Email address</label>
           <div class="input-container">
+<<<<<<< HEAD
             <input type="email" name="email" id="emailInput" class="form-input" placeholder="bronnyjames@example.com" required autocomplete="email">
           </div>
           <div class="field-hint-box" id="emailHint" style="display:none;">
             <div class="field-hint-text">
               <i class="bi bi-exclamation-triangle-fill"></i> Please enter a valid email address.
             </div>
+=======
+            <input type="email" name="email" class="form-input" placeholder="you@example.com" required>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label">Password</label>
           <div class="input-container">
+<<<<<<< HEAD
             <input type="password" name="password" id="passwordInput" class="form-input form-input-has-adornment" placeholder="Create a secure password" required minlength="8" autocomplete="new-password">
+=======
+            <input type="password" name="password" id="passwordInput" class="form-input form-input-has-adornment" placeholder="Min. 6 characters" required>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
             <button type="button" class="password-toggle" data-toggle-for="passwordInput" aria-label="Toggle password visibility">
               <i class="bi bi-eye toggle-icon"></i>
             </button>
           </div>
+<<<<<<< HEAD
           <div id="passwordStrength" class="strength-grid" style="display:none;">
             <div class="strength-item" id="req-len" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 8+ Characters</div>
             <div class="strength-item" id="req-upper" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 1 Uppercase</div>
@@ -301,21 +437,30 @@
             <div class="strength-item" id="req-num" style="color: #e05c5c;"><i class="bi bi-x-circle-fill"></i> 1 Number</div>
             <div class="strength-item" id="req-sym" style="color: #e05c5c; grid-column: span 2;"><i class="bi bi-x-circle-fill"></i> 1 Special Character (!@#$%^&*)</div>
           </div>
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
         </div>
 
         <div class="form-group">
           <label class="form-label">Confirm password</label>
           <div class="input-container">
+<<<<<<< HEAD
             <input type="password" name="confirm_password" id="confirmPasswordInput" class="form-input form-input-has-adornment" placeholder="Repeat your password" required autocomplete="new-password">
+=======
+            <input type="password" name="confirm_password" id="confirmPasswordInput" class="form-input form-input-has-adornment" placeholder="••••••••" required>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
             <button type="button" class="password-toggle" data-toggle-for="confirmPasswordInput" aria-label="Toggle password visibility">
               <i class="bi bi-eye toggle-icon"></i>
             </button>
           </div>
+<<<<<<< HEAD
           <div class="field-hint-box" id="confirmHint" style="display:none;">
             <div class="field-hint-text">
               <i class="bi bi-exclamation-triangle-fill"></i> Passwords do not match.
             </div>
           </div>
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
         </div>
 
         <div class="form-group" style="margin-bottom:20px;">
@@ -512,6 +657,10 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 0; i < count; i++) mainParticles.push(new MainParticle());
   }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   // --- ENGINE 2: AUTH-LEFT NESTED INTERACTIVE CONSTELLATION MAP ---
   const leftCanvas = document.getElementById('auth-left-canvas');
   const leftCtx = leftCanvas.getContext('2d');
@@ -585,6 +734,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   // --- SYNCHRONIZED TICK RATE MASTER DISPATCHER LOOP ---
   function updateAndRender() {
     mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
@@ -633,11 +786,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+<<<<<<< HEAD
+=======
+  // Render initialization pipeline cycles
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   resizeMainCanvas();
   if (window.getComputedStyle(leftSection).display !== 'none') {
     resizeLeftCanvas();
   }
   updateAndRender();
+<<<<<<< HEAD
 
   // ── ADVANCED INTERACTIVE REGISTRATION VALIDATION ENGINE ─────────────────
   const signupForm    = document.getElementById('signupForm');
@@ -816,6 +974,8 @@ const validateName = () => {
       }
     }
   });
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 });
 </script>
 {% endblock %}

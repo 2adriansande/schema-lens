@@ -176,8 +176,15 @@
 .pt-list { list-style: none; }
 .pt-list li { font-size: 13px; color: rgba(231,242,239,.88); padding: 4px 0; display: flex; align-items: flex-start; gap: 7px; }
 .pt-list li::before { content: '·'; color: var(--primary-light); margin-top:1px; flex-shrink:0; font-size:16px; line-height:1; }
+.schema-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.schema-scroll::-webkit-scrollbar { width: 6px; }
+.schema-scroll::-webkit-scrollbar-thumb { background: rgba(112,137,147,0.35); border-radius: 4px; }
 .schema-list-item {
-  padding: 11px 18px; border-bottom: 1px solid var(--border);
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 9px;
   font-size: 13px; color: var(--text-soft); cursor: pointer;
   transition: all .15s;
@@ -577,10 +584,51 @@
         </button>
       </div>
 
+<<<<<<< HEAD
       <div class="erd-body-panel">
         <div class="erd-scroll-container">
           <div id="erdTablesPanel">
             <div id="erdTableListBody"></div>
+=======
+    <div class="pro-tips fade-in fade-in-3">
+      <div class="pt-header"><i class="bi bi-lightbulb-fill"></i> Pro Tips</div>
+      <ul class="pt-list">
+        <li>Be specific about time ranges</li>
+        <li>Mention column names if known</li>
+        <li>Use Refine to iterate on results</li>
+        <li>Confirm your schema first for best accuracy</li>
+      </ul>
+    </div>
+
+    <div class="qs-card fade-in fade-in-4">
+      <div class="qs-header">
+        <i class="bi bi-layers" style="color:var(--primary-mid);"></i>
+        Database Schema
+      </div>
+      <div id="schemaTableList" class="schema-scroll">
+        {% if schemas %}
+          {% for s in schemas %}
+            {% if s.confirmed_schema or s.parsed_schema %}
+              {% set raw = s.confirmed_schema or s.parsed_schema %}
+              {% set p = raw | fromjson %}
+              {% if p.tables %}
+                <div style="padding:8px 14px 4px;font-size:10.5px;font-weight:700;color:var(--text-xs);text-transform:uppercase;letter-spacing:.07em;background:rgba(231,242,239,0.3);">
+                  {{ s.schema_name or s.original_name }}
+                  {% if s.confirmed_schema %}<span class="badge badge-green" style="font-size:9px;padding:1px 5px;margin-left:4px;">✓ confirmed</span>{% endif %}
+                </div>
+                {% for t in p.tables[:5] %}
+                <div class="schema-list-item" onclick="selectSchemaTable('{{ s.id }}', '{{ t.name }}')">
+                  <i class="bi bi-table"></i> {{ t.name }}
+                </div>
+                {% endfor %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <div class="schema-list-item">
+            <i class="bi bi-upload" style="color:var(--text-xs);"></i>
+            <a href="{{ url_for('schemas') }}" style="font-size:12.5px;color:var(--primary-mid);text-decoration:none;">Upload a schema first</a>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
           </div>
 
           <div id="erdDiagramPanel" style="display:none;">
@@ -607,6 +655,7 @@
       </div>
     </div>
 
+<<<<<<< HEAD
     <div id="qsCardWrapper">
       <div class="qs-card fade-in fade-in-2">
         <div class="qs-header">
@@ -654,6 +703,25 @@
         <div style="font-size:12.5px;color:#7f1d1d;line-height:1.55;">Start Ollama and pull <code>llama3.2:3b</code> for AI SQL generation. Fallback templates are active.</div>
       </div>
     </div></div>
+=======
+    {% if not current_user.gemini_key %}
+    <div style="background:rgba(254,243,199,0.7);backdrop-filter:blur(8px);border:1px solid rgba(180,83,9,0.15);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
+      <div style="font-size:13px;font-weight:700;color:#78350f;margin-bottom:5px;"><i class="bi bi-key-fill"></i> Add Gemini API Key</div>
+      <div style="font-size:12.5px;color:#92400e;line-height:1.55;">Required for <strong>image-based schema parsing</strong>. SQL generation uses local Ollama. <a href="{{ url_for('settings') }}" style="color:var(--primary);font-weight:700;">Settings →</a></div>
+    </div>
+    {% endif %}
+
+    <!-- Ollama info card -->
+    <div id="ollamaInfoCard" style="display:none;background:rgba(236,253,245,0.7);backdrop-filter:blur(8px);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
+      <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:5px;"><i class="bi bi-cpu-fill"></i> Ollama Active</div>
+      <div style="font-size:12.5px;color:#047857;line-height:1.55;">SQL generation is powered by <strong>llama3.2:3b</strong> running locally.</div>
+    </div>
+    <div id="ollamaOfflineCard" style="display:none;background:rgba(254,226,226,0.6);backdrop-filter:blur(8px);border:1px solid rgba(220,38,38,0.15);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
+      <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:5px;"><i class="bi bi-exclamation-triangle-fill"></i> Ollama Offline</div>
+      <div style="font-size:12.5px;color:#7f1d1d;line-height:1.55;">Start Ollama and pull <code>llama3.2:3b</code> for AI SQL generation. Fallback templates are active.</div>
+    </div>
+  </div>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 </div>
 {% endblock %}
 
@@ -664,7 +732,11 @@ let currentQueryId = null;
 let currentSchemaId = null;
 let conversationVisible = true;
 
+<<<<<<< HEAD
 // Active initialization checks
+=======
+// Show Ollama info card on load
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 (async function() {
   try {
     const resp = await fetch('/api/ollama-status');
@@ -906,6 +978,21 @@ function clearResult() {
 function copyToClipboard() {
   navigator.clipboard.writeText(document.getElementById('sqlOutput').innerText);
 }
+
+function handleGlobalSearch(query) {
+  const input = document.getElementById('queryInput');
+  if (!input) return;
+  input.value = query;
+  input.focus();
+}
+
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const initialQuery = params.get('q');
+  if (initialQuery) {
+    handleGlobalSearch(initialQuery);
+  }
+})();
 
 document.getElementById('queryInput').addEventListener('keydown', e => {
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generateSQL();

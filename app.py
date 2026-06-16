@@ -3,8 +3,11 @@ import json
 import re
 import datetime
 import random
+<<<<<<< HEAD
 import time
 import logging
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -22,7 +25,11 @@ from flask_login import (LoginManager, UserMixin, login_user, logout_user,
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+<<<<<<< HEAD
 from sqlalchemy import text
+=======
+from sqlalchemy import text, or_
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 import urllib.request
 
 # ── App Setup ──────────────────────────────────────────────────────────────
@@ -41,6 +48,7 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL    = "llama3.2:3b"
 
+<<<<<<< HEAD
 # ── Gemini Backend Configuration (server-side only) ────────────────────────
 # API key is NEVER sent to the frontend. It is loaded from environment only.
 GEMINI_API_KEY  = os.environ.get("GEMINI_API_KEY", "")
@@ -53,6 +61,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("schemalens")
 
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
@@ -625,6 +635,7 @@ OCR TOKENS:
 Return ONLY the JSON. No markdown fences. No explanation."""
 
 
+<<<<<<< HEAD
 MODELS = GEMINI_MODELS
 
 # ── Rate limiting state for Gemini ────────────────────────────────────────
@@ -693,6 +704,46 @@ def _call_gemini(api_key: str, contents) -> str:
         pass
 
     raise RuntimeError("No working Gemini model found. Check GEMINI_API_KEY and installed packages.")
+=======
+MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+]
+
+def _call_gemini(api_key: str, contents) -> str:
+    try:
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
+
+        for model_name in MODELS:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                )
+                return response.text
+            except Exception:
+                pass
+
+    except Exception:
+        pass
+
+    # Legacy fallback
+    import google.generativeai as genai_legacy
+
+    genai_legacy.configure(api_key=api_key)
+
+    for model_name in MODELS:
+        try:
+            model = genai_legacy.GenerativeModel(model_name)
+            response = model.generate_content(contents)
+            return response.text
+        except Exception:
+            pass
+
+    raise RuntimeError("No working Gemini model found")
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 
 
 def _validate_schema_structure(data: dict) -> None:
@@ -799,6 +850,7 @@ def parse_schema_with_gemini(ocr_text: str, api_key: str, image_path: str = None
         raise RuntimeError(f"All Gemini parsing stages failed: {exc}")
 
 
+<<<<<<< HEAD
 # ── PARALLEL #3: Multi-model consensus ────────────────────────────────────
 
 def parse_schema_with_consensus(ocr_text: str, api_key: str, image_path: str = None) -> dict:
@@ -836,6 +888,59 @@ def parse_schema_with_consensus(ocr_text: str, api_key: str, image_path: str = N
         return results["ollama"]
     else:
         raise RuntimeError("Both Gemini and Ollama returned no tables.")
+=======
+WEBSITE_PROMPT_TEMPLATE = """You are an expert website designer and frontend developer.
+Create a complete static HTML landing page for the following business or product.
+Use inline CSS inside a <style> block. Keep the page modern, responsive, and clean.
+Include a hero section, feature highlights, a call-to-action button, and a footer.
+Use the exact branding name provided.
+
+BRAND: {name}
+DESCRIPTION: {description}
+
+Output ONLY the full HTML document starting with <!DOCTYPE html>. Do not include markdown fences, explanation, or any extra text.
+"""
+
+
+def _clean_text_response(text: str) -> str:
+    text = text.strip()
+    text = re.sub(r'^```(?:html)?\s*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\s*```\s*$', '', text, flags=re.MULTILINE)
+    return text.strip()
+
+
+def _generate_website_with_gemini(description: str, api_key: str, user: User) -> str:
+    name = user.company.strip() or user.name.strip() or "My Website"
+    prompt = WEBSITE_PROMPT_TEMPLATE.format(name=name, description=description)
+    raw = _call_gemini(api_key, [prompt])
+    return _clean_text_response(raw)
+
+
+@app.route("/website-builder")
+@login_required
+def website_builder():
+    return render_template("website_builder.html")
+
+
+@app.route("/api/generate-website", methods=["POST"])
+@login_required
+def generate_website():
+    if not current_user.gemini_key:
+        return jsonify({"error": "Please add a Gemini API key on Settings before generating a website."}), 400
+
+    data = request.get_json() or {}
+    description = (data.get("description") or "").strip()
+    if not description:
+        description = "A polished landing page for an AI-powered database query and schema management app."
+
+    try:
+        html_output = _generate_website_with_gemini(description, current_user.gemini_key, current_user)
+        if not html_output or "<!DOCTYPE html>" not in html_output:
+            raise RuntimeError("Gemini did not return a valid HTML document.")
+        return jsonify({"html": html_output})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 
 
 # ── Ollama helpers ─────────────────────────────────────────────────────────
@@ -1339,8 +1444,14 @@ Return ONLY the updated SQL query."""
 # ══════════════════════════════════════════════════════════════════
 
 @app.route("/agreement")
+<<<<<<< HEAD
 def agreement_page():
     """Show Terms & Privacy agreement screen. Public — accessible before login."""
+=======
+@login_required
+def agreement_page():
+    """Show Terms & Privacy agreement screen."""
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     return render_template("agreement.html")
 
 
@@ -1514,6 +1625,23 @@ def schemas():
     return render_template("schemas.html", schemas=all_schemas)
 
 
+@app.route("/schemas/delete_all", methods=["POST"])
+@login_required
+def delete_all_schemas():
+    schemas = SchemaUpload.query.filter_by(user_id=current_user.id).all()
+    for schema in schemas:
+        try:
+            filepath = os.path.join(app.config["UPLOAD_FOLDER"], schema.filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        except Exception:
+            pass
+        db.session.delete(schema)
+    db.session.commit()
+    flash("All schemas deleted.", "success")
+    return redirect(url_for("schemas"))
+
+
 @app.route("/schemas/upload", methods=["POST"])
 @login_required
 def upload_schema():
@@ -1537,6 +1665,7 @@ def upload_schema():
     ocr_text = ""
     parsed   = {}
     if api_key:
+<<<<<<< HEAD
         with ThreadPoolExecutor(max_workers=2) as pool:
             f_ocr    = pool.submit(run_ocr, filepath)
             f_vision = pool.submit(parse_schema_with_image, filepath, api_key)
@@ -1552,6 +1681,20 @@ def upload_schema():
         if not parsed.get("tables"):
             try:
                 parsed = parse_schema_with_consensus(ocr_text, api_key, image_path=None)
+=======
+        try:
+            # Pass the actual image path — Gemini Vision gives far better results
+            parsed = parse_schema_with_gemini(ocr_text, api_key, image_path=filepath)
+            # Validate we got real tables, not type-keyword garbage
+            if not parsed.get("tables"):
+                raise ValueError("No tables extracted from image — trying OCR fallback")
+        except Exception as exc:
+            try:
+                # Second attempt: text-only Gemini
+                parsed = parse_schema_with_gemini(ocr_text, api_key, image_path=None)
+                if not parsed.get("tables"):
+                    raise ValueError("Text-only parse also produced no tables")
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
             except Exception as exc2:
                 parsed = parse_schema_fallback(ocr_text)
                 flash(
@@ -1560,8 +1703,12 @@ def upload_schema():
                     "warning"
                 )
     else:
+<<<<<<< HEAD
         ocr_text = run_ocr(filepath)
         parsed   = parse_schema_fallback(ocr_text)
+=======
+        parsed = parse_schema_fallback(ocr_text)
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
         if parsed.get("tables"):
             flash(
                 "No Gemini API key — used heuristic parser. "
@@ -1675,6 +1822,59 @@ def query_page():
     return render_template("query.html", schemas=schemas, selected_schema=selected_schema)
 
 
+@app.route("/search", methods=["GET"])
+@login_required
+def search():
+    query_text = request.args.get("q", "").strip()
+    if not query_text:
+        return redirect(url_for("dashboard"))
+
+    like_pattern = f"%{query_text}%"
+    query_matches = QueryHistory.query.filter_by(user_id=current_user.id).filter(
+        or_(
+            QueryHistory.natural_query.ilike(like_pattern),
+            QueryHistory.generated_sql.ilike(like_pattern),
+            QueryHistory.model_used.ilike(like_pattern)
+        )
+    ).order_by(QueryHistory.created_at.desc()).limit(40).all()
+
+    schema_records = SchemaUpload.query.filter_by(user_id=current_user.id).filter(
+        or_(
+            SchemaUpload.schema_name.ilike(like_pattern),
+            SchemaUpload.original_name.ilike(like_pattern),
+            SchemaUpload.parsed_schema.ilike(like_pattern),
+            SchemaUpload.confirmed_schema.ilike(like_pattern)
+        )
+    ).order_by(SchemaUpload.uploaded_at.desc()).limit(30).all()
+
+    schema_results = []
+    for schema in schema_records:
+        parsed = {}
+        try:
+            parsed = json.loads(schema.confirmed_schema or schema.parsed_schema or "{}")
+        except Exception:
+            parsed = {}
+        tables = [t.get("name", "") for t in parsed.get("tables", []) if isinstance(t, dict)]
+        columns = []
+        for table in parsed.get("tables", []):
+            if isinstance(table, dict):
+                for column in table.get("columns", []):
+                    if isinstance(column, dict):
+                        columns.append(column.get("name", ""))
+        schema_results.append({
+            "schema": schema,
+            "tables": tables,
+            "columns": columns,
+        })
+
+    return render_template(
+        "search_results.html",
+        query=query_text,
+        query_matches=query_matches,
+        schema_results=schema_results
+    )
+
+
 @app.route("/api/generate-sql", methods=["POST"])
 @login_required
 def generate_sql():
@@ -1720,6 +1920,7 @@ def generate_sql():
         sql = _fallback_sql(natural_query, parsed)
         model_used = "heuristic"
 
+<<<<<<< HEAD
     # ── PARALLEL #2: Explain + Evaluate fire simultaneously (fork-join) ──────
     # Neither depends on the other — pure parallelism, ~2x faster response.
     def _explain():
@@ -1738,6 +1939,20 @@ def generate_sql():
         f_evaluate = pool.submit(_evaluate)
         explanation = f_explain.result()
         eval_result = f_evaluate.result()
+=======
+    # Feature 2: Generate explanation via Ollama
+    explanation = ""
+    if ollama_ok:
+        try:
+            explanation = explain_sql_with_ollama(sql)
+        except Exception:
+            explanation = explain_sql_fallback(sql)
+    else:
+        explanation = explain_sql_fallback(sql)
+
+    # Feature 4: Evaluate accuracy (Ollama for AI eval if active)
+    eval_result = evaluate_sql_accuracy(sql, natural_query, parsed, None)
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 
     # Feature 3: Initialize conversation context
     conversation = [
@@ -1768,8 +1983,12 @@ def generate_sql():
         "query_id": history.id,
         "explanation": explanation,
         "evaluation": eval_result,
+<<<<<<< HEAD
         "ollama_active": ollama_ok,
         "new_badges": newly_awarded,
+=======
+        "ollama_active": ollama_ok
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     })
 
 
@@ -1809,7 +2028,11 @@ def refine_sql():
             if raw:
                 parsed = json.loads(raw)
 
+<<<<<<< HEAD
     api_key = _get_effective_gemini_key(current_user.gemini_key)
+=======
+    api_key = current_user.gemini_key
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 
     if not check_ollama_active():
         return jsonify({"error": "Ollama is not running. Please start Ollama to use query refinement."}), 400
@@ -1887,6 +2110,7 @@ def explain_sql_endpoint():
     return jsonify({"explanation": explanation})
 
 
+<<<<<<< HEAD
 # ── Schema metadata endpoint for ERD overview card ──
 @app.route("/api/schema/<int:schema_id>/metadata")
 @login_required
@@ -1911,6 +2135,8 @@ def schema_metadata(schema_id):
     })
 
 
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 # ── Ollama status endpoint ──
 @app.route("/api/ollama-status")
 @login_required
@@ -1964,6 +2190,14 @@ def delete_query(query_id):
     return jsonify({"ok": True})
 
 
+@app.route("/history/clear-all", methods=["POST"])
+@login_required
+def clear_history():
+    db.session.query(QueryHistory).filter_by(user_id=current_user.id).delete()
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
 # ══════════════════════════════════════════════════════════════════
 # SETTINGS
 # ══════════════════════════════════════════════════════════════════
@@ -2009,8 +2243,667 @@ def settings():
             logout_user()
             flash("Account deleted.", "success")
             return redirect(url_for("signup"))
-        return redirect(url_for("settings"))
     return render_template("settings.html", user=current_user)
+
+# ══════════════════════════════════════════════════════════════════
+# BADGE AWARDING HELPER
+# ══════════════════════════════════════════════════════════════════
+
+def award_badge_if_new(user_id: int, badge_key: str) -> dict | None:
+    """
+    Award a badge to the user if they don't already have it.
+    Returns the badge dict if newly awarded, else None.
+    """
+    if badge_key not in BADGES:
+        return None
+    existing = UserBadge.query.filter_by(user_id=user_id, badge_key=badge_key).first()
+    if existing:
+        return None
+    badge = UserBadge(user_id=user_id, badge_key=badge_key)
+    db.session.add(badge)
+    db.session.commit()
+    return BADGES[badge_key]
+
+
+def check_and_award_badges(user_id: int) -> list[dict]:
+    """
+    Check all badge conditions for a user and award any newly earned badges.
+    Returns list of newly awarded badge dicts (for flash/toast notifications).
+    """
+    newly_awarded = []
+
+    schema_count = SchemaUpload.query.filter_by(user_id=user_id).count()
+    query_count  = QueryHistory.query.filter_by(user_id=user_id).count()
+
+    thresholds = [
+        ("first_upload",   schema_count >= 1),
+        ("first_query",    query_count  >= 1),
+        ("query_10",       query_count  >= 10),
+        ("query_50",       query_count  >= 50),
+        ("schema_5",       schema_count >= 5),
+    ]
+
+    for key, condition in thresholds:
+        if condition:
+            result = award_badge_if_new(user_id, key)
+            if result:
+                newly_awarded.append({**result, "key": key})
+
+    return newly_awarded
+
+
+def update_streak(user: "User") -> int:
+    """
+    Update the user's login streak.
+    Returns the current streak count.
+    """
+    now = datetime.datetime.utcnow()
+    last = user.last_active
+
+    if last is None:
+        user.streak_days = 1
+    else:
+        diff = (now.date() - last.date()).days
+        if diff == 0:
+            pass                    # same day — no change
+        elif diff == 1:
+            user.streak_days = (user.streak_days or 0) + 1
+        else:
+            user.streak_days = 1   # streak broken
+
+    user.last_active = now
+    db.session.commit()
+
+    if user.streak_days >= 3:
+        award_badge_if_new(user.id, "streak_3")
+
+    return user.streak_days
+
+# BADGE DEFINITIONS
+# ══════════════════════════════════════════════════════════════════
+
+BADGES = {
+    "first_upload": {
+        "label": "First Upload",
+        "description": "Uploaded your first ER diagram schema.",
+        "icon": "📊",
+        "color": "#4e9af1",
+    },
+    "first_query": {
+        "label": "Query Starter",
+        "description": "Generated your first SQL query.",
+        "icon": "🔍",
+        "color": "#34c87a",
+    },
+    "query_10": {
+        "label": "Power User",
+        "description": "Generated 10 or more SQL queries.",
+        "icon": "🚀",
+        "color": "#f5a623",
+    },
+    "query_50": {
+        "label": "SQL Veteran",
+        "description": "Generated 50 or more SQL queries.",
+        "icon": "🏆",
+        "color": "#e84393",
+    },
+    "schema_5": {
+        "label": "Schema Expert",
+        "description": "Uploaded 5 or more schemas.",
+        "icon": "🗄️",
+        "color": "#9b59b6",
+    },
+    "streak_3": {
+        "label": "On a Roll",
+        "description": "Logged in 3 days in a row.",
+        "icon": "🔥",
+        "color": "#e74c3c",
+    },
+    "challenge_first": {
+        "label": "Challenger",
+        "description": "Completed your first SQL Challenge.",
+        "icon": "⚔️",
+        "color": "#1abc9c",
+    },
+    "challenge_perfect": {
+        "label": "Perfectionist",
+        "description": "Scored 90+ on a SQL Challenge.",
+        "icon": "💎",
+        "color": "#3498db",
+    },
+}
+
+
+# ══════════════════════════════════════════════════════════════════
+# GAMIFICATION ROUTES — paste into app.py
+# ══════════════════════════════════════════════════════════════════
+
+# ── Badges page ───────────────────────────────────────────────────
+@app.route("/badges")
+@login_required
+def badges_page():
+    user_badge_rows = UserBadge.query.filter_by(user_id=current_user.id).all()
+    earned      = {b.badge_key for b in user_badge_rows}
+    badge_dates = {b.badge_key: b.awarded_at for b in user_badge_rows}
+
+    schema_count    = SchemaUpload.query.filter_by(user_id=current_user.id).count()
+    query_count     = QueryHistory.query.filter_by(user_id=current_user.id).count()
+    streak          = getattr(current_user, 'streak_days', 0) or 0
+
+    all_attempts    = ChallengeAttempt.query.filter_by(user_id=current_user.id).all()
+    challenge_count = len(all_attempts)
+    scores          = [a.score for a in all_attempts if a.score is not None]
+    best_score      = max(scores) if scores else 0
+    perfect_count   = sum(1 for s in scores if s >= 90)
+
+    xp          = (len(earned) * 100) + (query_count * 5) + (schema_count * 20) + (challenge_count * 15) + (streak * 10)
+    level       = max(1, xp // 200 + 1)
+    xp_in_level = xp % 200
+    xp_to_next  = 200
+
+    badge_progress = {
+        "first_upload":      {"current": schema_count,    "target": 1},
+        "first_query":       {"current": query_count,     "target": 1},
+        "query_10":          {"current": query_count,     "target": 10},
+        "query_50":          {"current": query_count,     "target": 50},
+        "schema_5":          {"current": schema_count,    "target": 5},
+        "streak_3":          {"current": streak,          "target": 3},
+        "challenge_first":   {"current": challenge_count, "target": 1},
+        "challenge_perfect": {"current": perfect_count,   "target": 1},
+    }
+
+    badge_list = []
+    for key, info in BADGES.items():
+        prog = badge_progress.get(key, {"current": 0, "target": 1})
+        pct  = min(100, int((prog["current"] / prog["target"]) * 100)) if prog["target"] else 0
+        badge_list.append({**info, "key": key, "earned": key in earned,
+                           "progress": pct, "current": prog["current"], "target": prog["target"]})
+
+    locked     = [b for b in badge_list if not b["earned"]]
+    next_badge = max(locked, key=lambda b: b["progress"]) if locked else None
+
+    return render_template(
+        "badges.html",
+        badges=badge_list,
+        earned_count=len(earned),
+        total_count=len(BADGES),
+        schema_count=schema_count,
+        query_count=query_count,
+        streak=streak,
+        challenge_count=challenge_count,
+        best_score=best_score,
+        perfect_count=perfect_count,
+        xp=xp,
+        level=level,
+        xp_in_level=xp_in_level,
+        xp_to_next=xp_to_next,
+        next_badge=next_badge,
+        badge_dates=badge_dates,
+    )
+
+# ── Leaderboard ───────────────────────────────────────────────────
+@app.route("/leaderboard")
+@login_required
+def leaderboard():
+    from sqlalchemy import func
+
+    # ── Aggregate counts per user via LEFT OUTER JOIN so ALL users appear ──
+    all_users = User.query.all()
+
+    def user_stats(u):
+        qc = QueryHistory.query.filter_by(user_id=u.id).count()
+        sc = SchemaUpload.query.filter_by(user_id=u.id).count()
+        bc = UserBadge.query.filter_by(user_id=u.id).count()
+        attempts = ChallengeAttempt.query.filter_by(user_id=u.id).all()
+        cc = len(attempts)
+        scores = [a.score for a in attempts if a.score is not None]
+        avg_score = round(sum(scores) / len(scores), 1) if scores else 0
+        best_score = max(scores) if scores else 0
+        streak = getattr(u, 'streak_days', 0) or 0
+        xp = (bc * 100) + (qc * 5) + (sc * 20) + (cc * 15) + (streak * 10)
+        level = max(1, xp // 200 + 1)
+        return {
+            "id": u.id, "name": u.name,
+            "query_count": qc, "schema_count": sc,
+            "badge_count": bc, "challenge_count": cc,
+            "avg_score": avg_score, "best_score": best_score,
+            "streak": streak, "xp": xp, "level": level,
+        }
+
+    all_stats = [user_stats(u) for u in all_users]
+
+    # Sort each leaderboard — include ALL users with >0 activity
+    top_xp      = sorted(all_stats, key=lambda r: r["xp"],          reverse=True)[:10]
+    top_queries = sorted([r for r in all_stats if r["query_count"]  > 0], key=lambda r: r["query_count"],  reverse=True)[:10]
+    top_schemas = sorted([r for r in all_stats if r["schema_count"] > 0], key=lambda r: r["schema_count"], reverse=True)[:10]
+    top_badges  = sorted([r for r in all_stats if r["badge_count"]  > 0], key=lambda r: r["badge_count"],  reverse=True)[:10]
+    top_scores  = sorted([r for r in all_stats if r["avg_score"]    > 0], key=lambda r: r["avg_score"],    reverse=True)[:10]
+
+    # Current user stats
+    me = next((r for r in all_stats if r["id"] == current_user.id), None)
+    if me is None:
+        me = user_stats(current_user)
+
+    def my_rank(board):
+        for i, r in enumerate(board):
+            if r["id"] == current_user.id:
+                return i + 1
+        # Not in top 10 — find true rank across all
+        uid = current_user.id
+        if board and "xp" in board[0]:
+            full = sorted(all_stats, key=lambda r: r["xp"], reverse=True)
+        elif board and "query_count" in board[0]:
+            full = sorted(all_stats, key=lambda r: r["query_count"], reverse=True)
+        elif board and "schema_count" in board[0]:
+            full = sorted(all_stats, key=lambda r: r["schema_count"], reverse=True)
+        elif board and "badge_count" in board[0]:
+            full = sorted(all_stats, key=lambda r: r["badge_count"], reverse=True)
+        else:
+            full = sorted(all_stats, key=lambda r: r["avg_score"], reverse=True)
+        for i, r in enumerate(full):
+            if r["id"] == uid:
+                return i + 1
+        return None
+
+    return render_template(
+        "leaderboard.html",
+        top_xp=top_xp,
+        top_queries=top_queries,
+        top_schemas=top_schemas,
+        top_badges=top_badges,
+        top_scores=top_scores,
+        me=me,
+        xp_rank=my_rank(top_xp),
+        query_rank=my_rank(top_queries),
+        schema_rank=my_rank(top_schemas),
+        badge_rank=my_rank(top_badges),
+        score_rank=my_rank(top_scores),
+    )
+
+
+class UserBadge(db.Model):
+    __tablename__ = "user_badges"
+    id          = db.Column(db.Integer, primary_key=True)
+    user_id     = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    badge_key   = db.Column(db.String(80), nullable=False)
+    awarded_at  = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    __table_args__ = (db.UniqueConstraint("user_id", "badge_key"),)
+
+class ChallengeAttempt(db.Model):
+    __tablename__ = "challenge_attempts"
+    id            = db.Column(db.Integer, primary_key=True)
+    user_id       = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    schema_id     = db.Column(db.Integer, db.ForeignKey("schema_uploads.id"), nullable=True)
+    prompt        = db.Column(db.Text, nullable=False)
+    expected_sql  = db.Column(db.Text, default="")
+    user_sql      = db.Column(db.Text, default="")
+    score         = db.Column(db.Integer, default=0)
+    feedback      = db.Column(db.Text, default="")
+    attempted_at  = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+
+# ── SQL Challenge — GET: pick a schema and show a random prompt ───
+@app.route("/challenge")
+@login_required
+def challenge_page():
+    schemas = SchemaUpload.query.filter_by(user_id=current_user.id).all()
+    selected_schema = None
+    preselect_id = request.args.get("schema_id")
+    if preselect_id:
+        selected_schema = SchemaUpload.query.filter_by(
+            id=preselect_id, user_id=current_user.id).first()
+
+    recent_attempts = (
+        ChallengeAttempt.query
+        .filter_by(user_id=current_user.id)
+        .order_by(ChallengeAttempt.attempted_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    # Accurate stats from DB
+    all_attempts = ChallengeAttempt.query.filter_by(user_id=current_user.id).all()
+    total_attempts = len(all_attempts)
+    scores = [a.score for a in all_attempts if a.score is not None]
+    avg_score    = round(sum(scores) / len(scores)) if scores else 0
+    best_score   = max(scores) if scores else 0
+    perfect_count = sum(1 for s in scores if s >= 90)
+
+    return render_template(
+        "challenges.html",
+        schemas=schemas,
+        selected_schema=selected_schema,
+        recent_attempts=recent_attempts,
+        total_attempts=total_attempts,
+        avg_score=avg_score,
+        best_score=best_score,
+        perfect_count=perfect_count,
+    )
+
+
+@app.route("/api/schema/<int:schema_id>")
+@login_required
+def get_schema(schema_id):
+    schema = SchemaUpload.query.filter_by(id=schema_id, user_id=current_user.id).first()
+    if not schema:
+        return jsonify({"error": "Schema not found."}), 404
+
+    raw = schema.confirmed_schema or schema.parsed_schema
+    parsed = json.loads(raw) if raw else {}
+
+    return jsonify({
+        "schema_name": schema.schema_name or schema.original_name,
+        "tables": parsed.get("tables", []),
+        "relationships": parsed.get("relationships", []),
+    })
+
+
+# ── SQL Challenge — API: generate a challenge prompt ─────────────
+@app.route("/api/challenge/generate", methods=["POST"])
+@login_required
+def challenge_generate():
+    """
+    Given a schema_id, generate a natural-language SQL challenge prompt
+    and a reference SQL answer using Gemini (or a fallback prompt bank).
+    """
+    data       = request.get_json()
+    schema_id  = data.get("schema_id")
+    difficulty = data.get("difficulty", "easy")
+    if not schema_id:
+        return jsonify({"error": "Please select a schema first."}), 400
+
+    schema_obj = SchemaUpload.query.filter_by(
+        id=schema_id, user_id=current_user.id).first()
+    if not schema_obj:
+        return jsonify({"error": "Schema not found."}), 404
+
+    raw = schema_obj.confirmed_schema or schema_obj.parsed_schema
+    parsed = json.loads(raw) if raw else {}
+    tables = parsed.get("tables", [])
+
+    if not tables:
+        return jsonify({"error": "Schema has no tables. Please upload and confirm a schema first."}), 400
+
+    api_key = current_user.gemini_key
+
+    if api_key:
+        prompt_nl, ref_sql = _generate_challenge_with_gemini(parsed, api_key, difficulty)
+    else:
+        prompt_nl, ref_sql = _generate_challenge_fallback(parsed, difficulty)
+
+    return jsonify({
+        "prompt": prompt_nl,
+        "schema_id": schema_id,
+        "ref_sql": ref_sql,      # sent to client but hidden from user
+    })
+
+
+# ── SQL Challenge — API: submit and grade the user's answer ───────
+@app.route("/api/challenge/submit", methods=["POST"])
+@login_required
+def challenge_submit():
+    data         = request.get_json()
+    schema_id    = data.get("schema_id")
+    prompt_nl    = (data.get("prompt") or "").strip()
+    ref_sql      = (data.get("ref_sql") or "").strip()
+    user_sql     = (data.get("user_sql") or "").strip()
+    try_number        = int(data.get("try_number", 1))
+    timer_penalty     = int(data.get("timer_penalty", 0))
+    try_penalty       = int(data.get("try_penalty", 0))
+    difficulty        = data.get("difficulty", "easy")
+
+    if not user_sql:
+        return jsonify({"error": "Please write a SQL query before submitting."}), 400
+
+    schema_obj = SchemaUpload.query.filter_by(
+        id=schema_id, user_id=current_user.id).first() if schema_id else None
+    raw = schema_obj.confirmed_schema or schema_obj.parsed_schema if schema_obj else ""
+    parsed = json.loads(raw) if raw else {}
+
+    api_key = current_user.gemini_key
+
+    # Grade the raw submission
+    if api_key:
+        base_score, feedback = _grade_challenge_with_gemini(
+            prompt_nl, ref_sql, user_sql, parsed, api_key
+        )
+        # Also fetch hints for multi-try support
+        hints = _generate_hints_with_gemini(prompt_nl, ref_sql, user_sql, parsed, api_key)
+    else:
+        base_score, feedback = _grade_challenge_fallback(ref_sql, user_sql)
+        hints = _generate_hints_fallback(ref_sql, user_sql)
+
+    # Apply penalties (cap total penalty at 25)
+    total_penalty    = min(25, timer_penalty + try_penalty)
+    difficulty_bonus = 5 if (difficulty == "hard" and base_score >= 70) else 0
+    final_score      = max(0, min(100, base_score - total_penalty + difficulty_bonus))
+
+    # Only save to DB on the final try or if passing
+    is_final = (base_score >= 85) or (try_number >= 3)
+    newly_awarded = []
+
+    if is_final:
+        attempt = ChallengeAttempt(
+            user_id=current_user.id,
+            schema_id=schema_obj.id if schema_obj else None,
+            prompt=prompt_nl,
+            expected_sql=ref_sql,
+            user_sql=user_sql,
+            score=final_score,
+            feedback=feedback,
+        )
+        attempt.difficulty = difficulty  # stored if column exists
+        db.session.add(attempt)
+        db.session.commit()
+
+        result = award_badge_if_new(current_user.id, "challenge_first")
+        if result:
+            newly_awarded.append({**result, "key": "challenge_first"})
+        if final_score >= 90:
+            result = award_badge_if_new(current_user.id, "challenge_perfect")
+            if result:
+                newly_awarded.append({**result, "key": "challenge_perfect"})
+
+    return jsonify({
+        "score":             base_score,
+        "final_score":       final_score,
+        "base_score":        base_score,
+        "timer_penalty":     timer_penalty,
+        "try_penalty":       try_penalty,
+        "difficulty_bonus":  difficulty_bonus,
+        "feedback":          feedback,
+        "ref_sql":           ref_sql,
+        "hints":             hints,
+        "new_badges":        newly_awarded,
+        "is_final":          is_final,
+    })
+
+
+# ── API: award badges after query/schema actions ──────────────────
+@app.route("/api/check-badges", methods=["POST"])
+@login_required
+def api_check_badges():
+    newly = check_and_award_badges(current_user.id)
+    return jsonify({"new_badges": newly})
+
+
+# ══════════════════════════════════════════════════════════════════
+# CHALLENGE HELPERS
+# ══════════════════════════════════════════════════════════════════
+
+_CHALLENGE_TEMPLATES = [
+    ("List all records from {table}.",
+     "SELECT * FROM {table};"),
+    ("Count the total number of records in {table}.",
+     "SELECT COUNT(*) FROM {table};"),
+    ("Show the first 5 records from {table} ordered by {col}.",
+     "SELECT * FROM {table} ORDER BY {col} LIMIT 5;"),
+    ("Find all records in {table} where {col} is not null.",
+     "SELECT * FROM {table} WHERE {col} IS NOT NULL;"),
+    ("Select only the {col} column from {table}.",
+     "SELECT {col} FROM {table};"),
+]
+
+
+def _generate_challenge_fallback(parsed: dict, difficulty: str = "easy") -> tuple[str, str]:
+    tables = parsed.get("tables", [])
+    table  = random.choice(tables)
+    tname  = table["name"]
+    cols   = table.get("columns", [])
+    col    = random.choice(cols)["name"] if cols else "id"
+    tpl    = random.choice(_CHALLENGE_TEMPLATES)
+    prompt = tpl[0].format(table=tname, col=col)
+    sql    = tpl[1].format(table=tname, col=col)
+    return prompt, sql
+
+
+def _generate_challenge_with_gemini(parsed: dict, api_key: str, difficulty: str = "easy") -> tuple[str, str]:
+    schema_desc = _build_schema_description(parsed)
+    diff_instructions = {
+        "easy":   "Make it easy: simple SELECT with basic WHERE or ORDER BY. No JOINs required.",
+        "medium": "Make it medium: require at least one JOIN and a GROUP BY or aggregate function.",
+        "hard":   "Make it hard: require multiple JOINs, subqueries or nested aggregations, and complex WHERE conditions.",
+    }
+    diff_note = diff_instructions.get(difficulty, diff_instructions["easy"])
+    prompt_text = f"""{schema_desc}
+
+Generate a single SQL challenge for a student learning SQL.
+Difficulty: {difficulty.upper()} — {diff_note}
+Return ONLY a JSON object with two keys:
+  "prompt": a clear natural-language question (1 sentence)
+  "sql":    the correct SQL answer for that question
+
+Use only tables and columns that exist in the schema above.
+Return ONLY the JSON, no markdown fences."""
+
+    try:
+        raw = _call_gemini(api_key, prompt_text)
+        data = json.loads(_clean_json_response(raw))
+        return data["prompt"], data["sql"]
+    except Exception:
+        return _generate_challenge_fallback(parsed)
+
+
+def _grade_challenge_fallback(ref_sql: str, user_sql: str) -> tuple[int, str]:
+    """Simple keyword-overlap scoring when no API key is available."""
+    ref_tokens  = set(re.findall(r'\b\w+\b', ref_sql.upper()))
+    user_tokens = set(re.findall(r'\b\w+\b', user_sql.upper()))
+    if not ref_tokens:
+        return 50, "Could not evaluate — reference SQL unavailable."
+    overlap = len(ref_tokens & user_tokens) / len(ref_tokens)
+    score = min(100, int(overlap * 110))
+    if score >= 80:
+        feedback = "Great job! Your query closely matches the expected answer."
+    elif score >= 50:
+        feedback = "Partially correct. Check your table/column names and clauses."
+    else:
+        feedback = "Needs improvement. Review the schema and try again."
+    return score, feedback
+
+
+def _grade_challenge_with_gemini(
+    prompt_nl: str, ref_sql: str, user_sql: str, parsed: dict, api_key: str
+) -> tuple[int, str]:
+    schema_desc = _build_schema_description(parsed)
+    grading_prompt = f"""{schema_desc}
+
+Challenge prompt given to the student:
+"{prompt_nl}"
+
+Reference (correct) SQL:
+{ref_sql}
+
+Student's SQL:
+{user_sql}
+
+Grade the student's SQL query on a scale of 0–100. Consider:
+- Correctness: does it answer the prompt?
+- Table/column accuracy: are the names from the schema?
+- Clause usage: WHERE, JOIN, ORDER BY used appropriately?
+- Minor syntax issues are OK — focus on logic.
+
+Return ONLY a JSON object:
+{{
+  "score": <integer 0-100>,
+  "feedback": "<2-3 sentence friendly feedback explaining the grade>"
+}}
+No markdown, no extra text."""
+    try:
+        raw  = _call_gemini(api_key, grading_prompt)
+        data = json.loads(_clean_json_response(raw))
+        return int(data["score"]), str(data["feedback"])
+    except Exception:
+        return _grade_challenge_fallback(ref_sql, user_sql)
+
+
+def _generate_hints_fallback(ref_sql: str, user_sql: str) -> list[str]:
+    """Generate progressive hints by comparing SQL tokens."""
+    ref_upper  = ref_sql.upper()
+    user_upper = user_sql.upper()
+    hints = []
+
+    keywords = ["JOIN", "GROUP BY", "ORDER BY", "WHERE", "HAVING", "LIMIT",
+                "SUM(", "COUNT(", "AVG(", "MAX(", "MIN(", "DISTINCT"]
+    missing = [k for k in keywords if k in ref_upper and k not in user_upper]
+
+    if missing:
+        hints.append(f"Your query is missing: {', '.join(missing[:2])}.")
+    else:
+        hints.append("Check your column names — they may not match the schema exactly.")
+
+    # Hint 2: table hint
+    import re as _re
+    ref_tables = _re.findall(r'FROM\s+(\w+)|JOIN\s+(\w+)', ref_upper)
+    ref_tables = [t for pair in ref_tables for t in pair if t]
+    if ref_tables:
+        hints.append(f"Make sure you are using these tables: {', '.join(set(ref_tables))}.")
+    else:
+        hints.append("Re-read the prompt carefully and verify your WHERE conditions.")
+
+    return hints
+
+
+def _generate_hints_with_gemini(
+    prompt_nl: str, ref_sql: str, user_sql: str, parsed: dict, api_key: str
+) -> list[str]:
+    """Generate 2 progressive hints without revealing the answer."""
+    schema_desc = _build_schema_description(parsed)
+    hint_prompt = f"""{schema_desc}
+
+Challenge: "{prompt_nl}"
+
+Reference SQL (DO NOT reveal this):
+{ref_sql}
+
+Student's SQL so far:
+{user_sql}
+
+Generate exactly 2 progressive hints to help the student without giving away the answer.
+Hint 1 should be subtle (point to a missing clause or concept).
+Hint 2 should be more specific (mention a table or function they are missing).
+
+Return ONLY a JSON array of 2 strings:
+["hint 1 text", "hint 2 text"]
+No markdown, no extra text."""
+    try:
+        raw   = _call_gemini(api_key, hint_prompt)
+        hints = json.loads(_clean_json_response(raw))
+        if isinstance(hints, list) and len(hints) >= 2:
+            return hints[:2]
+        return _generate_hints_fallback(ref_sql, user_sql)
+    except Exception:
+        return _generate_hints_fallback(ref_sql, user_sql)
+
+
+
+# ── SQL Challenge — clear history ─────────────────────────────
+@app.route("/api/challenge/clear-history", methods=["POST"])
+@login_required
+def challenge_clear_history():
+    ChallengeAttempt.query.filter_by(user_id=current_user.id).delete()
+    db.session.commit()
+    return jsonify({"ok": True})
+
 
 
 # ══════════════════════════════════════════════════════════════════

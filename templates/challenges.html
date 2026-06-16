@@ -142,7 +142,11 @@
 .diff-locked-note {
   display: none; margin-top: 8px;
   font-size: 11.5px; color: var(--text-xs);
+<<<<<<< HEAD
   display: flex; align-items: center; gap: 5px;
+=======
+  align-items: center; gap: 5px;
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 }
 .diff-locked-note i { font-size: 12px; }
 
@@ -294,6 +298,7 @@
 .badge-toast .bt-title { font-size: 13px; font-weight: 700; color: var(--warning); }
 .badge-toast .bt-desc  { font-size: 12px; color: var(--text-soft); }
 
+<<<<<<< HEAD
 /* ── ERD Overview Card (Refined & Clean UI Sourced from Query) ── */
 .erd-overview-card {
   background: #ffffff;
@@ -517,6 +522,8 @@
 .erd-empty-state { padding: 32px 18px; text-align: center; color: var(--text-soft); font-size: 13px; }
 .erd-empty-state i { font-size: 36px; opacity: .2; display: block; margin-bottom: 10px; }
 
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 /* ── Sidebar ── */
 .side-card {
   background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -585,11 +592,75 @@
 
 .empty-att { text-align: center; padding: 20px 0; color: var(--text-xs); font-size: 13px; }
 .empty-att i { font-size: 22px; display: block; margin-bottom: 8px; opacity: .35; }
+<<<<<<< HEAD
+=======
+
+/* ── Schema Tree Sidebar (Synced from query.html) ── */
+.schema-tree { max-height: 280px; overflow-y: auto; padding-right: 4px; }
+.schema-tree::-webkit-scrollbar { width: 6px; }
+.schema-tree::-webkit-scrollbar-thumb { background: rgba(112,137,147,0.35); border-radius: 4px; }
+.schema-tree::-webkit-scrollbar-track { background: transparent; }
+
+/* Table block */
+.st-table { border: 1px solid var(--border-soft); border-radius: 4px; margin-bottom: 6px; overflow: hidden; }
+.st-tname {
+  background: rgba(161,194,189,0.12); padding: 6px 10px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: var(--text); border-bottom: 1px solid var(--border-soft);
+  display: flex; align-items: center; gap: 6px;
+}
+.st-tname i { color: var(--primary-mid); font-size: 12px; }
+.st-tcount { margin-left: auto; font-size: 9px; font-weight: 600; color: var(--text-xs); opacity: .7; }
+.st-cols { background: #fff; padding: 4px 0; }
+.st-col {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 2px 10px; font-family: var(--mono); font-size: 10.5px;
+  gap: 6px;
+}
+.st-col-left { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.st-cname { color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-ctype { color: var(--text-xs); opacity: .6; font-size: 9.5px; white-space: nowrap; flex-shrink: 0; }
+
+/* PK / FK badges */
+.st-badge {
+  font-size: 8px; font-weight: 700; padding: 1px 4px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: .04em; flex-shrink: 0; line-height: 1.4;
+}
+.st-badge-pk { background: rgba(14,124,90,0.12); color: var(--success); border: 1px solid rgba(14,124,90,0.25); }
+.st-badge-fk { background: rgba(2,132,199,0.1);  color: #0284c7;        border: 1px solid rgba(2,132,199,0.22); }
+
+/* Relationships section */
+.st-rel-head {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--text-xs); padding: 6px 0 4px; margin-top: 4px;
+  display: flex; align-items: center; gap: 5px;
+  border-top: 1px solid var(--border-soft);
+}
+.st-rel-head i { font-size: 10px; color: var(--primary-mid); }
+.st-rel-item {
+  font-family: var(--mono); font-size: 9.5px; color: var(--text-soft);
+  padding: 3px 0; display: flex; align-items: flex-start; gap: 5px; line-height: 1.4;
+}
+.st-rel-item i { color: rgba(2,132,199,0.6); font-size: 9px; flex-shrink: 0; margin-top: 2px; }
+
+/* Schema name pill inside sidebar */
+.st-schema-name {
+  font-size: 10px; font-weight: 700; color: var(--primary-mid);
+  text-transform: uppercase; letter-spacing: .07em;
+  padding: 5px 0 8px; display: flex; align-items: center; gap: 6px;
+  border-bottom: 1px solid var(--border-soft); margin-bottom: 8px;
+}
+.st-schema-name i { font-size: 11px; }
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 </style>
 {% endblock %}
 
 {% block content %}
 
+<<<<<<< HEAD
+=======
+<!-- ── How to Play Modal ── -->
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 <div class="modal-overlay" id="htpModal" onclick="closeModal(event)">
   <div class="modal-box">
     <div class="modal-head">
@@ -647,6 +718,10 @@
   </div>
 </div>
 
+<<<<<<< HEAD
+=======
+<!-- ── Page Header ── -->
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 <div class="pg-head fade-in">
   <div class="pg-head-row" style="margin-bottom:4px;">
     <h1 style="margin-bottom:0;">
@@ -662,8 +737,15 @@
 
 <div class="ch-layout">
 
+<<<<<<< HEAD
   <div>
 
+=======
+  <!-- ══ LEFT COLUMN ══ -->
+  <div>
+
+    <!-- Step 1: Select Schema & Difficulty -->
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     <div class="sc fade-in fade-in-1">
       <div class="sc-head">
         <div class="sc-num">1</div>
@@ -673,7 +755,11 @@
         <div class="s1-grid">
           <div>
             <label class="label">Schema</label>
+<<<<<<< HEAD
             <select id="schemaSelect" class="select">
+=======
+            <select id="schemaSelect" class="select" onchange="loadSidebarSchema()">
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
               <option value="">— Choose a schema —</option>
               {% for s in schemas %}
               <option value="{{ s.id }}"
@@ -690,10 +776,18 @@
           </button>
         </div>
 
+<<<<<<< HEAD
         <div style="margin-top:14px;">
           <label class="label">Difficulty</label>
           <div class="diff-row" id="diffRow">
             <button class="diff-btn active-easy" id="diff-easy"   onclick="setDiff('easy')">
+=======
+        <!-- Difficulty -->
+        <div style="margin-top:14px;">
+          <label class="label">Difficulty</label>
+          <div class="diff-row" id="diffRow">
+            <button class="diff-btn active-easy" id="diff-easy" onclick="setDiff('easy')">
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
               <span class="diff-tag">🟢 Easy</span>
               <span class="diff-time">3 min · Simple SELECT</span>
             </button>
@@ -713,6 +807,10 @@
       </div>
     </div>
 
+<<<<<<< HEAD
+=======
+    <!-- Step 2: Write SQL -->
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     <div class="sc fade-in fade-in-2" id="writeCard" style="display:none;">
       <div class="sc-head">
         <div class="sc-num" id="s2num">2</div>
@@ -762,6 +860,10 @@
       </div>
     </div>
 
+<<<<<<< HEAD
+=======
+    <!-- Step 3: Results -->
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     <div class="sc fade-in" id="resultsCard" style="display:none;">
       <div class="sc-head">
         <div class="sc-num done">✓</div>
@@ -798,6 +900,7 @@
 
   </div>
 
+<<<<<<< HEAD
   <div>
 
     <div class="erd-overview-card fade-in" id="chErdOverviewCard" style="display:none;">
@@ -846,10 +949,80 @@
         <div class="erd-relationships-section">
           <div class="erd-relationships-title">Relationships</div>
           <div id="chErdRelationshipListBody"></div>
+=======
+  <!-- ══ RIGHT SIDEBAR ══ -->
+  <div>
+
+    <!-- Active Schema (synced from query.html) -->
+    <div class="side-card fade-in">
+      <div class="side-head">
+        <i class="bi bi-diagram-3"></i> Active Schema
+        <button class="btn-clear ml" onclick="loadSidebarSchema()" title="Refresh Schema">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+      <div class="side-body" style="padding:12px 14px;">
+        <div id="sidebarSchemaLoader" style="display:none; text-align:center; padding:15px; color:var(--text-soft);">
+          <span class="spin" style="display:inline-block; margin-bottom:5px; border-top-color:var(--primary-mid);"></span><br>
+          <span style="font-size:11px;">Loading schema...</span>
+        </div>
+        <div id="sidebarSchemaEmpty" style="text-align:center; padding:15px 5px; color:var(--text-soft); font-size:12px;">
+          <i class="bi bi-layers" style="font-size:20px; display:block; margin-bottom:6px; opacity:.25;"></i>
+          Select a schema above to view its tables &amp; columns here while you write SQL.
+        </div>
+        <div id="sidebarSchemaContent" class="schema-tree" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Recent Attempts -->
+    <div class="side-card fade-in fade-in-2">
+      <div class="side-head">
+        <i class="bi bi-clock-history"></i> Recent Attempts
+        <button class="btn-clear ml" onclick="clearHistory()">
+          <i class="bi bi-trash3"></i> Clear
+        </button>
+      </div>
+      <div class="side-body" id="recentAttemptsBody">
+        {% if recent_attempts %}
+          {% for a in recent_attempts %}
+          <div class="att-item">
+            <div class="att-row">
+              <div class="att-txt">{{ a.prompt[:52] }}{% if a.prompt|length > 52 %}…{% endif %}</div>
+              <span class="att-pill {% if a.score >= 80 %}ap-g{% elif a.score >= 50 %}ap-w{% else %}ap-r{% endif %}">{{ a.score }}</span>
+            </div>
+            <div class="att-meta">
+              {% set diff = a.difficulty if a.difficulty else 'easy' %}
+              <span class="diff-pip dp-{{ diff }}"></span>
+              <span style="text-transform:capitalize;">{{ diff }}</span>
+              <span>·</span>
+              {# Convert UTC → PH Time (UTC+8) #}
+              <span>{{ a.attempted_at | ph_time }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-att" id="noAttempts">
+            <i class="bi bi-journal-x"></i>No attempts yet
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Your Stats -->
+    <div class="side-card fade-in fade-in-3">
+      <div class="side-head"><i class="bi bi-bar-chart"></i> Your Stats</div>
+      <div class="side-body">
+        <div class="stats-2x2">
+          <div class="sbox"><div class="sv">{{ total_attempts }}</div><div class="sl">Total</div></div>
+          <div class="sbox"><div class="sv">{{ avg_score }}</div><div class="sl">Avg Score</div></div>
+          <div class="sbox"><div class="sv">{{ best_score }}</div><div class="sl">Best</div></div>
+          <div class="sbox"><div class="sv">{{ perfect_count }}</div><div class="sl">Perfect</div></div>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
         </div>
       </div>
     </div>
 
+<<<<<<< HEAD
     <div id="chRecentAttemptsWrapper">
       <div class="side-card fade-in fade-in-2">
         <div class="side-head">
@@ -899,6 +1072,9 @@
     </a>
   </div>
 </div>
+=======
+    <!-- Scoring Guide -->
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     <div class="side-card fade-in fade-in-4">
       <div class="side-head"><i class="bi bi-lightbulb"></i> Scoring Guide</div>
       <div class="side-body">
@@ -929,6 +1105,7 @@
 const MAX_TRIES  = 3;
 const DIFF_TIMES = { easy: 180, medium: 120, hard: 90 };
 
+<<<<<<< HEAD
 let difficulty     = 'easy';
 let timerTotal     = 180;
 let timerSecs      = 180;
@@ -938,6 +1115,17 @@ let tryPenalty     = 0;
 let triesUsed      = 0;
 let challengeDone  = false;
 let challengeActive = false;   
+=======
+let difficulty      = 'easy';
+let timerTotal      = 180;
+let timerSecs       = 180;
+let timerInterval   = null;
+let timerPenalty    = 0;
+let tryPenalty      = 0;
+let triesUsed       = 0;
+let challengeDone   = false;
+let challengeActive = false;  // true once a challenge has started
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 
 /* ═══════════════════════════════
    MODAL
@@ -950,7 +1138,11 @@ function closeModal(e) { if (e.target === document.getElementById('htpModal')) c
    DIFFICULTY — locked during active challenge
 ═══════════════════════════════ */
 function setDiff(d) {
+<<<<<<< HEAD
   if (challengeActive) return;   
+=======
+  if (challengeActive) return;
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   difficulty = d;
   document.getElementById('hDiff').value = d;
   ['easy','medium','hard'].forEach(k => {
@@ -970,13 +1162,140 @@ function lockDifficulty() {
 function unlockDifficulty() {
   challengeActive = false;
   ['easy','medium','hard'].forEach(k => {
+<<<<<<< HEAD
     const btn = document.getElementById('diff-' + k);
     btn.disabled = false;
+=======
+    document.getElementById('diff-' + k).disabled = false;
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   });
   document.getElementById('diffLockedNote').style.display = 'none';
 }
 
 /* ═══════════════════════════════
+<<<<<<< HEAD
+=======
+   SIDEBAR SCHEMA LOGIC (Synced with query.html)
+═══════════════════════════════ */
+async function loadSidebarSchema() {
+  const sel     = document.getElementById('schemaSelect');
+  const loader  = document.getElementById('sidebarSchemaLoader');
+  const content = document.getElementById('sidebarSchemaContent');
+  const empty   = document.getElementById('sidebarSchemaEmpty');
+
+  if (!sel || !sel.value) {
+    loader.style.display  = 'none';
+    content.style.display = 'none';
+    empty.style.display   = 'block';
+    empty.textContent     = 'Select a schema to view its structure.';
+    return;
+  }
+
+  loader.style.display  = 'block';
+  content.style.display = 'none';
+  empty.style.display   = 'none';
+
+  try {
+    const res = await fetch(`/api/schema/${sel.value}`);
+    if (!res.ok) throw new Error('Network error');
+    const data = await res.json();
+    renderSidebarSchema(data);
+  } catch (e) {
+    console.error(e);
+    loader.style.display  = 'none';
+    empty.innerHTML       = `<span style="color:var(--danger)">Failed to load schema from backend.</span>`;
+    empty.style.display   = 'block';
+  }
+}
+
+function renderSidebarSchema(data) {
+  document.getElementById('sidebarSchemaLoader').style.display = 'none';
+  const content = document.getElementById('sidebarSchemaContent');
+  const empty   = document.getElementById('sidebarSchemaEmpty');
+  content.innerHTML = '';
+
+  const tables = data.tables || data.schema_tables || data.data || [];
+  if (!tables.length) {
+    empty.style.display   = 'block';
+    empty.textContent     = 'No tables found in this schema.';
+    content.style.display = 'none';
+    return;
+  }
+
+  empty.style.display   = 'none';
+  content.style.display = 'block';
+
+  let html = '';
+
+  // ── Schema name header ──────────────────────────────────────────────────
+  const schemaName = data.schema_name || data.name || null;
+  if (schemaName) {
+    html += `<div class="st-schema-name">
+               <i class="bi bi-database"></i> ${schemaName}
+             </div>`;
+  }
+
+  // ── Tables ───────────────────────────────────────────────────────────────
+  tables.forEach(t => {
+    const tName = t.table_name || t.name || 'Table';
+    const cols  = t.columns || [];
+
+    html += `<div class="st-table">`;
+    html += `<div class="st-tname">
+               <i class="bi bi-table"></i> ${tName}
+               <span class="st-tcount">${cols.length} col${cols.length !== 1 ? 's' : ''}</span>
+             </div>`;
+
+    if (cols.length) {
+      html += `<div class="st-cols">`;
+      cols.forEach(c => {
+        const cName = c.column_name || c.name || 'col';
+        const cType = c.data_type   || c.type || '';
+        const isPK  = c.primary_key === true || c.primary_key === 1 || String(c.primary_key).toLowerCase() === 'true';
+        const isFK  = c.foreign_key === true || c.foreign_key === 1 || String(cName).toLowerCase().endsWith('_id') && !isPK;
+
+        html += `<div class="st-col">
+                   <div class="st-col-left">`;
+        if (isPK) html += `<span class="st-badge st-badge-pk">PK</span>`;
+        if (isFK) html += `<span class="st-badge st-badge-fk">FK</span>`;
+        html += `    <span class="st-cname" title="${cName}">${cName}</span>
+                   </div>
+                   <span class="st-ctype">${cType}</span>
+                 </div>`;
+      });
+      html += `</div>`;
+    } else {
+      html += `<div class="st-cols">
+                 <div class="st-col" style="font-style:italic; opacity:.45; font-size:10px;">No columns</div>
+               </div>`;
+    }
+    html += `</div>`;
+  });
+
+  // ── Relationships section ────────────────────────────────────────────────
+  const rels = data.relationships || [];
+  if (rels.length) {
+    html += `<div class="st-rel-head"><i class="bi bi-diagram-2"></i> Relationships</div>`;
+    rels.forEach(r => {
+      const fromT  = r.from_table || '?';
+      const fromC  = r.from_col   || r.from_column || '?';
+      const toT    = r.to_table   || '?';
+      const toC    = r.to_col     || r.to_column   || 'id';
+      const relType = r.type || 'relation';
+      html += `<div class="st-rel-item">
+                 <i class="bi bi-arrow-right"></i>
+                 <span><strong>${fromT}</strong>.${fromC} → <strong>${toT}</strong>.${toC}
+                   <span style="color:var(--text-xs); font-size:8.5px; display:block; opacity:.7;">${relType}</span>
+                 </span>
+               </div>`;
+    });
+  }
+
+  content.innerHTML = html;
+}
+
+/* ═══════════════════════════════
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
    GENERATE
 ═══════════════════════════════ */
 async function generateChallenge() {
@@ -995,18 +1314,31 @@ async function generateChallenge() {
     if (data.error) { showFlash(data.error, 'error'); return; }
 
     document.getElementById('promptText').textContent = data.prompt;
+<<<<<<< HEAD
     document.getElementById('hRefSql').value   = data.ref_sql;
     document.getElementById('hSchemaId').value = data.schema_id;
     document.getElementById('hPrompt').value   = data.prompt;
 
     show('writeCard'); hide('resultsCard');
     document.getElementById('userSql').value = '';
+=======
+    document.getElementById('hRefSql').value          = data.ref_sql;
+    document.getElementById('hSchemaId').value        = data.schema_id;
+    document.getElementById('hPrompt').value          = data.prompt;
+
+    show('writeCard'); hide('resultsCard');
+    document.getElementById('userSql').value       = '';
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     document.getElementById('hintBox').style.display = 'none';
     updateDots();
     lockDifficulty();
     startTimer();
 
+<<<<<<< HEAD
   } catch(e) {
+=======
+  } catch (e) {
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     showFlash('Failed to generate. Please try again.', 'error');
   } finally {
     setGenLoading(false);
@@ -1054,6 +1386,7 @@ function renderTimer() {
   fill.style.width  = pct + '%';
   label.textContent = m + ':' + String(s).padStart(2, '0');
 
+<<<<<<< HEAD
   fill.classList.remove('warn','crit');
   label.classList.remove('warn','crit');
   icon.className    = 'bi bi-stopwatch t-icon';
@@ -1062,6 +1395,16 @@ function renderTimer() {
   if (timerSecs <= 15) {
     fill.classList.add('crit'); label.classList.add('crit');
     icon.className  = 'bi bi-alarm-fill t-icon';
+=======
+  fill.classList.remove('warn', 'crit');
+  label.classList.remove('warn', 'crit');
+  icon.className   = 'bi bi-stopwatch t-icon';
+  icon.style.color = 'var(--text-soft)';
+
+  if (timerSecs <= 15) {
+    fill.classList.add('crit'); label.classList.add('crit');
+    icon.className   = 'bi bi-alarm-fill t-icon';
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     icon.style.color = 'var(--danger)';
   } else if (pct <= 40) {
     fill.classList.add('warn'); label.classList.add('warn');
@@ -1112,18 +1455,33 @@ async function submitAttempt() {
       hide('writeCard');
       show('resultsCard');
       document.getElementById('resultsCard').classList.add('fade-in');
+<<<<<<< HEAD
       document.getElementById('resultsCard').scrollIntoView({ behavior:'smooth', block:'nearest' });
+=======
+      document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     } else {
       tryPenalty += 10;
       const hintText = (data.hints || [])[triesUsed - 1] || 'Check your clauses and column names.';
       showHint(hintText);
       const left = MAX_TRIES - triesUsed;
+<<<<<<< HEAD
       showFlash(`Score: ${data.score}/100 — ${left} tr${left===1?'y':'ies'} left. Hint revealed (−10 pts).`,
         left === 1 ? 'warning' : 'info');
       btn.disabled = false;
       document.getElementById('submitLabel').textContent = 'Submit Answer';
     }
   } catch(e) {
+=======
+      showFlash(
+        `Score: ${data.score}/100 — ${left} tr${left === 1 ? 'y' : 'ies'} left. Hint revealed (−10 pts).`,
+        left === 1 ? 'warning' : 'info'
+      );
+      btn.disabled = false;
+      document.getElementById('submitLabel').textContent = 'Submit Answer';
+    }
+  } catch (e) {
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     showFlash('Submission failed. Try again.', 'error');
     btn.disabled = false;
     document.getElementById('submitLabel').textContent = 'Submit Answer';
@@ -1136,8 +1494,13 @@ async function submitAttempt() {
 function renderResults(data) {
   const final = data.final_score !== undefined ? data.final_score : data.score;
   const base  = data.base_score  !== undefined ? data.base_score  : data.score;
+<<<<<<< HEAD
   const tpen  = data.timer_penalty   || 0;
   const hpen  = data.try_penalty     || 0;
+=======
+  const tpen  = data.timer_penalty    || 0;
+  const hpen  = data.try_penalty      || 0;
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   const bonus = data.difficulty_bonus || 0;
 
   const ring = document.getElementById('scoreCircle');
@@ -1186,7 +1549,11 @@ async function clearHistory() {
         `<div class="empty-att"><i class="bi bi-journal-x"></i>No attempts yet</div>`;
       showFlash('History cleared.', 'success');
     }
+<<<<<<< HEAD
   } catch(e) { showFlash('Failed to clear history.', 'error'); }
+=======
+  } catch (e) { showFlash('Failed to clear history.', 'error'); }
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 }
 
 /* ═══════════════════════════════
@@ -1210,6 +1577,7 @@ function resetState() {
   triesUsed = 0; timerPenalty = 0; tryPenalty = 0;
   challengeDone = false;
   stopTimer(); updateDots();
+<<<<<<< HEAD
   document.getElementById('hintBox').style.display = 'none';
   document.getElementById('submitBtn').disabled = false;
   document.getElementById('submitLabel').textContent = 'Submit Answer';
@@ -1221,6 +1589,19 @@ function setGenLoading(on) {
   document.getElementById('genSpin').style.display   = on ? 'inline-block' : 'none';
   document.getElementById('genIcon').style.display   = on ? 'none' : 'inline';
   document.getElementById('genLabel').textContent    = on ? 'Generating…' : 'Generate Challenge';
+=======
+  document.getElementById('hintBox').style.display  = 'none';
+  document.getElementById('submitBtn').disabled     = false;
+  document.getElementById('submitLabel').textContent = 'Submit Answer';
+  document.getElementById('chipsRow').innerHTML     = '';
+  document.getElementById('badgeArea').innerHTML    = '';
+}
+function setGenLoading(on) {
+  document.getElementById('generateBtn').disabled  = on;
+  document.getElementById('genSpin').style.display = on ? 'inline-block' : 'none';
+  document.getElementById('genIcon').style.display = on ? 'none' : 'inline';
+  document.getElementById('genLabel').textContent  = on ? 'Generating…' : 'Generate Challenge';
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 }
 function ringClass(s) {
   if (s >= 85) return 'rc-exc'; if (s >= 70) return 'rc-gd';
@@ -1233,15 +1614,28 @@ function gradeText(s) {
 function show(id) { document.getElementById(id).style.display = 'block'; }
 function hide(id) { document.getElementById(id).style.display = 'none';  }
 function showFlash(msg, type) {
+<<<<<<< HEAD
   const icons = { error:'x-circle-fill', warning:'exclamation-triangle-fill', success:'check-circle-fill', info:'info-circle-fill' };
   const el = document.createElement('div');
   el.className = `flash flash-${type} fade-in`;
   el.innerHTML = `<i class="bi bi-${icons[type]||icons.info}"></i> ${msg}`;
+=======
+  const icons = {
+    error:   'x-circle-fill',
+    warning: 'exclamation-triangle-fill',
+    success: 'check-circle-fill',
+    info:    'info-circle-fill'
+  };
+  const el = document.createElement('div');
+  el.className = `flash flash-${type} fade-in`;
+  el.innerHTML = `<i class="bi bi-${icons[type] || icons.info}"></i> ${msg}`;
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   const page = document.querySelector('.page');
   page.insertBefore(el, page.firstChild);
   setTimeout(() => el.remove(), 5000);
 }
 
+<<<<<<< HEAD
 /* ══════════════════════════════════════════════
    ERD OVERVIEW CARD LOGIC
 ══════════════════════════════════════════════ */
@@ -1471,12 +1865,20 @@ function chMkSvg(tag, attrs = {}) {
 
 /* ═══════════════════════════════
    DOM INITIALIZATION
+=======
+/* ═══════════════════════════════
+   INIT
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 ═══════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
   const selectedId = '{{ selected_schema.id if selected_schema else "" }}';
   if (selectedId) {
     document.getElementById('schemaSelect').value = selectedId;
+<<<<<<< HEAD
     loadChErdOverview(selectedId);
+=======
+    loadSidebarSchema(); // load schema tree immediately on page load
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   }
 });
 </script>

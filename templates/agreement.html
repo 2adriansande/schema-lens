@@ -3,6 +3,7 @@
 
 {% block head %}
 <style>
+<<<<<<< HEAD
 /* Base Layout & Wrapper */
 .ag-wrap {
   max-width: 680px; 
@@ -273,6 +274,115 @@
   font-size: 14.5px; 
   font-weight: 500; 
   margin-bottom: 24px;
+=======
+.ag-wrap {
+  max-width: 760px; margin: 0 auto; padding: 32px 0 60px;
+}
+.ag-hero {
+  text-align: center; margin-bottom: 32px;
+}
+.ag-hero .logo-row {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-bottom: 18px;
+}
+.ag-hero h1 { font-size: 30px; font-weight: 700; letter-spacing: -.6px; margin-bottom: 8px; }
+.ag-hero p  { font-size: 15px; color: var(--text-soft); }
+
+.policy-card {
+  background: var(--card-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px;
+}
+.policy-section {
+  padding: 24px 28px; border-bottom: 1px solid var(--border);
+}
+.policy-section:last-child { border-bottom: none; }
+.policy-section-title {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 14px;
+}
+.policy-section-title .icon {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+}
+.policy-text {
+  font-size: 14px; color: var(--text-soft); line-height: 1.85;
+  column-count: 1;
+}
+.policy-text p { margin-bottom: 10px; }
+.policy-text p:last-child { margin-bottom: 0; }
+.policy-text strong { color: var(--text); font-weight: 600; }
+
+/* Numbered list for terms */
+.policy-list { list-style: none; padding: 0; margin: 0; }
+.policy-list li {
+  display: flex; gap: 12px; margin-bottom: 10px;
+  font-size: 14px; color: var(--text-soft); line-height: 1.7;
+}
+.policy-list li .num {
+  min-width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  color: var(--primary-xlight); font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+}
+
+/* Checkbox agreement area */
+.agree-box {
+  background: var(--card-bg); backdrop-filter: blur(12px);
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 24px 28px; margin-bottom: 20px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.agree-box.checked {
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(14,124,90,0.12), var(--shadow);
+}
+.agree-checkbox-row {
+  display: flex; align-items: flex-start; gap: 14px; cursor: pointer;
+}
+.agree-checkbox {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 2px solid var(--border); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px; transition: all .2s;
+  background: rgba(255,255,255,0.8);
+}
+.agree-checkbox.checked {
+  background: var(--success); border-color: var(--success);
+}
+.agree-checkbox i { color: #fff; font-size: 13px; display: none; }
+.agree-checkbox.checked i { display: block; }
+.agree-label {
+  font-size: 15px; color: var(--text); font-weight: 500; line-height: 1.55;
+  user-select: none;
+}
+.agree-label a { color: var(--primary-mid); font-weight: 600; text-decoration: underline; }
+.agree-error {
+  display: none; margin-top: 12px; padding: 10px 14px;
+  background: rgba(212,24,61,0.08); border: 1px solid rgba(212,24,61,0.2);
+  border-radius: var(--radius-sm); font-size: 13.5px; color: var(--danger);
+}
+
+.agree-btn {
+  width: 100%; padding: 16px; font-size: 16px; font-weight: 700;
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  color: var(--primary-xlight); border: none; border-radius: var(--radius-sm);
+  cursor: pointer; transition: all .2s; font-family: var(--font);
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  box-shadow: 0 6px 20px rgba(25,24,59,0.2);
+}
+.agree-btn:hover:not(:disabled) {
+  box-shadow: 0 8px 28px rgba(25,24,59,0.3); transform: translateY(-1px);
+}
+.agree-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+.already-accepted {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 18px; border-radius: var(--radius-sm);
+  background: rgba(14,124,90,0.08); border: 1px solid rgba(14,124,90,0.2);
+  color: var(--success); font-size: 14px; font-weight: 600; margin-bottom: 16px;
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 }
 </style>
 {% endblock %}
@@ -302,6 +412,7 @@
   {% if current_user.agreement_accepted %}
   <div class="already-accepted">
     <i class="bi bi-patch-check-fill"></i>
+<<<<<<< HEAD
     <span>
       You already accepted this agreement on 
       <strong>
@@ -312,19 +423,35 @@
         {% endif %}
       </strong>.
     </span>
+=======
+    You already accepted this agreement on
+    {% if current_user.agreement_accepted_at %}
+      {{ current_user.agreement_accepted_at.strftime('%B %d, %Y') }}.
+    {% else %}
+      a previous session.
+    {% endif %}
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   </div>
   {% endif %}
 
   <div class="policy-card">
 
+<<<<<<< HEAD
     <div class="policy-section">
       <div class="policy-section-title">
         <div class="icon" style="background: rgba(161,194,189,0.15); color: var(--primary);">
+=======
+    <!-- Terms of Service -->
+    <div class="policy-section">
+      <div class="policy-section-title">
+        <div class="icon" style="background:linear-gradient(135deg,var(--primary-xlight),rgba(161,194,189,0.3));color:var(--primary);">
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
           <i class="bi bi-file-earmark-text"></i>
         </div>
         Terms of Service
       </div>
       <ol class="policy-list">
+<<<<<<< HEAD
         <li><div class="num">1</div><span><strong>Use of Service.</strong> SchemaLens provides AI-powered SQL query generation from natural language and uploaded schema images. Results are suggestions only and are not professional database advice.</span></li>
         <li><div class="num">2</div><span><strong>User Conduct.</strong> You agree not to misuse the service, attempt to reverse-engineer the application, use it for unlawful purposes, or attempt to circumvent security measures.</span></li>
         <li><div class="num">3</div><span><strong>Intellectual Property.</strong> All content, algorithms, and UI designs within SchemaLens are proprietary. Unauthorized reproduction or distribution is prohibited.</span></li>
@@ -338,11 +465,28 @@
     <div class="policy-section">
       <div class="policy-section-title">
         <div class="icon" style="background: rgba(14,124,90,0.1); color: var(--success);">
+=======
+        <li><span class="num">1</span><span><strong>Use of Service.</strong> SchemaLens provides AI-powered SQL query generation from natural language and uploaded schema images. Results are suggestions only and are not professional database advice.</span></li>
+        <li><span class="num">2</span><span><strong>User Conduct.</strong> You agree not to misuse the service, attempt to reverse-engineer the application, use it for unlawful purposes, or attempt to circumvent security measures.</span></li>
+        <li><span class="num">3</span><span><strong>Intellectual Property.</strong> All content, algorithms, and UI designs within SchemaLens are proprietary. Unauthorized reproduction or distribution is prohibited.</span></li>
+        <li><span class="num">4</span><span><strong>AI Limitations.</strong> Generated SQL queries are AI-produced suggestions. Always review and validate SQL before executing against production databases. SchemaLens is not liable for data loss from executed queries.</span></li>
+        <li><span class="num">5</span><span><strong>Disclaimer.</strong> The service is provided "as-is" without warranties. We do not guarantee 100% accuracy of schema detection or SQL generation.</span></li>
+        <li><span class="num">6</span><span><strong>Modifications.</strong> We may update these terms at any time. Continued use after notification constitutes acceptance.</span></li>
+        <li><span class="num">7</span><span><strong>Governing Law.</strong> These terms are governed by applicable local laws.</span></li>
+      </ol>
+    </div>
+
+    <!-- Privacy Policy -->
+    <div class="policy-section">
+      <div class="policy-section-title">
+        <div class="icon" style="background:rgba(14,124,90,0.1);color:var(--success);">
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
           <i class="bi bi-shield-lock"></i>
         </div>
         Privacy Policy
       </div>
       <ol class="policy-list">
+<<<<<<< HEAD
         <li><div class="num">1</div><span><strong>Account Data.</strong> We collect your name, email address, and hashed password to manage your account. Passwords are secured using industry-standard hashing (scrypt).</span></li>
         <li><div class="num">2</div><span><strong>Uploaded Images.</strong> Schema images you upload are stored on our server only to enable OCR processing and schema detection. Images are not shared with third parties.</span></li>
         <li><div class="num">3</div><span><strong>API Keys.</strong> Your Gemini API key is stored encrypted in your account and is only used to call the Gemini API on your behalf. It is never logged or shared.</span></li>
@@ -356,12 +500,29 @@
     <div class="policy-section">
       <div class="policy-section-title">
         <div class="icon" style="background: rgba(180,83,9,0.1); color: var(--warning);">
+=======
+        <li><span class="num">1</span><span><strong>Account Data.</strong> We collect your name, email address, and hashed password to manage your account. Passwords are secured using industry-standard hashing (scrypt).</span></li>
+        <li><span class="num">2</span><span><strong>Uploaded Images.</strong> Schema images you upload are stored on our server only to enable OCR processing and schema detection. Images are not shared with third parties.</span></li>
+        <li><span class="num">3</span><span><strong>API Keys.</strong> Your Gemini API key is stored encrypted in your account and is only used to call the Gemini API on your behalf. It is never logged or shared.</span></li>
+        <li><span class="num">4</span><span><strong>Query History.</strong> Your generated SQL queries and natural language inputs are stored to provide history and analytics features. Only you can view this data.</span></li>
+        <li><span class="num">5</span><span><strong>No Third-Party Sharing.</strong> We do not sell, rent, or share your personal data with third-party advertisers or data brokers.</span></li>
+        <li><span class="num">6</span><span><strong>Data Deletion.</strong> You can permanently delete your account and all associated data from the Settings page at any time.</span></li>
+        <li><span class="num">7</span><span><strong>Cookies.</strong> We use session cookies only to maintain your login state. No tracking or advertising cookies are used.</span></li>
+      </ol>
+    </div>
+
+    <!-- Data Collection Consent -->
+    <div class="policy-section">
+      <div class="policy-section-title">
+        <div class="icon" style="background:rgba(180,83,9,0.1);color:var(--warning);">
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
           <i class="bi bi-clipboard-data"></i>
         </div>
         Data Collection Consent
       </div>
       <div class="policy-text">
         <p>By accepting this agreement, you consent to the following data collection and processing activities:</p>
+<<<<<<< HEAD
         
         <ul class="consent-bullets">
           <li><i class="bi bi-check-circle-fill"></i><span><strong>Account information</strong> (name, email) to identify your account.</span></li>
@@ -371,18 +532,40 @@
           <li><i class="bi bi-check-circle-fill"></i><span><strong>Gemini API key</strong> stored securely to call Google Gemini on your behalf.</span></li>
         </ul>
 
+=======
+        <p>
+          <strong>✓ Account information</strong> (name, email) to identify your account.<br>
+          <strong>✓ Uploaded schema images</strong> for OCR and AI analysis.<br>
+          <strong>✓ Query history</strong> (natural language inputs and generated SQL) to power history features.<br>
+          <strong>✓ Usage analytics</strong> (pages visited, features used) to improve the application — anonymised.<br>
+          <strong>✓ Gemini API key</strong> stored to call Google Gemini on your behalf.
+        </p>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
         <p>You may withdraw consent at any time by deleting your account from <strong>Settings → Danger Zone</strong>. Withdrawal will permanently erase all your data from our servers.</p>
       </div>
     </div>
 
+<<<<<<< HEAD
   </div><div class="agree-box" id="agreeBox">
     <label class="agree-checkbox-row" id="agreeLabel">
+=======
+  </div><!-- .policy-card -->
+
+  <!-- Agreement checkbox -->
+  <div class="agree-box" id="agreeBox">
+    <label class="agree-checkbox-row" onclick="toggleAgree()">
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
       <div class="agree-checkbox" id="agreeCheck">
         <i class="bi bi-check2"></i>
       </div>
       <span class="agree-label">
+<<<<<<< HEAD
         I have read and agree to the <a href="#" class="policy-link">Terms and Conditions</a>
         and <a href="#" class="policy-link">Privacy Policy</a>. I consent to data collection
+=======
+        I have read and agree to the <a href="#" onclick="return false;">Terms and Conditions</a>
+        and <a href="#" onclick="return false;">Privacy Policy</a>. I consent to data collection
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
         as described above.
       </span>
     </label>
@@ -392,18 +575,32 @@
     </div>
   </div>
 
+<<<<<<< HEAD
+=======
+  <!-- Continue button -->
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   <form method="POST" action="{{ url_for('accept_agreement') }}" id="agreeForm" data-agreed="{{ 'true' if current_user.agreement_accepted else 'false' }}">
     <input type="hidden" name="next" value="{{ request.args.get('next', url_for('dashboard')) }}">
     <button type="submit" class="agree-btn" id="agreeBtn" {% if not current_user.agreement_accepted %}disabled{% endif %}>
       <i class="bi bi-patch-check-fill"></i>
+<<<<<<< HEAD
       <span>{% if current_user.agreement_accepted %}Continue to Dashboard{% else %}I Agree &amp; Continue{% endif %}</span>
+=======
+      {% if current_user.agreement_accepted %}Continue to Dashboard{% else %}I Agree &amp; Continue{% endif %}
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     </button>
   </form>
 
   {% if current_user.agreement_accepted %}
+<<<<<<< HEAD
   <div style="text-align:center; margin-top:20px;">
     <a href="{{ url_for('dashboard') }}" style="font-size:14px; color:var(--text-soft); text-decoration:none; font-weight:500;">
       &larr; Back to Dashboard
+=======
+  <div style="text-align:center;margin-top:14px;">
+    <a href="{{ url_for('dashboard') }}" style="font-size:14px;color:var(--text-soft);text-decoration:none;">
+      ← Back to Dashboard
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     </a>
   </div>
   {% endif %}
@@ -413,6 +610,7 @@
 
 {% block scripts %}
 <script>
+<<<<<<< HEAD
 document.addEventListener("DOMContentLoaded", function() {
   const agreeForm = document.getElementById('agreeForm');
   let agreed = agreeForm?.dataset?.agreed === 'true';
@@ -457,3 +655,38 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 {% endblock %}
+=======
+const agreeForm = document.getElementById('agreeForm');
+let agreed = agreeForm?.dataset?.agreed === 'true';
+const agreeCheck = document.getElementById('agreeCheck');
+const agreeBox = document.getElementById('agreeBox');
+const agreeBtn = document.getElementById('agreeBtn');
+const agreeError = document.getElementById('agreeError');
+
+function updateAgreeState() {
+  agreeCheck.classList.toggle('checked', agreed);
+  agreeBox.classList.toggle('checked', agreed);
+  agreeBtn.disabled = !agreed;
+  if (agreed) {
+    agreeError.style.display = 'none';
+  }
+}
+
+function toggleAgree() {
+  agreed = !agreed;
+  updateAgreeState();
+}
+
+updateAgreeState();
+
+agreeForm.addEventListener('submit', function(e) {
+  if (!agreed) {
+    e.preventDefault();
+    agreeError.style.display = 'flex';
+    agreeBox.style.borderColor = 'var(--danger)';
+    setTimeout(() => agreeBox.style.borderColor = '', 2000);
+  }
+});
+</script>
+{% endblock %}
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e

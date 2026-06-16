@@ -154,10 +154,13 @@
     }
     .nav-item i { font-size: 17px; flex-shrink: 0; transition: transform .2s, color .2s ease; position: relative; z-index: 2; }
     .nav-item span { position: relative; z-index: 2; display: inline-block; }
+<<<<<<< HEAD
     .nav-item:focus-visible {
       outline: 2px solid var(--primary-light);
       outline-offset: -2px;
     }
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     
     /* Sliding Core Layer */
     .nav-item::before {
@@ -596,11 +599,19 @@
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar(false)"></div>
 
 {% if current_user.is_authenticated %}
+<<<<<<< HEAD
 <aside class="sidebar" id="appSidebar" aria-label="Main Navigation">
   <div class="sidebar-logo">
     <a href="{{ url_for('dashboard') }}">
       <div class="logo-icon">
         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+=======
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a href="{{ url_for('dashboard') }}">
+      <div class="logo-icon">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
           <ellipse cx="50" cy="28" rx="26" ry="9" fill="#A1C2BD" opacity="0.6"/>
           <rect x="24" y="28" width="52" height="38" fill="#A1C2BD" opacity="0.6"/>
           <ellipse cx="50" cy="66" rx="26" ry="9" fill="#A1C2BD" opacity="0.6"/>
@@ -613,6 +624,7 @@
       </div>
       <span class="logo-text">SchemaLens</span>
     </a>
+<<<<<<< HEAD
     
     <button class="btn-close-sidebar" id="closeSidebarBtn" onclick="toggleSidebar(false)" aria-label="Close Sidebar">
       <i class="bi bi-x-lg"></i>
@@ -633,6 +645,32 @@
     </a>
     <a href="{{ url_for('history') }}" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
       <i class="bi bi-clock-history" aria-hidden="true"></i> <span>Query History</span>
+=======
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}">
+      <i class="bi bi-grid-1x2"></i> <span>Dashboard</span>
+    </a>
+    <a href="{{ url_for('query_page') }}" class="nav-item {% if request.endpoint=='query_page' %}active{% endif %}">
+      <i class="bi bi-stars"></i> <span>Query Generator</span>
+    </a>
+    <a href="{{ url_for('schemas') }}" class="nav-item {% if request.endpoint in ['schemas','schema_detail'] %}active{% endif %}">
+      <i class="bi bi-layers"></i> <span>Database Tables</span>
+    </a>
+    <a href="{{ url_for('history') }}" class="nav-item {% if request.endpoint=='history' %}active{% endif %}">
+      <i class="bi bi-clock-history"></i> <span>Query History</span>
+    </a>
+
+    <div class="nav-section">Engage</div>
+    <a href="{{ url_for('challenge_page') }}" class="nav-item {% if request.endpoint=='challenge_page' %}active{% endif %}">
+      <i class="bi bi-lightning-charge"></i> <span>SQL Challenge</span>
+    </a>
+    <a href="{{ url_for('badges_page') }}"    class="nav-item {% if request.endpoint=='badges_page' %}active{% endif %}">
+      <i class="bi bi-award"></i> <span>Badges</span>
+    </a>
+    <a href="{{ url_for('leaderboard') }}"    class="nav-item {% if request.endpoint=='leaderboard' %}active{% endif %}">
+      <i class="bi bi-bar-chart-line"></i> <span>Leaderboard</span>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     </a>
 
     <div class="nav-section">Engage</div>
@@ -651,7 +689,11 @@
     </a>
  
     <a href="{{ url_for('settings') }}" class="nav-item {% if request.endpoint=='settings' %}active{% endif %}">
+<<<<<<< HEAD
       <i class="bi bi-sliders" aria-hidden="true"></i> <span>Settings</span>
+=======
+      <i class="bi bi-sliders"></i> <span>Settings</span>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     </a>
   
   </nav>
@@ -665,11 +707,16 @@
           <div class="user-email">{{ current_user.email[:26] }}{% if current_user.email|length > 26 %}…{% endif %}</div>
         </div>
       </div>
+<<<<<<< HEAD
     </a>
+=======
+    </div>  
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   </div>
 </aside>
 
 <header class="topbar">
+<<<<<<< HEAD
   <button class="icon-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="Toggle Sidebar" aria-controls="appSidebar">
     <i class="bi bi-list" style="font-size: 20px;"></i>
   </button>
@@ -704,11 +751,23 @@
     
     <div class="user-dropdown-wrapper">
       <div class="topbar-user" id="topbarUserBtn" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="User Menu">
+=======
+  <div class="search-box">
+    <i class="bi bi-search" id="topbarSearchIcon"></i>
+    <input id="topbarSearchInput" type="text" placeholder="Search queries, tables, or ask a question…">
+  </div>
+  <div class="topbar-right">
+    <a href="{{ url_for('schemas') }}" class="icon-btn" title="Upload Schema"><i class="bi bi-upload"></i></a>
+    
+    <div class="user-dropdown-wrapper">
+      <div class="topbar-user" id="topbarUserBtn">
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
         <div class="user-avatar" style="width:30px;height:30px;font-size:11px;">{{ current_user.name[0].upper() }}</div>
         <div>
           <div class="name">{{ current_user.name }}</div>
           <div class="email">{{ current_user.email[:22] }}{% if current_user.email|length>22 %}…{% endif %}</div>
         </div>
+<<<<<<< HEAD
         <i class="bi bi-chevron-down" style="font-size:10px;color:var(--text-xs);margin-left:2px;" aria-hidden="true"></i>
       </div>
 
@@ -722,6 +781,21 @@
         <hr class="dropdown-divider">
         <a href="{{ url_for('logout') }}" class="dropdown-item text-danger" role="menuitem">
           <i class="bi bi-box-arrow-left" aria-hidden="true"></i> Logout
+=======
+        <i class="bi bi-chevron-down" style="font-size:10px;color:var(--text-xs);margin-left:2px;"></i>
+      </div>
+
+      <div class="user-dropdown-menu" id="userDropdownMenu">
+        <a href="{{ url_for('settings') }}" class="dropdown-item">
+          <i class="bi bi-sliders"></i> Settings
+        </a>
+        <a href="{{ url_for('history') }}" class="dropdown-item">
+          <i class="bi bi-clock-history"></i> My History
+        </a>
+        <hr class="dropdown-divider">
+        <a href="{{ url_for('logout') }}" class="dropdown-item text-danger">
+          <i class="bi bi-box-arrow-left"></i> Logout
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
         </a>
       </div>
     </div>
@@ -763,6 +837,7 @@ function copySql(btn) {
 </script>
 {% block scripts %}{% endblock %}
 
+<<<<<<< HEAD
 <div id="sqlGenModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(25,24,59,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:20px;padding:40px 48px;text-align:center;box-shadow:0 20px 60px rgba(25,24,59,0.25);max-width:380px;width:90%;">
     <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--primary),var(--primary-mid));display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px;">
@@ -1252,6 +1327,9 @@ async function confirmDeleteAll() {
   } catch(e) { alert('Failed to delete history.'); }
 }
 
+=======
+<script>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 // ── Ollama Status Indicator ─────────────────────────────────────────────────
 (function () {
   const badges = document.querySelectorAll('.ollama-status-badge');
@@ -1298,6 +1376,7 @@ async function confirmDeleteAll() {
   userBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     dropdownMenu.classList.toggle('show');
+<<<<<<< HEAD
     const isExpanded = dropdownMenu.classList.contains('show');
     userBtn.setAttribute('aria-expanded', isExpanded);
   });
@@ -1308,16 +1387,53 @@ async function confirmDeleteAll() {
       e.preventDefault();
       userBtn.click();
     }
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   });
 
   window.addEventListener('click', (e) => {
     if (!dropdownMenu.contains(e.target) && !userBtn.contains(e.target)) {
       dropdownMenu.classList.remove('show');
+<<<<<<< HEAD
       userBtn.setAttribute('aria-expanded', 'false');
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     }
   });
 })();
 
+<<<<<<< HEAD
+=======
+// ── Topbar Global Search Handler ────────────────────────────────────────────
+(function () {
+  const searchInput = document.getElementById('topbarSearchInput');
+  const searchIcon = document.getElementById('topbarSearchIcon');
+
+  function doGlobalSearch() {
+    const query = searchInput.value.trim();
+    if (!query) return;
+    if (typeof window.handleGlobalSearch === 'function') {
+      window.handleGlobalSearch(query);
+      return;
+    }
+    window.location.href = `/search?q=${encodeURIComponent(query)}`;
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        doGlobalSearch();
+      }
+    });
+  }
+
+  if (searchIcon) {
+    searchIcon.addEventListener('click', doGlobalSearch);
+  }
+})();
+
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 // ── Sidebar Click Transition Handler ─────────────────────────────────────────
 (function () {
   const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
@@ -1325,11 +1441,14 @@ async function confirmDeleteAll() {
     item.addEventListener('click', function (e) {
       if (this.classList.contains('active')) return;
       this.classList.add('clicking');
+<<<<<<< HEAD
       
       // Auto-collapse sidebar layout on mobile screens upon choice execution
       if (window.innerWidth < 992) {
         toggleSidebar(false);
       }
+=======
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
     });
   });
 })();

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Search Results — SchemaLens{% endblock %}
+
+{% block head %}
+<style>
+.page-head { margin-bottom: 24px; }
+.page-head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 6px; }
+.page-head p { font-size: 14px; color: var(--text-soft); }
+.search-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.search-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  transition: transform .2s, box-shadow .2s;
+}
+.search-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.search-card-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+.search-card-meta { font-size: 12px; color: var(--text-soft); margin-bottom: 12px; }
+.search-card-snippet { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 12px; white-space: pre-wrap; }
+.search-card-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-xs); margin-bottom: 10px; }
+.search-card-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.search-card-tag { background: rgba(161,194,189,0.16); color: var(--primary); border-radius: 999px; padding: 5px 10px; font-size: 12px; }
+.search-empty { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; color: var(--text-soft); }
+@media (max-width: 980px) { .search-columns { grid-template-columns: 1fr; } }
+.search-callout {
+  background: linear-gradient(135deg, rgba(231,242,239,0.9), rgba(255,255,255,0.95));
+  border: 1px solid rgba(161,194,189,0.4);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.search-callout-text { display: flex; flex-direction: column; gap: 6px; }
+.search-callout-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.search-callout-copy { font-size: 13px; color: var(--text-soft); line-height: 1.5; }
+.search-callout button { white-space: nowrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head fade-in">
+  <h1>Search results for “{{ query }}”</h1>
+  <p>Review matching query history, uploaded schemas, and table names.</p>
+</div>
+
+<div class="search-callout fade-in fade-in-1">
+  <div class="search-callout-text">
+    <div class="search-callout-title">Want to ask a question instead?</div>
+    <div class="search-callout-copy">Use this search term as a natural language query and generate SQL instantly.</div>
+  </div>
+  <div>
+    <a href="{{ url_for('query_page') }}?q={{ query | urlencode }}" class="btn btn-primary btn-sm">Ask this question</a>
+    <a href="{{ url_for('query_page') }}" class="btn btn-outline btn-sm">Open query builder</a>
+  </div>
+</div>
+
+<div class="search-columns fade-in fade-in-1">
+  <div>
+    <h2 style="font-size:17px;font-weight:700;margin-bottom:14px;color:var(--text);">Query history</h2>
+    {% if query_matches %}
+      {% for item in query_matches %}
+      <div class="search-card">
+        <div class="search-card-title">{{ item.natural_query }}</div>
+        <div class="search-card-meta">
+          {{ item.created_at.strftime('%Y-%m-%d %H:%M') }} · {{ item.model_used or 'heuristic' }}
+        </div>
+        <div class="search-card-snippet">{{ item.generated_sql }}</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="{{ url_for('query_page') }}{% if item.schema %}?schema_id={{ item.schema.id }}{% endif %}" class="btn btn-ghost btn-sm">Re-run</a>
+          <button onclick="navigator.clipboard.writeText({{ item.generated_sql|tojson|safe }})" class="btn btn-outline btn-sm">Copy SQL</button>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="search-empty">No matching query history found. Try a different keyword or switch context.</div>
+    {% endif %}
+  </div>
+
+  <div>
+    <h2 style="font-size:17px;font-weight:700;margin-bottom:14px;color:var(--text);">Schema and table matches</h2>
+    {% if schema_results %}
+      {% for item in schema_results %}
+      <div class="search-card">
+        <div class="search-card-title">{{ item.schema.schema_name or item.schema.original_name }}</div>
+        <div class="search-card-meta">Uploaded {{ item.schema.uploaded_at.strftime('%Y-%m-%d') }}</div>
+        <div class="search-card-label">Schema: {{ item.schema.original_name }}</div>
+        {% if item.tables %}
+        <div class="search-card-list">
+          {% for table in item.tables[:6] %}
+            <span class="search-card-tag">{{ table }}</span>
+          {% endfor %}
+          {% if item.tables|length > 6 %}
+            <span class="search-card-tag">+{{ item.tables|length - 6 }} more</span>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="search-card-snippet">No table names detected in this schema.</div>
+        {% endif %}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="{{ url_for('schema_detail', schema_id=item.schema.id) }}" class="btn btn-ghost btn-sm">View schema</a>
+          <a href="{{ url_for('schemas') }}" class="btn btn-outline btn-sm">All schemas</a>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="search-empty">No schemas or tables matched your query. Try a shorter keyword or check your uploaded schemas.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const topbarInput = document.getElementById('topbarSearchInput');
+  if (topbarInput) {
+    topbarInput.value = "{{ query | e }}";
+  }
+});
+</script>
+{% endblock %}

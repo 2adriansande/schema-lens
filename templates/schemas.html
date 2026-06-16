@@ -80,18 +80,91 @@
   align-items: center; justify-content: center;
 }
 .processing-box {
+  position: relative;
   background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);
   border-radius: var(--radius); padding: 40px 52px; text-align: center;
   border: 1px solid var(--border); box-shadow: var(--shadow-lg);
 }
 .processing-box h4 { font-size: 17px; font-weight: 700; margin-top: 14px; }
 .processing-box p  { font-size: 13.5px; color: var(--text-soft); margin-top: 5px; }
+<<<<<<< HEAD
 .spinner { width: 42px; height: 42px; border: 3px solid var(--border); border-top-color: var(--primary-mid); border-radius: 50%; animation: spin .75s linear infinite; margin: 0 auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .card-header {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
 }
+=======
+.processing-box .processing-note {
+  margin-top: 12px;
+  font-size: 12.8px;
+  color: var(--text-soft);
+  opacity: .88;
+}
+.processing-box .progress-bar {
+  margin: 18px auto 0;
+  width: 100%; max-width: 320px;
+  height: 10px;
+  background: rgba(112,137,147,0.15);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.processing-box .progress-fill {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-mid));
+  transition: width .25s ease;
+}
+.processing-box .processing-caption {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-soft);
+}
+  .processing-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.05);
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background .2s ease;
+  }
+  .processing-close:hover:not(:disabled) {
+    background: rgba(0,0,0,0.1);
+  }
+  .processing-close:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+  .processing-box .processing-cancel {
+    margin-top: 18px;
+    min-width: 180px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 10px 16px;
+    border: 1px solid var(--primary);
+    background: rgba(255,255,255,0.92);
+    color: var(--primary);
+    font-weight: 600;
+    transition: background .2s ease, transform .2s ease;
+  }
+  .processing-box .processing-cancel:hover:not(:disabled) {
+    background: rgba(59,130,246,0.1);
+    transform: translateY(-1px);
+  }
+  .processing-box .processing-cancel:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 </style>
 {% endblock %}
 
@@ -147,7 +220,18 @@
       Your Schemas
       <span class="badge badge-mid" style="margin-left:9px;">{{ schemas|length }}</span>
     </div>
-    <a href="{{ url_for('query_page') }}" class="btn btn-primary btn-sm"><i class="bi bi-stars"></i> Generate SQL</a>
+    <div class="card-actions">
+      <a href="{{ url_for('query_page') }}" class="btn btn-primary btn-sm"><i class="bi bi-stars"></i> Generate SQL</a>
+      {% if schemas %}
+      <form method="POST" action="{{ url_for('delete_all_schemas') }}"
+            onsubmit="return confirm('Delete all schemas and their associated queries?');"
+            style="display:inline; margin:0;">
+        <button type="submit" class="btn btn-danger btn-sm" style="margin-left: 8px;">
+          <i class="bi bi-trash"></i> Delete All
+        </button>
+      </form>
+      {% endif %}
+    </div>
   </div>
   {% if schemas %}
   <div class="table-responsive">
@@ -220,6 +304,7 @@
 </div>
 
 <div class="processing-overlay" id="processingOverlay">
+<<<<<<< HEAD
   <div class="processing-box" style="min-width:320px;">
     <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--primary-mid));display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 16px;">
       <i class="bi bi-cpu" style="color:var(--primary-xlight);"></i>
@@ -230,6 +315,17 @@
       <div id="scanBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--primary),var(--primary-mid));border-radius:100px;transition:width .5s ease;"></div>
     </div>
     <div style="font-size:11px;color:var(--text-xs);margin-top:8px;" id="scanPct">0%</div>
+=======
+  <div class="processing-box">
+    <button type="button" class="processing-close" id="processingClose" aria-label="Close">×</button>
+    <div class="spinner"></div>
+    <h4 id="processingStage">Uploading Schema…</h4>
+    <p id="processingMessage">Preparing your upload.</p>
+    <div class="processing-note" id="processingEstimate">Estimated remaining: calculating…</div>
+    <div class="progress-bar"><div class="progress-fill" id="processingFill"></div></div>
+    <div class="processing-caption" id="processingCaption">0% Complete</div>
+    <button type="button" class="btn btn-outline btn-sm processing-cancel" id="cancelProcessingBtn">Cancel Processing</button>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   </div>
 </div>
 {% endblock %}
@@ -256,9 +352,187 @@ dz.addEventListener('drop', ev => {
     dz.classList.add('has-file');
   }
 });
+<<<<<<< HEAD
 document.getElementById('uploadForm').addEventListener('submit', () => {
   document.getElementById('processingOverlay').style.display = 'flex';
   animateScanProgress();
+=======
+
+const overlay = document.getElementById('processingOverlay');
+const stageLabel = document.getElementById('processingStage');
+const messageLabel = document.getElementById('processingMessage');
+const estimateLabel = document.getElementById('processingEstimate');
+const fillBar = document.getElementById('processingFill');
+const captionLabel = document.getElementById('processingCaption');
+const cancelBtn = document.getElementById('cancelProcessingBtn');
+const closeBtn = document.getElementById('processingClose');
+
+let progressState = {
+  percent: 0,
+  stage: 'Uploading',
+  startTime: null,
+  lastUpdate: null,
+  timer: null,
+  xhr: null,
+};
+
+const STAGES = [
+  { name: 'Uploading', end: 15, message: 'Uploading your schema image...' },
+  { name: 'OCR Processing', end: 45, message: 'Extracting text from the image...' },
+  { name: 'AI Analysis', end: 80, message: 'Analyzing schema structure with AI...' },
+  { name: 'Schema Generation', end: 98, message: 'Building the final schema output...' }
+];
+
+function setProgress(percent) {
+  progressState.percent = Math.min(100, Math.max(0, percent));
+  fillBar.style.width = `${progressState.percent}%`;
+  captionLabel.textContent = `${Math.round(progressState.percent)}% Complete`;
+  updateStageLabels();
+  updateEstimate();
+  setCancelEnabled(progressState.percent < 95);
+}
+
+function updateStageLabels() {
+  const p = progressState.percent;
+  const stage = STAGES.find(s => p <= s.end) || STAGES[STAGES.length - 1];
+  stageLabel.textContent = `${stage.name}...`;
+  messageLabel.textContent = stage.message;
+}
+
+function updateEstimate() {
+  const now = Date.now();
+  if (!progressState.startTime) {
+    estimateLabel.textContent = 'Estimated remaining: calculating…';
+    return;
+  }
+  const elapsed = (now - progressState.startTime) / 1000;
+  if (progressState.percent <= 1) {
+    estimateLabel.textContent = 'Estimated remaining: estimating…';
+    return;
+  }
+  const remaining = Math.max(1, Math.round(elapsed * (100 - progressState.percent) / progressState.percent));
+  estimateLabel.textContent = `Estimated remaining: ${remaining} sec`;
+}
+
+function setCancelEnabled(enabled) {
+  cancelBtn.disabled = !enabled;
+  closeBtn.disabled = !enabled;
+  if (enabled) {
+    cancelBtn.classList.remove('disabled');
+    closeBtn.classList.remove('disabled');
+  } else {
+    cancelBtn.classList.add('disabled');
+    closeBtn.classList.add('disabled');
+  }
+}
+
+function promptCancelProcessing() {
+  if (progressState.percent >= 95) return;
+  if (!confirm('Are you sure you want to cancel schema generation? All processing progress will be lost.')) return;
+  abortProcessing();
+}
+
+function abortProcessing() {
+  if (progressState.timer) clearInterval(progressState.timer);
+  if (progressState.xhr) {
+    progressState.xhr.abort();
+    progressState.xhr = null;
+  }
+  hideOverlay();
+  window.location.href = window.location.pathname;
+}
+
+function hideOverlay() {
+  overlay.style.display = 'none';
+  setProgress(0);
+  setCancelEnabled(true);
+}
+
+function startProgressLoop() {
+  if (progressState.timer) clearInterval(progressState.timer);
+  progressState.startTime = Date.now();
+  progressState.lastUpdate = Date.now();
+  progressState.timer = setInterval(() => {
+    if (!progressState.xhr || progressState.percent >= 98) return;
+    const now = Date.now();
+    const elapsed = (now - progressState.lastUpdate) / 1000;
+    const increment = Math.min(1.2, Math.max(0.3, elapsed * 2.2));
+    if (progressState.percent < 97) {
+      setProgress(progressState.percent + increment);
+    }
+    progressState.lastUpdate = now;
+  }, 250);
+}
+
+function completeProgress() {
+  if (progressState.timer) clearInterval(progressState.timer);
+  setProgress(100);
+  stageLabel.textContent = 'Finalizing…';
+  messageLabel.textContent = 'Almost done — redirecting you now.';
+  estimateLabel.textContent = 'Estimated remaining: 0 sec';
+  setCancelEnabled(false);
+}
+
+function showOverlay() {
+  overlay.style.display = 'flex';
+  setProgress(0);
+  setCancelEnabled(true);
+}
+
+cancelBtn.addEventListener('click', promptCancelProcessing);
+closeBtn.addEventListener('click', promptCancelProcessing);
+
+function sendSchemaUpload(form) {
+  const formData = new FormData(form);
+  const xhr = new XMLHttpRequest();
+  progressState.xhr = xhr;
+
+  xhr.upload.addEventListener('progress', (event) => {
+    if (event.lengthComputable) {
+      const percent = event.loaded / event.total * 15;
+      setProgress(percent);
+    }
+  });
+
+  xhr.addEventListener('loadstart', () => {
+    showOverlay();
+    progressState.stage = 'Uploading';
+    updateStageLabels();
+    startProgressLoop();
+  });
+
+  xhr.addEventListener('readystatechange', () => {
+    if (xhr.readyState === XMLHttpRequest.HEADERS_RECEIVED) {
+      if (progressState.percent < 15) setProgress(15);
+      progressState.stage = 'OCR Processing';
+      updateStageLabels();
+    }
+  });
+
+  xhr.addEventListener('load', () => {
+    completeProgress();
+    const redirectUrl = xhr.responseURL || form.action;
+    setTimeout(() => { window.location.href = redirectUrl; }, 450);
+  });
+
+  xhr.addEventListener('abort', () => {
+    hideOverlay();
+  });
+
+  xhr.addEventListener('error', () => {
+    estimateLabel.textContent = 'Upload failed. Please try again.';
+    messageLabel.textContent = 'An error occurred during upload.';
+  });
+
+  xhr.open('POST', form.action, true);
+  xhr.send(formData);
+}
+
+const uploadForm = document.getElementById('uploadForm');
+uploadForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  sendSchemaUpload(uploadForm);
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 });
 function animateScanProgress() {
   const stages = [

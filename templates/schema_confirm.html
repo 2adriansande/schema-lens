@@ -441,6 +441,18 @@
       </div>
     </div>
 
+<<<<<<< HEAD
+=======
+    <div class="card fade-in fade-in-2">
+      <div class="card-header">
+        <div class="card-title"><i class="bi bi-file-earmark-text" style="color:var(--primary-mid);margin-right:8px;"></i>Extracted OCR Text</div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleOcr()"><i class="bi bi-eye"></i></button>
+      </div>
+      <div id="ocrText" style="display:none; padding: 20px;">
+        <div class="ocr-text-box">{{ schema.ocr_text or '(no OCR text extracted)' }}</div>
+      </div>
+    </div>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 
     <div class="card fade-in fade-in-3">
       <div class="card-header">
@@ -520,13 +532,37 @@
               {% for col in table.columns %}
               <div class="col-editor-row">
                 <input type="text" class="col-input col-name" value="{{ col.name }}" placeholder="column_name">
+<<<<<<< HEAD
                 <input type="text" class="col-input col-type" value="{{ col.type }}" placeholder="VARCHAR(255)">
+=======
+                <div class="col-type-wrapper">
+                  <select class="col-input col-type" onchange="updateTypeReminder(this)">
+                    <option value="INT" {% if col.type == 'INT' %}selected{% endif %}>INT</option>
+                    <option value="VARCHAR(255)" {% if col.type == 'VARCHAR(255)' %}selected{% endif %}>VARCHAR(255)</option>
+                    <option value="TEXT" {% if col.type == 'TEXT' %}selected{% endif %}>TEXT</option>
+                    <option value="DATE" {% if col.type == 'DATE' %}selected{% endif %}>DATE</option>
+                    <option value="DATETIME" {% if col.type == 'DATETIME' %}selected{% endif %}>DATETIME</option>
+                    <option value="BOOLEAN" {% if col.type == 'BOOLEAN' %}selected{% endif %}>BOOLEAN</option>
+                    <option value="FLOAT" {% if col.type == 'FLOAT' %}selected{% endif %}>FLOAT</option>
+                    <option value="DECIMAL(10,2)" {% if col.type == 'DECIMAL(10,2)' %}selected{% endif %}>DECIMAL(10,2)</option>
+                    <option value="JSON" {% if col.type == 'JSON' %}selected{% endif %}>JSON</option>
+                    {% if col.type not in ['INT','VARCHAR(255)','TEXT','DATE','DATETIME','BOOLEAN','FLOAT','DECIMAL(10,2)','JSON'] and col.type %}
+                      <option value="{{ col.type }}" selected>{{ col.type }}</option>
+                    {% endif %}
+                  </select>
+                  <span class="col-type-note"></span>
+                </div>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
                 <label class="col-check-label">
                   <input type="checkbox" class="col-pk" {% if col.primary_key %}checked{% endif %}>
                   PK
                 </label>
                 <label class="col-check-label">
+<<<<<<< HEAD
                   <input type="checkbox" class="col-nullable" {% if col.primary_key %}disabled{% else %}{% if col.nullable %}checked{% endif %}{% endif %}>
+=======
+                  <input type="checkbox" class="col-nullable" {% if col.nullable %}checked{% endif %}>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
                   NULL
                 </label>
                 <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);">
@@ -616,6 +652,7 @@ const dataBridge = document.getElementById('schema-data-store');
 const schemaId = dataBridge ? dataBridge.dataset.schemaId : '';
 const originalParsed = dataBridge ? JSON.parse(dataBridge.dataset.parsedJson) : {};
 
+<<<<<<< HEAD
 // Enforce single primary key selection per table & handle layout reactive behaviors
 document.addEventListener('change', function(e) {
   if (e.target && e.target.classList.contains('col-pk')) {
@@ -651,6 +688,34 @@ document.addEventListener('change', function(e) {
     }
   }
 });
+=======
+const TYPE_WARNINGS = {
+  'INT': 'Only whole numbers should use INT; non-numeric values will fail.',
+  'VARCHAR(255)': 'Short text values are fine. Increase length if values may exceed 255 characters.',
+  'TEXT': 'Best for long free-form text, but may be too permissive for structured data.',
+  'DATE': 'Use only valid calendar dates in YYYY-MM-DD format.',
+  'DATETIME': 'Use only valid date/time strings. Invalid formats can cause errors.',
+  'BOOLEAN': 'Only true/false or 1/0 values should use BOOLEAN.',
+  'FLOAT': 'Use for approximate numeric values; precision may vary.',
+  'DECIMAL(10,2)': 'Use for exact decimals. Avoid if precision or scale is unknown.',
+  'JSON': 'Must contain valid JSON text or parsing may fail.'
+};
+
+function getTypeWarning(type) {
+  return TYPE_WARNINGS[type] || 'Choose a type that best matches your column values to avoid import or query errors.';
+}
+
+function updateTypeReminder(select) {
+  if (!select) return;
+  const wrapper = select.closest('.col-type-wrapper');
+  if (!wrapper) return;
+  const note = wrapper.querySelector('.col-type-note');
+  if (!note) return;
+  const warning = getTypeWarning(select.value);
+  note.textContent = warning;
+  note.classList.toggle('warning', select.value !== 'TEXT');
+}
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 
 function toggleOcr() {
   const el = document.getElementById('ocrText');
@@ -705,7 +770,11 @@ function addTable() {
         <input type="text" class="col-input col-name" value="id" placeholder="column_name">
         <input type="text" class="col-input col-type" value="INT" placeholder="VARCHAR(255)">
         <label class="col-check-label"><input type="checkbox" class="col-pk" checked> PK</label>
+<<<<<<< HEAD
         <label class="col-check-label"><input type="checkbox" class="col-nullable" disabled> NULL</label>
+=======
+        <label class="col-check-label"><input type="checkbox" class="col-nullable"> NULL</label>
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
         <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);"><i class="bi bi-dash-circle"></i></button>
       </div>
     </div>
@@ -731,11 +800,28 @@ function addColumn(btn) {
   row.className = 'col-editor-row';
   row.innerHTML = `
     <input type="text" class="col-input col-name" value="" placeholder="column_name">
-    <input type="text" class="col-input col-type" value="VARCHAR(255)" placeholder="VARCHAR(255)">
+    <div class="col-type-wrapper">
+      <select class="col-input col-type" onchange="updateTypeReminder(this)">
+        <option value="INT">INT</option>
+        <option value="VARCHAR(255)" selected>VARCHAR(255)</option>
+        <option value="TEXT">TEXT</option>
+        <option value="DATE">DATE</option>
+        <option value="DATETIME">DATETIME</option>
+        <option value="BOOLEAN">BOOLEAN</option>
+        <option value="FLOAT">FLOAT</option>
+        <option value="DECIMAL(10,2)">DECIMAL(10,2)</option>
+        <option value="JSON">JSON</option>
+      </select>
+      <span class="col-type-note"></span>
+    </div>
     <label class="col-check-label"><input type="checkbox" class="col-pk"> PK</label>
     <label class="col-check-label"><input type="checkbox" class="col-nullable" checked> NULL</label>
     <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);"><i class="bi bi-dash-circle"></i></button>`;
   rowsContainer.appendChild(row);
+<<<<<<< HEAD
+=======
+  updateTypeReminder(row.querySelector('.col-type'));
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
   updateStats();
   row.querySelector('.col-name').focus();
 }
@@ -775,7 +861,162 @@ function addRelationship() {
 
 function resetToOriginal() {
   if (!confirm('Reset all changes back to the original OCR detection?')) return;
-  location.reload();
+  restoreOriginalParsedData();
+}
+
+function htmlEscape(value) {
+  return String(value || '').replace(/[&<>"']/g, (chr) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[chr]);
+}
+
+function buildTableEditor(table) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'table-editor';
+  wrapper.innerHTML = `
+    <div class="table-editor-head">
+      <i class="bi bi-table" style="color:rgba(231,242,239,0.7);"></i>
+      <input type="text" class="table-name-input" value="${htmlEscape(table.name)}" placeholder="table_name" onchange="updateTableName(this)">
+      <button onclick="removeTable(this)" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);margin-left:auto;">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+    <div class="table-columns-header">
+      <span>Column Name</span>
+      <span>Data Type</span>
+      <span style="text-align:center;">PK</span>
+      <span style="text-align:center;">Null</span>
+      <span></span>
+    </div>
+    <div class="table-editor-rows">
+      ${table.columns.map(col => `
+        <div class="col-editor-row">
+          <input type="text" class="col-input col-name" value="${htmlEscape(col.name)}" placeholder="column_name">
+          <div class="col-type-wrapper">
+            <select class="col-input col-type" onchange="updateTypeReminder(this)">
+              <option value="INT" ${col.type === 'INT' ? 'selected' : ''}>INT</option>
+              <option value="VARCHAR(255)" ${col.type === 'VARCHAR(255)' ? 'selected' : ''}>VARCHAR(255)</option>
+              <option value="TEXT" ${col.type === 'TEXT' ? 'selected' : ''}>TEXT</option>
+              <option value="DATE" ${col.type === 'DATE' ? 'selected' : ''}>DATE</option>
+              <option value="DATETIME" ${col.type === 'DATETIME' ? 'selected' : ''}>DATETIME</option>
+              <option value="BOOLEAN" ${col.type === 'BOOLEAN' ? 'selected' : ''}>BOOLEAN</option>
+              <option value="FLOAT" ${col.type === 'FLOAT' ? 'selected' : ''}>FLOAT</option>
+              <option value="DECIMAL(10,2)" ${col.type === 'DECIMAL(10,2)' ? 'selected' : ''}>DECIMAL(10,2)</option>
+              <option value="JSON" ${col.type === 'JSON' ? 'selected' : ''}>JSON</option>
+              ${['INT','VARCHAR(255)','TEXT','DATE','DATETIME','BOOLEAN','FLOAT','DECIMAL(10,2)','JSON'].includes(col.type) ? '' : `<option value="${htmlEscape(col.type)}" selected>${htmlEscape(col.type)}</option>`}
+            </select>
+            <span class="col-type-note"></span>
+          </div>
+          <label class="col-check-label">
+            <input type="checkbox" class="col-pk" ${col.primary_key ? 'checked' : ''}> PK
+          </label>
+          <label class="col-check-label">
+            <input type="checkbox" class="col-nullable" ${col.nullable ? 'checked' : ''}> NULL
+          </label>
+          <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);"><i class="bi bi-dash-circle"></i></button>
+        </div>
+      `).join('')}
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);background:rgba(255,255,255,0.2);">
+      <button onclick="addColumn(this)" class="btn btn-outline btn-sm" style="font-size:12.5px;">
+        <i class="bi bi-plus"></i> Add Column
+      </button>
+    </div>
+  `;
+  return wrapper;
+}
+
+function buildRelationshipRow(rel) {
+  const row = document.createElement('div');
+  row.className = 'rel-editor-row';
+  row.innerHTML = `
+    <input type="text" class="rel-input rel-from" value="${htmlEscape(rel.from_table + '.' + rel.from_col)}" placeholder="table.column">
+    <i class="bi bi-arrow-right" style="color:var(--primary-mid);text-align:center; font-size: 16px;"></i>
+    <input type="text" class="rel-input rel-to" value="${htmlEscape(rel.to_table + '.' + rel.to_col)}" placeholder="table.column">
+    <select class="col-input rel-type" style="padding:8px 12px; height: auto;">
+      <option value="one-to-many" ${rel.type === 'one-to-many' ? 'selected' : ''}>one-to-many</option>
+      <option value="many-to-one" ${rel.type === 'many-to-one' ? 'selected' : ''}>many-to-one</option>
+      <option value="one-to-one" ${rel.type === 'one-to-one' ? 'selected' : ''}>one-to-one</option>
+      <option value="many-to-many" ${rel.type === 'many-to-many' ? 'selected' : ''}>many-to-many</option>
+    </select>
+    <button onclick="this.closest('.rel-editor-row').remove();updateStats();" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);">
+      <i class="bi bi-dash-circle"></i>
+    </button>
+  `;
+  return row;
+}
+
+function restoreOriginalParsedData() {
+  const tablesContainer = document.getElementById('tablesContainer');
+  const relContainer = document.getElementById('relContainer');
+  const emptyTablesMsg = document.getElementById('emptyTablesMsg');
+  const emptyRelMsg = document.getElementById('emptyRelMsg');
+
+  tablesContainer.innerHTML = '';
+  relContainer.innerHTML = '';
+
+  const tables = Array.isArray(originalParsed.tables) ? originalParsed.tables : [];
+  const relationships = Array.isArray(originalParsed.relationships) ? originalParsed.relationships : [];
+
+  if (tables.length === 0) {
+    if (emptyTablesMsg) emptyTablesMsg.style.display = 'block';
+  } else {
+    if (emptyTablesMsg) emptyTablesMsg.style.display = 'none';
+    tables.forEach(table => tablesContainer.appendChild(buildTableEditor(table)));
+  }
+
+  if (relationships.length === 0) {
+    if (emptyRelMsg) emptyRelMsg.style.display = 'block';
+  } else {
+    if (emptyRelMsg) emptyRelMsg.style.display = 'none';
+    relationships.forEach(rel => relContainer.appendChild(buildRelationshipRow(rel)));
+  }
+
+  normalizeColumnCheckboxStates();
+  document.querySelectorAll('.col-type').forEach(updateTypeReminder);
+  updateStats();
+}
+
+function normalizeColumnCheckboxStates() {
+  document.querySelectorAll('.col-editor-row').forEach(row => {
+    const pk = row.querySelector('.col-pk');
+    const nullable = row.querySelector('.col-nullable');
+    if (pk && nullable && pk.checked && nullable.checked) {
+      nullable.checked = false;
+    }
+  });
+}
+
+function attachCheckboxRules() {
+  document.addEventListener('change', (event) => {
+    const target = event.target;
+    if (!target.classList) return;
+    if (target.classList.contains('col-pk') || target.classList.contains('col-nullable') || target.classList.contains('col-type')) {
+      const row = target.closest('.col-editor-row');
+      if (!row) return;
+      if (target.classList.contains('col-pk') && target.checked) {
+        const nullable = row.querySelector('.col-nullable');
+        if (nullable) nullable.checked = false;
+      }
+      if (target.classList.contains('col-nullable') && target.checked) {
+        const pk = row.querySelector('.col-pk');
+        if (pk) pk.checked = false;
+      }
+      if (target.classList.contains('col-type')) {
+        updateTypeReminder(target);
+      }
+    }
+  });
+}
+
+function handlePageShow(event) {
+  if (event.persisted || (performance.getEntriesByType && performance.getEntriesByType('navigation').some(nav => nav.type === 'back_forward'))) {
+    restoreOriginalParsedData();
+  }
 }
 
 function collectSchemaData() {
@@ -854,6 +1095,13 @@ async function confirmAndSave() {
 }
 
 // Initial status setup parsing call context loop execution bound
+<<<<<<< HEAD
+=======
+attachCheckboxRules();
+normalizeColumnCheckboxStates();
+document.querySelectorAll('.col-type').forEach(updateTypeReminder);
+>>>>>>> ccb353688a62f48a9a5c45f35331134316c2c99e
 updateStats();
+window.addEventListener('pageshow', handlePageShow);
 </script>
 {% endblock %}
