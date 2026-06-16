@@ -458,6 +458,12 @@
   align-items: center;
   gap: 10px;
 }
+/* Flash highlight on rows affected by INSERT/DELETE/UPDATE */
+@keyframes rowFlash {
+  0%   { background: rgba(34,197,94,0.22); }
+  100% { background: transparent; }
+}
+.sqc-row-highlight { animation: rowFlash 1.2s ease forwards; }
 
 /* ── AI Drawer Panel Layout (Forced Opaque/Solid Style) ── */
 .sqc-ai-drawer {
@@ -624,12 +630,12 @@
 
     <div class="sqc-sidebar-scroll-content">
       {% for table in schema_info %}
-      <div class="sqc-table-item" onclick="toggleTableCols('{{ table.table }}')">
+      <div class="sqc-table-item" data-preview-table="{{ table.table }}" onclick="toggleTableCols('{{ table.table }}')">
         <div class="sqc-table-name">
           <i class="bi bi-table"></i>
           {{ table.table }}
         </div>
-        <div class="sqc-table-meta">{{ table.columns|length }} columns · {{ table.row_count }} rows</div>
+        <div class="sqc-table-meta"><span data-row-count>{{ table.row_count }} rows</span> · {{ table.columns|length }} cols</div>
       </div>
       <div class="sqc-col-list" id="cols-{{ table.table }}">
         {% for col in table.columns %}
@@ -667,7 +673,7 @@
       <div class="sqc-toolbar-title">
         <i class="bi bi-terminal-fill" style="color:var(--primary-mid, #6366f1)"></i>
         SQL Editor
-        <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px; border-left:1px solid #cbd5e1; padding-left:8px;">Practice Database (Isolated)</span>
+        <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px; border-left:1px solid #cbd5e1; padding-left:8px;">Practice Database · Changes persist this session</span>
       </div>
       <button class="sqc-clear-btn" onclick="clearEditor()"><i class="bi bi-x-lg me-1"></i>Clear</button>
       <button class="sqc-ai-btn" onclick="openAiDrawer()"><i class="bi bi-stars"></i> AI Help</button>
@@ -830,11 +836,71 @@ async function runQuery() {
     });
     const data = await resp.json();
     renderResults(data);
+
+    // Auto-refresh the table preview panel if a mutation was detected
+    if (!data.error && data.mutation_op && data.mutated_table) {
+      await refreshTablePreview(data.mutated_table, data.mutation_op, data.rowcount);
+    }
   } catch (err) {
     renderError('Network error: ' + err.message);
   } finally {
     document.getElementById('runBtn').disabled = false;
   }
+}
+
+async function refreshTablePreview(tableName, op, affected) {
+  // Find the table preview card and update it
+  const previewEl = document.querySelector(`[data-preview-table="${tableName}"]`);
+  if (!previewEl) return;
+
+  // Show a subtle "refreshing" state on the preview card
+  const badge = previewEl.querySelector('.sqc-table-badge, .sqc-row-count');
+  const previewBody = previewEl.querySelector('.sqc-preview-body, .sqc-preview-rows');
+
+  try {
+    const r = await fetch(`/api/sql-compiler/preview/${encodeURIComponent(tableName)}`);
+    const d = await r.json();
+    if (d.error || !d.rows) return;
+
+    // Update row count badge
+    const countEl = previewEl.querySelector('[data-row-count]');
+    if (countEl) countEl.textContent = d.rows.length + (d.rows.length === 50 ? '+' : '') + ' row' + (d.rows.length !== 1 ? 's' : '');
+
+    // Rebuild preview rows
+    const rowsEl = previewEl.querySelector('[data-preview-rows]');
+    if (rowsEl && d.columns && d.rows.length > 0) {
+      let html = '';
+      d.rows.forEach(row => {
+        html += `<tr class="sqc-preview-row sqc-row-highlight">`;
+        d.columns.forEach(col => {
+          const v = row[col];
+          html += `<td>${v === null || v === undefined ? '<span class="sqc-null-val">NULL</span>' : escHtml(String(v))}</td>`;
+        });
+        html += '</tr>';
+      });
+      rowsEl.innerHTML = html;
+      // Briefly flash newly affected rows
+      setTimeout(() => rowsEl.querySelectorAll('.sqc-row-highlight').forEach(r => r.classList.remove('sqc-row-highlight')), 1200);
+    }
+
+    // Show a toast banner on the preview card
+    showMutationBanner(previewEl, op, affected);
+  } catch(e) { /* silently ignore refresh errors */ }
+}
+
+function showMutationBanner(cardEl, op, affected) {
+  const existing = cardEl.querySelector('.sqc-mutation-banner');
+  if (existing) existing.remove();
+  const icons = { INSERT: 'bi-plus-circle-fill', DELETE: 'bi-trash3-fill', UPDATE: 'bi-pencil-fill' };
+  const colors = { INSERT: '#22c55e', DELETE: '#ef4444', UPDATE: '#f59e0b' };
+  const banner = document.createElement('div');
+  banner.className = 'sqc-mutation-banner';
+  banner.style.cssText = `display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:12px;font-weight:600;color:#fff;background:${colors[op] || '#708993'};border-radius:8px;margin:6px 0 2px;animation:fadeIn .25s ease;`;
+  banner.innerHTML = `<i class="bi ${icons[op] || 'bi-check-circle-fill'}"></i> ${op}: ${affected} row${affected !== 1 ? 's' : ''} affected — table updated`;
+  const firstChild = cardEl.querySelector('.sqc-preview-header, .sqc-table-header') || cardEl.firstElementChild;
+  if (firstChild) firstChild.insertAdjacentElement('afterend', banner);
+  else cardEl.prepend(banner);
+  setTimeout(() => banner.remove(), 3500);
 }
 
 function renderResults(data) {
@@ -852,7 +918,8 @@ function renderResults(data) {
   setStatus('success');
 
   if (!data.columns || data.columns.length === 0) {
-    body.innerHTML = `<div class="sqc-success-msg"><i class="bi bi-check-circle-fill"></i> Query executed successfully. ${data.rowcount} row(s) affected.</div>`;
+    const opLabel = data.mutation_op ? `${data.mutation_op} ` : '';
+    body.innerHTML = `<div class="sqc-success-msg"><i class="bi bi-check-circle-fill"></i> ${opLabel}executed successfully. ${data.rowcount} row(s) affected.${data.mutated_table ? ` <strong>${data.mutated_table}</strong> has been updated.` : ''}</div>`;
     return;
   }
 
@@ -895,10 +962,23 @@ function setStatus(s) {
 }
 
 async function resetDatabase() {
-  if (!confirm('Reset the practice database to its original sample data?')) return;
-  editor.value = '';
-  resetResults();
-  document.getElementById('resultsBody').innerHTML = `<div class="sqc-success-msg"><i class="bi bi-check-circle-fill"></i> Database reset! Each query runs on a fresh isolated database with the original sample data.</div>`;
+  if (!confirm('Reset the practice database to its original sample data? All your INSERT/UPDATE/DELETE changes will be undone.')) return;
+  setStatus('running');
+  try {
+    const r = await fetch('/api/sql-compiler/reset', { method: 'POST' });
+    const d = await r.json();
+    editor.value = '';
+    resetResults();
+    document.getElementById('resultsBody').innerHTML = `<div class="sqc-success-msg"><i class="bi bi-check-circle-fill"></i> Database restored to original sample data. All changes cleared.</div>`;
+    setStatus('idle');
+    // Reload all table previews
+    document.querySelectorAll('[data-preview-table]').forEach(card => {
+      const tbl = card.getAttribute('data-preview-table');
+      if (tbl) refreshTablePreview(tbl, null, 0);
+    });
+  } catch(e) {
+    renderError('Reset failed: ' + e.message);
+  }
 }
 
 // ── AI Interactive Help Drawer ─────────────────────────────

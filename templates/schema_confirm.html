@@ -526,7 +526,7 @@
                   PK
                 </label>
                 <label class="col-check-label">
-                  <input type="checkbox" class="col-nullable" {% if col.nullable %}checked{% endif %}>
+                  <input type="checkbox" class="col-nullable" {% if col.primary_key %}disabled{% else %}{% if col.nullable %}checked{% endif %}{% endif %}>
                   NULL
                 </label>
                 <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);">
@@ -616,17 +616,37 @@ const dataBridge = document.getElementById('schema-data-store');
 const schemaId = dataBridge ? dataBridge.dataset.schemaId : '';
 const originalParsed = dataBridge ? JSON.parse(dataBridge.dataset.parsedJson) : {};
 
-// Enforce single primary key selection per table
+// Enforce single primary key selection per table & handle layout reactive behaviors
 document.addEventListener('change', function(e) {
   if (e.target && e.target.classList.contains('col-pk')) {
+    const row = e.target.closest('.col-editor-row');
+    const nullCheckbox = row ? row.querySelector('.col-nullable') : null;
+    
     if (e.target.checked) {
+      // Enforce absolute singular primary key context per container segment
       const tableEditor = e.target.closest('.table-editor');
       if (tableEditor) {
         tableEditor.querySelectorAll('.col-pk').forEach(checkbox => {
           if (checkbox !== e.target) {
             checkbox.checked = false;
+            // Reactivate null targets on rows losing primary status flags
+            const siblingRow = checkbox.closest('.col-editor-row');
+            if (siblingRow) {
+              const siblingNull = siblingRow.querySelector('.col-nullable');
+              if (siblingNull) siblingNull.disabled = false;
+            }
           }
         });
+      }
+      // If primary key is selected, uncheck and disable nullable target execution structures
+      if (nullCheckbox) {
+        nullCheckbox.checked = false;
+        nullCheckbox.disabled = true;
+      }
+    } else {
+      // Re-enable validation if primary structural designation shifts away
+      if (nullCheckbox) {
+        nullCheckbox.disabled = false;
       }
     }
   }
@@ -685,7 +705,7 @@ function addTable() {
         <input type="text" class="col-input col-name" value="id" placeholder="column_name">
         <input type="text" class="col-input col-type" value="INT" placeholder="VARCHAR(255)">
         <label class="col-check-label"><input type="checkbox" class="col-pk" checked> PK</label>
-        <label class="col-check-label"><input type="checkbox" class="col-nullable"> NULL</label>
+        <label class="col-check-label"><input type="checkbox" class="col-nullable" disabled> NULL</label>
         <button onclick="removeColumn(this)" class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);"><i class="bi bi-dash-circle"></i></button>
       </div>
     </div>
@@ -768,11 +788,17 @@ function collectSchemaData() {
       const colName = row.querySelector('.col-name').value.trim();
       const colType = row.querySelector('.col-type').value.trim();
       if (!colName) return;
+      
+      const isPk = row.querySelector('.col-pk').checked;
+      // Core implementation optimization rule context definition: 
+      // If primary_key is true, force nullable constraint execution parameters to false.
+      const isNullable = isPk ? false : row.querySelector('.col-nullable').checked;
+
       columns.push({
         name: colName,
         type: colType || 'TEXT',
-        primary_key: row.querySelector('.col-pk').checked,
-        nullable: row.querySelector('.col-nullable').checked
+        primary_key: isPk,
+        nullable: isNullable
       });
     });
     tables.push({ name, columns });

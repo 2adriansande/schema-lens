@@ -3129,6 +3129,11 @@ import threading
 
 # Thread-local storage for practice DB connections
 _practice_db_lock = threading.Lock()
+# Per-user persistent in-memory practice DBs: {user_id: sqlite3.Connection}
+# INSERT/DELETE/UPDATE changes are kept alive for the session so students can
+# see the effect of their mutations.  A user can call /api/sql-compiler/reset
+# to restore the original seed data at any time.
+_practice_db_store: dict = {}
 
 # ── Sample database schema & seed data ────────────────────────────────────
 PRACTICE_DB_SCHEMA = """
@@ -3232,21 +3237,55 @@ _SQL_WRITE_OPS = re.compile(
     re.IGNORECASE
 )
 
-def _get_practice_db() -> sqlite3.Connection:
-    """Create an in-memory practice DB seeded with sample data."""
-    conn = sqlite3.connect(":memory:")
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-    conn.executescript(PRACTICE_DB_SCHEMA)
-    conn.executescript(PRACTICE_DB_SEED)
-    conn.commit()
-    return conn
+def _get_practice_db(user_id=None) -> sqlite3.Connection:
+    """Return a persistent in-memory practice DB for the given user.
 
-# Session-scoped practice DB (per-request, fresh and isolated)
-def _execute_practice_sql(sql: str) -> dict:
+    The first call for a user creates and seeds the DB.  Subsequent calls
+    return the same connection so that INSERT/DELETE/UPDATE changes persist
+    within a user's session.  Pass user_id=None (or omit) to get a fresh
+    isolated DB (used only by internal helpers that don't mutate data).
     """
-    Execute SQL in a fresh isolated in-memory SQLite practice database.
+    if user_id is None:
+        # Isolated fresh DB – used only for read-only helper calls
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys=ON")
+        conn.executescript(PRACTICE_DB_SCHEMA)
+        conn.executescript(PRACTICE_DB_SEED)
+        conn.commit()
+        return conn
+
+    with _practice_db_lock:
+        if user_id not in _practice_db_store:
+            conn = sqlite3.connect(":memory:", check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.executescript(PRACTICE_DB_SCHEMA)
+            conn.executescript(PRACTICE_DB_SEED)
+            conn.commit()
+            _practice_db_store[user_id] = conn
+        return _practice_db_store[user_id]
+
+
+def _reset_practice_db(user_id) -> None:
+    """Drop and re-seed the practice DB for a user, restoring original data."""
+    with _practice_db_lock:
+        if user_id in _practice_db_store:
+            old = _practice_db_store.pop(user_id)
+            try:
+                old.close()
+            except Exception:
+                pass
+    # Re-create immediately so the next call is instant
+    _get_practice_db(user_id)
+
+# Session-scoped practice DB (persistent per user, fresh per new user)
+def _execute_practice_sql(sql: str, user_id=None) -> dict:
+    """
+    Execute SQL against the persistent per-user practice database.
+    INSERT/DELETE/UPDATE changes are preserved across requests so students
+    can observe the effect of their mutations.
     Returns columns, rows, rowcount, duration, and any error messages.
     """
     sql = sql.strip()
@@ -3260,7 +3299,8 @@ def _execute_practice_sql(sql: str) -> dict:
             "columns": [], "rows": [], "rowcount": 0, "duration_ms": 0
         }
 
-    conn = _get_practice_db()
+    conn = _get_practice_db(user_id)
+    close_after = user_id is None  # only close fresh/isolated connections
     try:
         t0 = time.time()
         cursor = conn.cursor()
@@ -3289,23 +3329,43 @@ def _execute_practice_sql(sql: str) -> dict:
 
         duration_ms = round((time.time() - t0) * 1000, 2)
         columns = [col[0] for col in last_desc] if last_desc else []
+
+        # Detect which table was mutated so the frontend can auto-refresh its preview
+        mutated_table = None
+        mutation_op = None
+        first_stmt = statements[0].upper() if statements else ""
+        for op in ("INSERT", "DELETE", "UPDATE"):
+            if first_stmt.startswith(op):
+                mutation_op = op
+                break
+        if mutation_op:
+            import re as _re
+            m = _re.search(
+                r'(?:INTO|FROM|UPDATE)\s+([a-zA-Z_][a-zA-Z0-9_]*)',
+                statements[0], _re.IGNORECASE
+            )
+            mutated_table = m.group(1).lower() if m else None
+
         return {
             "columns": columns,
             "rows": results,
             "rowcount": total_rowcount,
             "duration_ms": duration_ms,
-            "error": None
+            "error": None,
+            "mutation_op": mutation_op,
+            "mutated_table": mutated_table,
         }
     except Exception as e:
         logger.error("SQL Compiler execution error: %s", e)
         return {"error": f"Execution error: {e}", "columns": [], "rows": [], "rowcount": 0, "duration_ms": 0}
     finally:
-        conn.close()
+        if close_after:
+            conn.close()
 
 
-def _get_practice_schema_info() -> list[dict]:
+def _get_practice_schema_info(user_id=None) -> list[dict]:
     """Return schema info for all practice tables (columns, types)."""
-    conn = _get_practice_db()
+    conn = _get_practice_db(user_id)
     try:
         tables_cursor = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
@@ -3324,13 +3384,14 @@ def _get_practice_schema_info() -> list[dict]:
             schema_info.append({"table": table, "columns": columns, "row_count": row_count})
         return schema_info
     finally:
-        conn.close()
+        if user_id is None:
+            conn.close()
 
 
 @app.route("/sql-compiler")
 @login_required
 def sql_compiler():
-    schema_info = _get_practice_schema_info()
+    schema_info = _get_practice_schema_info(current_user.id)
     sample_queries = [
         {"label": "All Students", "sql": "SELECT * FROM students;"},
         {"label": "All Courses", "sql": "SELECT * FROM courses;"},
@@ -3355,7 +3416,7 @@ def sql_compiler_execute():
     sql  = (data.get("sql") or "").strip()
     if not sql:
         return jsonify({"error": "No SQL provided.", "columns": [], "rows": [], "rowcount": 0, "duration_ms": 0}), 400
-    result = _execute_practice_sql(sql)
+    result = _execute_practice_sql(sql, user_id=current_user.id)
     status_code = 400 if result.get("error") else 200
     return jsonify(result), status_code
 
@@ -3363,7 +3424,7 @@ def sql_compiler_execute():
 @app.route("/api/sql-compiler/schema", methods=["GET"])
 @login_required
 def sql_compiler_schema():
-    return jsonify({"tables": _get_practice_schema_info()})
+    return jsonify({"tables": _get_practice_schema_info(current_user.id)})
 
 
 @app.route("/api/sql-compiler/preview/<table_name>", methods=["GET"])
@@ -3372,11 +3433,18 @@ def sql_compiler_preview(table_name):
     # Validate table name (alphanumeric + underscore only)
     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table_name):
         return jsonify({"error": "Invalid table name."}), 400
-    allowed_tables = {t["table"] for t in _get_practice_schema_info()}
+    allowed_tables = {t["table"] for t in _get_practice_schema_info(current_user.id)}
     if table_name not in allowed_tables:
         return jsonify({"error": "Table not found."}), 404
-    result = _execute_practice_sql(f"SELECT * FROM {table_name} LIMIT 10")
+    result = _execute_practice_sql(f"SELECT * FROM {table_name} LIMIT 50", user_id=current_user.id)
     return jsonify(result)
+
+@app.route("/api/sql-compiler/reset", methods=["POST"])
+@login_required
+def sql_compiler_reset():
+    """Restore the practice DB to its original seeded state for the current user."""
+    _reset_practice_db(current_user.id)
+    return jsonify({"ok": True, "message": "Practice database reset to original data."})
 
 
 @app.route("/api/sql-compiler/ai-help", methods=["POST"])
@@ -3391,7 +3459,7 @@ def sql_compiler_ai_help():
 
     schema_summary = "\n".join(
         f"- {t['table']} ({', '.join(c['name'] for c in t['columns'])})"
-        for t in _get_practice_schema_info()
+        for t in _get_practice_schema_info(current_user.id)
     )
 
     if mode == "explain":
