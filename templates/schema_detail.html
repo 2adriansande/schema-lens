@@ -140,8 +140,8 @@
             <i class="bi bi-exclamation-triangle"></i>
             <h4>No tables parsed</h4>
             <p>
-              {% if not current_user.gemini_key %}
-              <a href="{{ url_for('settings') }}" style="color:var(--primary-mid);font-weight:600;">Add a Gemini key</a> for better results.
+              {% if not ai_vision_available %}
+              AI-powered parsing is currently unavailable.
               {% else %}
               The OCR text may not contain recognizable tables.
               {% endif %}

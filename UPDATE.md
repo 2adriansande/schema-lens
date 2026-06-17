@@ -1,6 +1,6 @@
 # SchemaLens — AI-Powered Schema Extraction & SQL Learning Platform
 
-> **Version 2.0** — Secure Gemini backend integration, interactive SQL Compiler, isolated practice database.
+> **Version 2.1** — Secure Gemini backend integration (env-var only, no per-user keys), interactive SQL Compiler, isolated practice database.
 
 ---
 
@@ -30,12 +30,19 @@ SchemaLens is a Flask web application that helps students and developers:
 
 ---
 
+## What's New in v2.1
+
+### Backend-Only Gemini Key Management
+- The Gemini API key is loaded **exclusively** from the server-side `GEMINI_API_KEY` environment variable
+- The legacy per-user `gemini_key` database column and the Settings-page API key field have been removed entirely — users never see, enter, or manage an API key anywhere in the application
+- `_get_gemini_key()` is the single source of truth for the key on the backend
+- Rate limiting (1-second minimum between calls), structured logging, and model fallback chain unchanged
+
 ## What's New in v2.0
 
 ### Secure Gemini Backend Integration
 - The Gemini API key is loaded exclusively from **server-side environment variables**
 - The key is **never sent to the browser**, never appears in API responses, never exposed in developer tools
-- Clean `_get_effective_gemini_key()` service layer: server env key takes priority over per-user DB key
 - Rate limiting (1-second minimum between calls), structured logging, and model fallback chain
 
 ### SQL Compiler
@@ -72,9 +79,10 @@ Flask Application (app.py)
   +------------------+   +---------------------------+
   | Gemini Service   |   | SQL Compiler Service      |
   | _call_gemini()   |   | _execute_practice_sql()   |
-  | Rate limiting    |   | _get_practice_schema()    |
-  | Logging          |   | Isolated :memory: SQLite  |
-  | Fallback chain   |   | Security validation       |
+  | _get_gemini_key()|   | _get_practice_schema()    |
+  | Rate limiting    |   | Isolated :memory: SQLite  |
+  | Logging          |   | Security validation       |
+  | Fallback chain   |   |                            |
   +------------------+   +---------------------------+
          |
   Environment Variables (.env)
@@ -143,12 +151,11 @@ Restart Flask. The key is loaded at startup via python-dotenv.
 
 **NEVER** put the API key in any template, JS file, or API response.
 
-### Key Resolution Priority
+### Key Resolution
 ```
-_get_effective_gemini_key(user_key):
-  1. GEMINI_API_KEY env var  <- preferred (server-wide)
-  2. user.gemini_key (DB)    <- per-user fallback
-  3. Empty -> AI features return 503 with clear error
+_get_gemini_key():
+  1. GEMINI_API_KEY env var  <- the only source
+  2. Empty -> AI features return a generic "temporarily unavailable" message
 ```
 
 ### Rate Limiting & Logging
@@ -267,7 +274,8 @@ The practice database is seeded fresh for every query execution.
 - Never serialized in any JSON response
 - Never referenced in any JavaScript file
 - Never logged (key value is never printed)
-- Per-user keys in DB are fallback only; server key is always preferred
+- Never stored in the database or a user session
+- No UI input, form, or button anywhere lets a user submit, view, or edit an API key
 
 ### SQL Compiler Security
 - **Isolated execution**: every query runs in a fresh :memory: SQLite — completely separate from schemalens.db
@@ -322,11 +330,14 @@ The practice database is reset automatically with every query (each execution ge
 ```
 schema-lens-enhanced/
 ├── app.py                   # Main Flask application
-│   ├── Gemini service       #   _call_gemini(), _get_effective_gemini_key()
+│   ├── Gemini service       #   _call_gemini(), _get_gemini_key()
 │   ├── SQL Compiler routes  #   /sql-compiler, /api/sql-compiler/*
 │   └── Practice DB engine   #   _execute_practice_sql(), PRACTICE_DB_SCHEMA/SEED
 ├── .env.example             # Environment template (copy to .env)
 ├── .env                     # Your config (DO NOT commit to git)
+├── .gitignore                # Excludes .env, .env.local, .env.*, *.db, etc.
+├── migrations/
+│   └── remove_gemini_key_column.py  # Drops legacy per-user gemini_key column
 ├── requirements.txt         # Python dependencies
 ├── schemalens.db            # Application SQLite database
 ├── static/
@@ -335,7 +346,7 @@ schema-lens-enhanced/
 └── templates/
     ├── base.html            # Sidebar nav (includes SQL Compiler link)
     ├── sql_compiler.html    # SQL Compiler page (NEW in v2.0)
-    ├── settings.html        # Updated with Gemini key security notice
+    ├── settings.html        # No API key field — profile/password/account only
     └── ...other templates
 ```
 
@@ -343,7 +354,7 @@ schema-lens-enhanced/
 
 | Function | Purpose |
 |----------|---------|
-| _get_effective_gemini_key() | Resolves API key: env var > user DB |
+| _get_gemini_key() | Resolves the backend-only Gemini API key from GEMINI_API_KEY |
 | _call_gemini() | Gemini API with rate limiting, logging, model fallback |
 | _execute_practice_sql() | Runs SQL in isolated in-memory SQLite |
 | _get_practice_db() | Creates fresh seeded practice database connection |
@@ -356,6 +367,17 @@ schema-lens-enhanced/
 ---
 
 ## Changelog
+
+### v2.1
+- Removed the per-user `gemini_key` database column entirely
+- Removed the Gemini API Key input field, "Get free key" link, and key-visibility toggle from the Settings page
+- Removed all dashboard/query/schema-detail UI prompts asking users to "add a Gemini key"
+- Replaced `_get_effective_gemini_key(user_key)` with `_get_gemini_key()` — env var is now the only source
+- Added a `ai_vision_available` template flag (boolean only, never the key) so pages can show AI status without exposing configuration details
+- Generic, non-revealing error messages returned to users when the AI service is unavailable (no `.env` or variable names in user-facing text)
+- Added `migrations/remove_gemini_key_column.py` standalone migration and an automatic in-app migration to drop the legacy column from existing databases
+- Added `.gitignore` and `.env.example` to keep secrets out of version control
+- Updated Privacy Policy / Agreement copy on signup and agreement pages to describe server-managed AI processing instead of per-account key storage
 
 ### v2.0
 - Gemini API moved to secure server-side backend with .env configuration

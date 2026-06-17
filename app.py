@@ -99,7 +99,6 @@ class User(UserMixin, db.Model):
     password      = db.Column(db.String(256), nullable=True)  # nullable — Supabase owns credentials
     company       = db.Column(db.String(120), default="")
     role          = db.Column(db.String(80), default="")
-    gemini_key    = db.Column(db.String(256), default="")
     last_active   = db.Column(db.DateTime, nullable=True)
     streak_days   = db.Column(db.Integer, default=0)
     created_at    = db.Column(db.DateTime, default=datetime.datetime.utcnow)
@@ -199,6 +198,29 @@ def run_migrations():
                 conn.commit()
             except Exception:
                 pass  # Column already exists
+
+        # ── Drop legacy per-user Gemini API key column, if present ─────────
+        # The Gemini API key is now managed exclusively via the server-side
+        # GEMINI_API_KEY environment variable. Older databases may still have
+        # a `gemini_key` column from before this change — remove it so no
+        # API key material lingers in the database.
+        try:
+            conn.execute(text("ALTER TABLE users DROP COLUMN gemini_key"))
+            conn.commit()
+        except Exception:
+            pass  # Column already absent, or SQLite version doesn't support DROP COLUMN
+
+
+# ── Template Context ──────────────────────────────────────────────────────
+@app.context_processor
+def inject_ai_status():
+    """
+    Expose only a boolean flag indicating whether AI-powered (Gemini) features
+    are available — never the key itself, and never anything user-configurable.
+    Templates can use `ai_vision_available` to adjust messaging, but no
+    template should ever request or display an API key.
+    """
+    return {"ai_vision_available": bool(GEMINI_API_KEY.strip())}
 
 
 # ── Jinja Filters ──────────────────────────────────────────────────────────
@@ -690,22 +712,22 @@ MODELS = GEMINI_MODELS
 _gemini_last_call: float = 0.0
 _GEMINI_MIN_INTERVAL: float = 1.0  # seconds between calls
 
-def _get_effective_gemini_key(per_user_key: str = "") -> str:
+def _get_gemini_key() -> str:
     """
-    Return the best available Gemini API key.
-    Server-side env key is preferred; per-user key from DB is fallback.
-    NEVER expose this key to the frontend.
+    Return the backend-configured Gemini API key.
+
+    The key is managed exclusively via the GEMINI_API_KEY environment
+    variable, set by the developer/operator. It is never sourced from
+    user input, session data, or the database, and is never returned
+    to the frontend.
     """
-    server_key = GEMINI_API_KEY.strip()
-    if server_key:
-        return server_key
-    return (per_user_key or "").strip()
+    return GEMINI_API_KEY.strip()
 
 
 def _call_gemini(api_key: str, contents) -> str:
     """
     Call the Gemini API with rate limiting, logging, and error handling.
-    api_key: resolved by caller via _get_effective_gemini_key().
+    api_key: resolved by caller via _get_gemini_key().
     """
     global _gemini_last_call
 
@@ -1711,7 +1733,7 @@ def upload_schema():
     )
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(filepath)
-    api_key = _get_effective_gemini_key(current_user.gemini_key)
+    api_key = _get_gemini_key()
 
     # ── PARALLEL #1: OCR + Gemini Vision fire simultaneously ──────────────
     # Both are I/O-bound so they overlap cleanly; saves ~2-5s per upload.
@@ -1745,14 +1767,14 @@ def upload_schema():
         parsed   = parse_schema_fallback(ocr_text)
         if parsed.get("tables"):
             flash(
-                "No Gemini API key — used heuristic parser. "
-                "Add your key in Settings for AI-powered accuracy.",
+                "AI-powered parsing is currently unavailable — used the heuristic "
+                "parser instead. Review the detected tables for accuracy.",
                 "info"
             )
         else:
             flash(
-                "No Gemini API key and heuristic parser found no tables. "
-                "Please add tables manually on the confirmation page, or add a Gemini API key.",
+                "The heuristic parser found no tables in this image. "
+                "Please add tables manually on the confirmation page.",
                 "warning"
             )
     schema = SchemaUpload(
@@ -1883,7 +1905,6 @@ def generate_sql():
             if raw:
                 parsed = json.loads(raw)
 
-    api_key = _get_effective_gemini_key(current_user.gemini_key)
     sql = ""
     model_used = ""
 
@@ -1989,8 +2010,6 @@ def refine_sql():
             raw = schema_obj.confirmed_schema or schema_obj.parsed_schema
             if raw:
                 parsed = json.loads(raw)
-
-    api_key = _get_effective_gemini_key(current_user.gemini_key)
 
     if not check_ollama_active():
         return jsonify({"error": "Ollama is not running. Please start Ollama to use query refinement."}), 400
@@ -2158,7 +2177,6 @@ def settings():
             email   = request.form.get("email", "").strip().lower()
             company = request.form.get("company", "").strip()
             role    = request.form.get("role", "").strip()
-            key     = request.form.get("gemini_key", "").strip()
             existing = User.query.filter_by(email=email).first()
             if existing and existing.id != current_user.id:
                 flash("That email is already taken.", "error")
@@ -2167,7 +2185,6 @@ def settings():
                 current_user.email   = email
                 current_user.company = company
                 current_user.role    = role
-                current_user.gemini_key = key
                 db.session.commit()
                 flash("Profile updated successfully!", "success")
         elif action == "change_password":
@@ -2574,7 +2591,7 @@ def challenge_generate():
     if not tables:
         return jsonify({"error": "Schema has no tables. Please upload and confirm a schema first."}), 400
 
-    api_key = _get_effective_gemini_key(current_user.gemini_key)
+    api_key = _get_gemini_key()
 
     if api_key:
         prompt_nl, ref_sql = _generate_challenge_with_gemini(parsed, api_key, difficulty)
@@ -2610,7 +2627,7 @@ def challenge_submit():
     raw = schema_obj.confirmed_schema or schema_obj.parsed_schema if schema_obj else ""
     parsed = json.loads(raw) if raw else {}
 
-    api_key = _get_effective_gemini_key(current_user.gemini_key)
+    api_key = _get_gemini_key()
 
     # Grade the raw submission
     if api_key:
@@ -2910,7 +2927,7 @@ STATIC_PAGES = [
     ("Leaderboard", "/leaderboard", "bi-trophy",           "See how you rank against other users"),
     ("Badges",      "/badges",      "bi-award",            "Your earned achievement badges"),
     ("Learn",       "/learn",       "bi-book",             "Interactive SQL tutor and lessons"),
-    ("Settings",    "/settings",    "bi-sliders",          "Manage your account and API keys"),
+    ("Settings",    "/settings",    "bi-sliders",          "Manage your account and preferences"),
 ]
 
 
@@ -3303,10 +3320,10 @@ def learn_ask_tutor():
             pass
 
     # Fallback to Gemini if Ollama fails
-    if not answer and _get_effective_gemini_key(current_user.gemini_key):
+    if not answer and _get_gemini_key():
         try:
             answer = _call_gemini(
-                _get_effective_gemini_key(current_user.gemini_key),
+                _get_gemini_key(),
                 f"{system}\n\n{prompt}"
             )
         except Exception:
@@ -3316,8 +3333,8 @@ def learn_ask_tutor():
     if not answer:
         answer = (
             f"I'd love to explain '{question}'! "
-            "Please make sure Ollama is running or add a Gemini API key "
-            "in Settings for AI-powered explanations."
+            "AI explanations are temporarily unavailable — please make sure "
+            "Ollama is running, or try again in a moment."
         )
 
     return jsonify({"answer": answer})
@@ -3659,7 +3676,7 @@ def sql_compiler_ai_help():
     sql     = (data.get("sql") or "").strip()
     mode    = data.get("mode", "explain")  # explain | fix | generate
     context = (data.get("context") or "").strip()
-    api_key = _get_effective_gemini_key(current_user.gemini_key)
+    api_key = _get_gemini_key()
 
     schema_summary = "\n".join(
         f"- {t['table']} ({', '.join(c['name'] for c in t['columns'])})"
@@ -3674,14 +3691,15 @@ def sql_compiler_ai_help():
         prompt = f"Generate a SQL query for: {context}\n\nDatabase tables:\n{schema_summary}\n\nReturn only the SQL query, no explanation."
 
     if not api_key:
-        return jsonify({"error": "No Gemini API key configured. Set GEMINI_API_KEY in your .env file."}), 503
+        logger.error("SQL Compiler AI help requested but GEMINI_API_KEY is not configured.")
+        return jsonify({"error": "The AI assistant is temporarily unavailable. Please try again later."}), 503
 
     try:
         answer = _call_gemini(api_key, prompt)
         return jsonify({"answer": answer})
     except Exception as e:
         logger.error("SQL Compiler AI help error: %s", e)
-        return jsonify({"error": f"AI service unavailable: {e}"}), 503
+        return jsonify({"error": "The AI assistant is temporarily unavailable. Please try again later."}), 503
 
 
 # ── Init ───────────────────────────────────────────────────────────────────

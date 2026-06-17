@@ -638,13 +638,6 @@
         </ul>
       </div>
 
-      {% if not current_user.gemini_key %}
-      <div style="background:rgba(254,243,199,0.7);backdrop-filter:blur(8px);border:1px solid rgba(180,83,9,0.15);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
-        <div style="font-size:13px;font-weight:700;color:#78350f;margin-bottom:5px;"><i class="bi bi-key-fill"></i> Add Gemini API Key</div>
-        <div style="font-size:12.5px;color:#92400e;line-height:1.55;">Required for <strong>image-based schema parsing</strong>. SQL generation uses local Ollama. <a href="{{ url_for('settings') }}" style="color:var(--primary);font-weight:700;">Settings →</a></div>
-      </div>
-      {% endif %}
-
       <div id="ollamaInfoCard" style="display:none;background:rgba(236,253,245,0.7);backdrop-filter:blur(8px);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);padding:16px 18px;" class="fade-in">
         <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:5px;"><i class="bi bi-cpu-fill"></i> Ollama Active</div>
         <div style="font-size:12.5px;color:#047857;line-height:1.55;">SQL generation is powered by <strong>llama3.2:3b</strong> running locally.</div>

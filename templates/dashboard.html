@@ -11,14 +11,13 @@
   <p>Track your stats, read tutorials, or take on structural schema challenges.</p>
 </div>
 
-{% if not current_user.gemini_key %}
+{% if not ai_vision_available %}
 <div class="api-banner fade-in">
-  <div class="api-banner-icon"><i class="bi bi-stars"></i></div>
+  <div class="api-banner-icon"><i class="bi bi-cpu"></i></div>
   <div>
-    <h4>Unlock Intelligent Parsing</h4>
-    <p>Provide a Gemini API Key to let AI interpret complex relational image layouts automatically.</p>
+    <h4>Heuristic Parsing Mode</h4>
+    <p>AI-powered image parsing is currently unavailable, so schema uploads use the built-in heuristic parser instead.</p>
   </div>
-  <a href="{{ url_for('settings') }}" class="api-banner-btn">Configure →</a>
 </div>
 {% endif %}
 
@@ -74,7 +73,7 @@
   <div class="stat-card">
     <a href="{{ url_for('settings') }}" style="text-decoration:none; color:inherit;">
       <div class="stat-card-top" style="gap:8px; flex-wrap:wrap;">
-        <div class="stat-card-icon {% if current_user.gemini_key %}teal{% else %}light{% endif %}"><i class="bi bi-cpu"></i></div>
+        <div class="stat-card-icon {% if ai_vision_available %}teal{% else %}light{% endif %}"><i class="bi bi-cpu"></i></div>
         <div style="display:flex;align-items:center;gap:6px;">
           <span class="ollama-status-badge ollama-badge ollama-checking" title="Checking status…">
             <span class="ollama-dot"></span>
@@ -84,7 +83,7 @@
       </div>
       <div class="stat-label">AI Engine Status</div>
       <div class="stat-value" style="font-size:18px; padding-top:4px;">
-        {% if current_user.gemini_key %}<span style="color:#0e7c5a; font-weight:700;">Gemini Active</span>{% else %}<span style="color:var(--text-soft);">No Key Set</span>{% endif %}
+        {% if ai_vision_available %}<span style="color:#0e7c5a; font-weight:700;">AI Vision Active</span>{% else %}<span style="color:var(--text-soft);">AI Vision Offline</span>{% endif %}
       </div>
     </a>
   </div>
