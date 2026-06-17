@@ -20,8 +20,16 @@ from flask import (Flask, render_template, request, redirect, url_for,
 from flask_login import (LoginManager, UserMixin, login_user, logout_user,
                           login_required, current_user)
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+
+# ── Supabase Auth ──────────────────────────────────────────────────────────
+try:
+    from supabase import create_client, Client as SupabaseClient
+    _SUPABASE_AVAILABLE = True
+except ImportError:
+    _SUPABASE_AVAILABLE = False
+    logger_pre = logging.getLogger("schemalens")
+    logger_pre.warning("supabase-py not installed. Run: pip install supabase")
 from sqlalchemy import text
 import urllib.request
 
@@ -46,6 +54,29 @@ OLLAMA_MODEL    = "llama3.2:3b"
 GEMINI_API_KEY  = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODELS   = ["gemini-2.5-flash", "gemini-3.0-flash"]
 
+# ── Supabase Configuration ─────────────────────────────────────────────────
+SUPABASE_URL      = os.environ.get("SUPABASE_URL", "").strip()
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "").strip()
+
+supabase = None
+_supabase_init_error = None
+
+if not _SUPABASE_AVAILABLE:
+    _supabase_init_error = "supabase-py package is not installed (pip install supabase)"
+elif not SUPABASE_URL or not SUPABASE_ANON_KEY:
+    _supabase_init_error = "SUPABASE_URL and/or SUPABASE_ANON_KEY missing from environment/.env"
+else:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    except Exception as _e:
+        _supabase_init_error = f"create_client() failed: {_e}"
+
+if _supabase_init_error:
+    # Use print as well since this runs before logging is configured
+    print(f"[SchemaLens] WARNING: Supabase auth disabled — {_supabase_init_error}")
+else:
+    print(f"[SchemaLens] Supabase auth ENABLED — project: {SUPABASE_URL}")
+
 # ── Logging ────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -61,17 +92,18 @@ login_manager.login_message_category = "info"
 # ── Models ─────────────────────────────────────────────────────────────────
 class User(UserMixin, db.Model):
     __tablename__ = "users"
-    id           = db.Column(db.Integer, primary_key=True)
-    name         = db.Column(db.String(120), nullable=False)
-    email        = db.Column(db.String(200), unique=True, nullable=False)
-    password     = db.Column(db.String(256), nullable=False)
-    company      = db.Column(db.String(120), default="")
-    role         = db.Column(db.String(80), default="")
-    gemini_key   = db.Column(db.String(256), default="")
+    id            = db.Column(db.Integer, primary_key=True)
+    supabase_uid  = db.Column(db.String(256), unique=True, nullable=True)  # Supabase Auth UID
+    name          = db.Column(db.String(120), nullable=False)
+    email         = db.Column(db.String(200), unique=True, nullable=False)
+    password      = db.Column(db.String(256), nullable=True)  # nullable — Supabase owns credentials
+    company       = db.Column(db.String(120), default="")
+    role          = db.Column(db.String(80), default="")
+    gemini_key    = db.Column(db.String(256), default="")
     last_active   = db.Column(db.DateTime, nullable=True)
-    streak_days  = db.Column(db.Integer, default=0)
-    created_at   = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    agreement_accepted = db.Column(db.Boolean, default=False)
+    streak_days   = db.Column(db.Integer, default=0)
+    created_at    = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    agreement_accepted    = db.Column(db.Boolean, default=False)
     agreement_accepted_at = db.Column(db.DateTime, nullable=True)
     schemas      = db.relationship("SchemaUpload", backref="owner", lazy=True,
                                    cascade="all, delete-orphan")
@@ -118,6 +150,32 @@ class QueryHistory(db.Model):
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
+
+def _sync_user_from_supabase(local_user, sb_user):
+    """
+    Make Supabase the source of truth for identity fields (name, email).
+    Updates the local row in place if Supabase has different/newer values.
+    Does not touch app-data fields (schemas, queries, badges, etc.) — those
+    only ever live in SQLite.
+    """
+    changed = False
+
+    sb_email = getattr(sb_user, "email", None)
+    if sb_email and local_user.email != sb_email:
+        local_user.email = sb_email
+        changed = True
+
+    sb_metadata = getattr(sb_user, "user_metadata", None) or {}
+    sb_name = sb_metadata.get("name")
+    if sb_name and local_user.name != sb_name:
+        local_user.name = sb_name
+        changed = True
+
+    if changed:
+        db.session.commit()
+    return local_user
+
+
 # ── DB Migration: add new columns if missing ───────────────────────────────
 def run_migrations():
     """Add new columns to existing tables without destroying data."""
@@ -133,6 +191,7 @@ def run_migrations():
             ("query_history", "accuracy_notes", "TEXT DEFAULT ''"),
             ("query_history", "conversation_context", "TEXT DEFAULT ''"),
             ("challenge_attempts", "difficulty", "TEXT DEFAULT 'easy'"),
+            ("users", "supabase_uid", "TEXT"),  # Supabase Auth UID
         ]
         for table, column, col_type in migrations:
             try:
@@ -1434,13 +1493,72 @@ def signup():
             flash("Passwords do not match.", "error")
             return redirect(url_for("signup"))
 
-        # 5. Unique email
+        # ── Supabase Auth path ─────────────────────────────────────────────
+        if supabase:
+            logger.info(f"[signup] Using SUPABASE auth path for {email}")
+
+            # Only block signup if a local row is ACTUALLY linked to a real
+            # Supabase account. A local row with no supabase_uid is an
+            # orphan (stale/failed signup, or pre-Supabase test data) — it
+            # has no real account, so we clean it up and let Supabase be
+            # the actual source of truth for "is this email taken".
+            existing = User.query.filter_by(email=email).first()
+            if existing and existing.supabase_uid:
+                flash("Email already registered.", "error")
+                return redirect(url_for("signup"))
+            elif existing and not existing.supabase_uid:
+                logger.warning(
+                    f"[signup] Removing orphaned local-only row for {email} "
+                    f"(no supabase_uid) before retrying signup"
+                )
+                db.session.delete(existing)
+                db.session.commit()
+
+            try:
+                res = supabase.auth.sign_up({
+                    "email": email,
+                    "password": password,
+                    "options": {"data": {"name": name}},
+                })
+                sb_user = res.user
+                if not sb_user:
+                    flash("Registration failed. Please try again.", "error")
+                    return redirect(url_for("signup"))
+
+                now  = datetime.datetime.utcnow()
+                user = User(
+                    supabase_uid=sb_user.id,
+                    name=name,
+                    email=email,
+                    agreement_accepted=True,
+                    agreement_accepted_at=now,
+                )
+                db.session.add(user)
+                db.session.commit()
+                login_user(user, remember=False)
+                flash("Welcome to SchemaLens! Check your email to confirm your account.", "success")
+                return redirect(url_for("dashboard"))
+            except Exception as e:
+                logger.error(f"Supabase signup error: {e}")
+                # Surface a readable message if Supabase returns one
+                msg = str(e)
+                if "already registered" in msg.lower() or "already exists" in msg.lower():
+                    flash("Email already registered.", "error")
+                else:
+                    flash(f"Registration error: {msg}", "error")
+                return redirect(url_for("signup"))
+
+        # ── Fallback: local auth (no Supabase configured) ──────────────────
+        logger.warning(
+            f"[signup] Using LOCAL SQLITE fallback for {email} "
+            f"(supabase client inactive — reason: {_supabase_init_error})"
+        )
+        from werkzeug.security import generate_password_hash
         if User.query.filter_by(email=email).first():
             flash("Email already registered.", "error")
             return redirect(url_for("signup"))
 
-        # Create account and record agreement acceptance
-        now = datetime.datetime.utcnow()
+        now  = datetime.datetime.utcnow()
         user = User(
             name=name,
             email=email,
@@ -1450,12 +1568,24 @@ def signup():
         )
         db.session.add(user)
         db.session.commit()
-
-        # Auto-login immediately after registration
         login_user(user, remember=False)
         flash("Welcome to SchemaLens! Your account has been created.", "success")
         return redirect(url_for("dashboard"))
     return render_template("signup.html")
+
+
+@app.route("/debug/auth-status")
+def debug_auth_status():
+    """Diagnostic endpoint — check whether Supabase auth is actually active."""
+    return jsonify({
+        "supabase_available_package": _SUPABASE_AVAILABLE,
+        "supabase_url_set": bool(SUPABASE_URL),
+        "supabase_url_value": SUPABASE_URL if SUPABASE_URL else None,
+        "supabase_anon_key_set": bool(SUPABASE_ANON_KEY),
+        "supabase_client_active": supabase is not None,
+        "init_error": _supabase_init_error,
+        "auth_mode": "SUPABASE" if supabase else "LOCAL_SQLITE_FALLBACK",
+    })
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -1466,8 +1596,54 @@ def login():
         email    = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         remember = bool(request.form.get("remember"))
+
+        # ── Supabase Auth path ─────────────────────────────────────────────
+        if supabase:
+            try:
+                res     = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                sb_user = res.user
+                if not sb_user:
+                    flash("Invalid email or password.", "error")
+                    return render_template("login.html")
+
+                # Find local user by supabase_uid, fall back to email (migration)
+                user = User.query.filter_by(supabase_uid=sb_user.id).first()
+                if not user:
+                    user = User.query.filter_by(email=email).first()
+                    if user:
+                        # Migrate existing local account → link supabase_uid
+                        user.supabase_uid = sb_user.id
+                        db.session.commit()
+                    else:
+                        # No local row at all — create one from Supabase data.
+                        # Supabase is the real source of truth for "does this
+                        # user exist"; the local row only stores app-specific
+                        # data (schemas, queries, badges, etc.).
+                        sb_metadata = getattr(sb_user, "user_metadata", None) or {}
+                        user = User(
+                            supabase_uid=sb_user.id,
+                            name=sb_metadata.get("name") or email.split("@")[0],
+                            email=sb_user.email or email,
+                            agreement_accepted=True,
+                            agreement_accepted_at=datetime.datetime.utcnow(),
+                        )
+                        db.session.add(user)
+                        db.session.commit()
+
+                # Supabase is the source of truth for name/email — sync them in
+                user = _sync_user_from_supabase(user, sb_user)
+
+                login_user(user, remember=remember)
+                return redirect(request.args.get("next") or url_for("dashboard"))
+            except Exception as e:
+                logger.error(f"Supabase login error: {e}")
+                flash("Invalid email or password.", "error")
+            return render_template("login.html")
+
+        # ── Fallback: local auth (no Supabase configured) ──────────────────
+        from werkzeug.security import check_password_hash
         user = User.query.filter_by(email=email).first()
-        if user and check_password_hash(user.password, password):
+        if user and user.password and check_password_hash(user.password, password):
             login_user(user, remember=remember)
             return redirect(request.args.get("next") or url_for("dashboard"))
         flash("Invalid email or password.", "error")
@@ -1477,6 +1653,11 @@ def login():
 @app.route("/logout")
 @login_required
 def logout():
+    if supabase:
+        try:
+            supabase.auth.sign_out()
+        except Exception:
+            pass
     logout_user()
     flash("Logged out successfully.", "success")
     return redirect(url_for("login"))
@@ -1993,16 +2174,31 @@ def settings():
             current_pw = request.form.get("current_password", "")
             new_pw     = request.form.get("new_password", "")
             confirm_pw = request.form.get("confirm_password", "")
-            if not check_password_hash(current_user.password, current_pw):
-                flash("Current password is incorrect.", "error")
-            elif new_pw != confirm_pw:
+            if new_pw != confirm_pw:
                 flash("New passwords do not match.", "error")
             elif len(new_pw) < 6:
                 flash("Password must be at least 6 characters.", "error")
             else:
-                current_user.password = generate_password_hash(new_pw, method="scrypt")
-                db.session.commit()
-                flash("Password changed successfully!", "success")
+                if supabase:
+                    # Re-authenticate to verify current password, then update
+                    try:
+                        supabase.auth.sign_in_with_password({
+                            "email": current_user.email,
+                            "password": current_pw,
+                        })
+                        supabase.auth.update_user({"password": new_pw})
+                        flash("Password changed successfully!", "success")
+                    except Exception as e:
+                        logger.error(f"Supabase password change error: {e}")
+                        flash("Current password is incorrect.", "error")
+                else:
+                    from werkzeug.security import check_password_hash, generate_password_hash
+                    if not current_user.password or not check_password_hash(current_user.password, current_pw):
+                        flash("Current password is incorrect.", "error")
+                    else:
+                        current_user.password = generate_password_hash(new_pw, method="scrypt")
+                        db.session.commit()
+                        flash("Password changed successfully!", "success")
         elif action == "delete_account":
             db.session.delete(current_user)
             db.session.commit()
