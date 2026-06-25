@@ -2,69 +2,7 @@
 {% block title %}Settings — SchemaLens{% endblock %}
 
 {% block head %}
-<style>
-.page-head { margin-bottom: 26px; }
-.page-head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 5px; }
-.page-head p  { font-size: 14px; color: var(--text-soft); }
-
-.settings-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
-.form-section { margin-bottom: 24px; }
-.form-section-title {
-  font-size: 11px; font-weight: 700; color: var(--text-soft);
-  text-transform: uppercase; letter-spacing: .09em;
-  margin-bottom: 16px; padding-bottom: 9px;
-  border-bottom: 1px solid var(--border);
-}
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-.form-group { margin-bottom: 15px; }
-
-.profile-card {
-  background: var(--card-bg); backdrop-filter: blur(12px);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  overflow: hidden; margin-bottom: 16px; box-shadow: var(--shadow);
-}
-.profile-banner {
-  height: 84px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-mid), var(--primary-light));
-}
-.profile-content { padding: 0 22px 22px; }
-.profile-avatar {
-  width: 58px; height: 58px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 21px; font-weight: 700; color: var(--primary-xlight);
-  border: 3px solid rgba(255,255,255,0.9);
-  margin-top: -29px; margin-bottom: 11px;
-  box-shadow: 0 4px 12px rgba(25,24,59,0.15);
-}
-.profile-name  { font-size: 17px; font-weight: 700; }
-.profile-email { font-size: 13px; color: var(--text-soft); margin-top: 2px; }
-.profile-meta  { margin-top: 16px; display:flex; flex-direction:column; gap:9px; }
-.profile-meta-row { display:flex; align-items:center; gap:9px; font-size:13px; color:var(--text-soft); }
-.profile-meta-row i { color: var(--primary-mid); font-size: 14px; }
-
-.danger-zone {
-  background: rgba(254,226,226,0.5); backdrop-filter: blur(8px);
-  border: 1px solid rgba(153,27,27,0.15); border-radius: var(--radius); padding: 22px;
-}
-.danger-zone h4 { font-size: 14px; font-weight: 700; color: var(--danger); margin-bottom: 7px; }
-.danger-zone p  { font-size: 13px; color: var(--text-soft); margin-bottom: 16px; line-height: 1.55; }
-
-/* Nav sidebar */
-.settings-nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; border-radius: var(--radius-sm);
-  font-size: 14px; font-weight: 500; cursor: pointer;
-  transition: all .2s; margin-bottom: 3px; color: var(--text-soft);
-  border: none; background: none; width: 100%; text-align: left;
-}
-.settings-nav-item:hover { background: rgba(255,255,255,0.8); color: var(--text); }
-.settings-nav-item.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
-  color: var(--primary-xlight);
-  box-shadow: 0 4px 14px rgba(25,24,59,0.18);
-}
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
 {% endblock %}
 
 {% block content %}

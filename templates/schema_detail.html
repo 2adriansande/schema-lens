@@ -2,37 +2,7 @@
 {% block title %}{{ schema.schema_name or schema.original_name }} — SchemaLens{% endblock %}
 
 {% block head %}
-<style>
-.detail-header { margin-bottom: 26px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
-.detail-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 5px; }
-.detail-header p  { font-size: 13px; color: var(--text-soft); font-family: var(--mono); }
-.detail-grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
-.table-chip { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 11px; }
-.table-chip-head {
-  background: var(--primary); color: var(--primary-xlight);
-  padding: 10px 15px; font-size: 12.5px; font-weight: 700;
-  display: flex; align-items: center; gap: 7px; font-family: var(--mono);
-}
-.table-chip-head i { font-size: 11px; opacity: .6; }
-.col-row {
-  padding: 8px 15px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 8px; font-size: 12px;
-  background: rgba(255,255,255,0.5);
-}
-.col-row:last-child { border-bottom: none; }
-.col-name { font-family: var(--mono); font-weight: 500; flex: 1; }
-.col-type { font-family: var(--mono); font-size: 11px; color: var(--text-xs); }
-.col-pk   { font-size: 10px; color: var(--warning); }
-.rel-row { display: flex; align-items: center; gap: 9px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; font-family: var(--mono); }
-.rel-row:last-child { border-bottom: none; }
-.rel-from { font-weight: 600; }
-.rel-arrow { color: var(--primary-mid); font-size: 14px; }
-.qh-item { padding: 13px 0; border-bottom: 1px solid var(--border); }
-.qh-item:last-child { border-bottom: none; }
-.qh-q { font-size: 13.5px; font-weight: 500; margin-bottom: 7px; }
-.qh-sql-mini { font-family: var(--mono); font-size: 11px; background: var(--primary); color: var(--primary-light); border-radius: 7px; padding: 8px 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 6px; }
-.confirmed-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 100px; background: rgba(16,185,129,0.1); color: #059669; font-size: 12px; font-weight: 600; border: 1px solid rgba(16,185,129,0.2); margin-top: 6px; }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/schema_detail.css') }}">
 {% endblock %}
 
 {% block content %}
